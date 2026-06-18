@@ -1,0 +1,26 @@
+# Supabase project config. Link with: supabase link --project-ref uksbvlkhcyhnpfamducc
+project_id = "uksbvlkhcyhnpfamducc"
+
+[functions.hello]
+verify_jwt = false
+
+[functions.chat-turn]
+verify_jwt = true
+
+[functions.effort-gate]
+verify_jwt = true
+
+[functions.evaluate]
+verify_jwt = true
+
+[functions.evaluate-rubric]
+verify_jwt = true
+
+[functions.evaluate-speaking]
+verify_jwt = true
+
+[functions.guide]
+verify_jwt = true
+
+[functions.diagnose]
+verify_jwt = true

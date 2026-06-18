@@ -1,0 +1,32 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+.open-next/
+.turbo/
+dist/
+out/
+build/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.wrangler/
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# google drive office lock files
+~$*
