@@ -1,11 +1,11 @@
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-
-// Makes Cloudflare bindings available in `next dev`.
-initOpenNextCloudflareForDev();
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Static export → deployed to Cloudflare Workers Static Assets (free plan).
+  // All dynamic logic lives in Supabase Edge Functions + client-side Supabase JS.
+  output: "export",
   reactStrictMode: true,
+  trailingSlash: true,
+  images: { unoptimized: true },
   transpilePackages: ["@tutor/shared"],
 };
 

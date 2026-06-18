@@ -2,13 +2,16 @@
 
 Multi-subject, multi-tenant adaptive AI tutoring platform. Pilot: **Toán 9–10** (objective + CAS + Socratic) and **Tiếng Anh** (objective MCQ + rubric writing + speaking). Built per PRD v4.0.
 
-## Stack
-- **Frontend:** Next.js (App Router, RSC) → Cloudflare Worker via `@opennextjs/cloudflare`
+## Stack (free pilot — $0)
+- **Frontend:** Next.js (App Router) **static export** → Cloudflare Workers Static Assets (free plan)
 - **Chat serving:** Supabase Edge Functions (Deno) — `chat-turn`, `effort-gate`, `evaluate`, `evaluate-rubric`, `evaluate-speaking`, `guide`, `diagnose`
-- **Async:** n8n (`n8n.truongvietanh.com`)
-- **Data:** Supabase Postgres + pgvector + Storage + RLS; Drizzle ORM (+ raw SQL for KG core)
+- **Async:** n8n (`n8n.truongvietanh.com`, self-hosted)
+- **Data:** Supabase Postgres + pgvector + Storage + RLS (free tier); Drizzle ORM (+ raw SQL for KG core)
 - **CAS:** mathjs / nerdamer (JS) for the Toán pilot
-- **LLM Gateway:** provider-agnostic router (Claude default) — the only place provider/keys appear
+- **Speaking:** browser Web Speech API (pilot) → Azure Speech F0 free tier when phoneme scoring is needed
+- **LLM Gateway:** provider-agnostic router — **OpenRouter free models** default (Claude adapter kept for later). The only place provider/keys appear.
+
+> Secrets live in Supabase Edge Function secrets (`supabase secrets set …`) and local `.env` only — never in the public frontend or git.
 
 ## Monorepo layout
 ```

@@ -1,16 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tutor",
-  "main": ".open-next/worker.js",
   "compatibility_date": "2025-03-01",
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Static-assets-only Worker (no server script) → free Workers plan.
+  // `next build` with output:"export" emits ./out.
   "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "directory": "./out",
+    "not_found_handling": "single-page-application"
   },
   "observability": {
     "enabled": true
   }
-  // Secrets (set via `wrangler secret put`): SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, ...
-  // Vars and bindings (R2 cache, KV) added at M4 when RSC/ISR is enabled.
 }
