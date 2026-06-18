@@ -1,0 +1,35 @@
+/**
+ * Apply the raw-SQL layers (KG-core + RLS) after `drizzle-kit push`.
+ * Run: pnpm --filter @tutor/db apply
+ * (needs DATABASE_URL; e.g. node --env-file=../../.env --import tsx src/apply-sql.ts)
+ */
+import postgres from "postgres";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const url = process.env.DATABASE_URL;
+if (!url) {
+  console.error("✗ DATABASE_URL not set.");
+  process.exit(1);
+}
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pkgRoot = join(here, "..");
+const files = ["kg-core.sql", "rls.sql"];
+
+const sql = postgres(url, { prepare: false, max: 1 });
+try {
+  for (const f of files) {
+    const text = readFileSync(join(pkgRoot, f), "utf8");
+    process.stdout.write(`applying ${f} ... `);
+    await sql.unsafe(text);
+    console.log("ok");
+  }
+  console.log("✓ KG-core + RLS applied");
+} catch (err) {
+  console.error("\n✗ failed:", err instanceof Error ? err.message : err);
+  process.exitCode = 1;
+} finally {
+  await sql.end();
+}

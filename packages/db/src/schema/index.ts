@@ -1,15 +1,9 @@
 /**
- * Drizzle schema (app tables). KG-core tables live in raw SQL (kg-core.sql).
- * M0: tenant anchor only, to prove the migration pipeline. Full slice schema → M1.
+ * Drizzle schema barrel (app tables). KG-core tables (kg_versions, kg_nodes,
+ * kg_edges, kg_tiers, resources, questions, socratic_ladders) are managed in
+ * raw SQL — see kg-core.sql — and are not declared here.
  */
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
-
-export const tenants = pgTable("tenants", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
-
-export type Tenant = typeof tenants.$inferSelect;
-export type NewTenant = typeof tenants.$inferInsert;
+export * from "./tenancy.js";
+export * from "./learning.js";
+export * from "./governance.js";
+export * from "./gateway.js";

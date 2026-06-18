@@ -1,4 +1,8 @@
 import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv";
+
+// Load the repo-root .env so `drizzle-kit push/generate` sees DATABASE_URL.
+config({ path: "../../.env" });
 
 export default defineConfig({
   schema: "./src/schema/index.ts",

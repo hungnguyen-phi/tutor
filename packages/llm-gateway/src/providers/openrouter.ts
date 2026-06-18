@@ -8,15 +8,28 @@
  */
 import type { LlmProvider, LlmRequest, LlmResponse, ModelTier } from "../types.js";
 
-const FREE_MODELS: Record<ModelTier, string> = {
-  cheap: "meta-llama/llama-3.3-70b-instruct:free",
-  default: "google/gemini-2.0-flash-exp:free",
-  strong: "deepseek/deepseek-r1:free",
+// Selected models (Trường Việt Anh). glm-5.2 is primary; the others form an
+// ordered fallback chain via OpenRouter's `models` array (auto-failover).
+// NOTE: verify exact slugs on https://openrouter.ai/models — override via env/options
+// if a slug differs (esp. DeepSeek V4 Flash).
+const DEFAULT_MODELS: Record<ModelTier, string> = {
+  cheap: "deepseek/deepseek-v4-flash",
+  default: "z-ai/glm-5.2",
+  strong: "qwen/qwen3.7-plus",
 };
+
+/** Ordered fallback chain (primary first) — passed to OpenRouter for auto-failover. */
+const DEFAULT_FALLBACK: string[] = [
+  "z-ai/glm-5.2",
+  "deepseek/deepseek-v4-flash",
+  "qwen/qwen3.7-plus",
+];
 
 export interface OpenRouterOptions {
   apiKey: string;
   models?: Partial<Record<ModelTier, string>>;
+  /** Ordered fallback chain; if set, sent as OpenRouter `models` for auto-failover. */
+  fallback?: string[];
   /** Optional attribution headers (recommended by OpenRouter). */
   referer?: string;
   title?: string;
@@ -33,11 +46,13 @@ interface OpenRouterResponse {
 export class OpenRouterProvider implements LlmProvider {
   readonly name = "openrouter";
   private models: Record<ModelTier, string>;
+  private fallback: string[];
   private baseUrl: string;
 
   constructor(private opts: OpenRouterOptions) {
     if (!opts.apiKey) throw new Error("OpenRouterProvider: missing OPENROUTER_API_KEY");
-    this.models = { ...FREE_MODELS, ...(opts.models ?? {}) };
+    this.models = { ...DEFAULT_MODELS, ...(opts.models ?? {}) };
+    this.fallback = opts.fallback ?? DEFAULT_FALLBACK;
     this.baseUrl = opts.baseUrl ?? "https://openrouter.ai/api/v1";
   }
 
@@ -53,11 +68,16 @@ export class OpenRouterProvider implements LlmProvider {
     if (this.opts.referer) headers["HTTP-Referer"] = this.opts.referer;
     if (this.opts.title) headers["X-Title"] = this.opts.title;
 
+    // Build an ordered model list (primary first) so OpenRouter auto-fails-over.
+    const modelList = [model, ...this.fallback].filter(
+      (m, i, arr) => arr.indexOf(m) === i,
+    );
+
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        model,
+        models: modelList,
         messages: req.messages.map((m) => ({ role: m.role, content: m.content })),
         max_tokens: req.maxTokens ?? 1024,
         temperature: req.temperature ?? 0.3,
