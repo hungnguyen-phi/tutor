@@ -9,7 +9,7 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
-import { tenants, profiles } from "./tenancy.js";
+import { tenants, profiles } from "./tenancy";
 
 export const reviewStatusEnum = pgEnum("review_status", [
   "pending",

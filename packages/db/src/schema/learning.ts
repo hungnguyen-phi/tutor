@@ -17,7 +17,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
-import { tenants, profiles } from "./tenancy.js";
+import { tenants, profiles } from "./tenancy";
 
 export const sessionStatusEnum = pgEnum("session_status", ["active", "ended"]);
 export const turnRoleEnum = pgEnum("turn_role", [

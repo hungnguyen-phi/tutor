@@ -3,7 +3,7 @@
  * kg_edges, kg_tiers, resources, questions, socratic_ladders) are managed in
  * raw SQL — see kg-core.sql — and are not declared here.
  */
-export * from "./tenancy.js";
-export * from "./learning.js";
-export * from "./governance.js";
-export * from "./gateway.js";
+export * from "./tenancy";
+export * from "./learning";
+export * from "./governance";
+export * from "./gateway";

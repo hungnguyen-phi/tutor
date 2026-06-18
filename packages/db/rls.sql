@@ -24,9 +24,9 @@ create or replace function public.is_staff()
   select public.current_role() in ('teacher','admin','leadership')
 $$;
 
--- ── Enable RLS everywhere ───────────────────────────────────────────────────────
+-- ── Enable RLS everywhere + drop existing policies (idempotent re-run) ───────────
 do $$
-declare t text;
+declare t text; p record;
 begin
   foreach t in array array[
     'tenants','profiles','guardian_links','consent_records',
@@ -37,6 +37,10 @@ begin
   ]
   loop
     execute format('alter table public.%I enable row level security;', t);
+    for p in select policyname from pg_policies where schemaname = 'public' and tablename = t
+    loop
+      execute format('drop policy if exists %I on public.%I;', p.policyname, t);
+    end loop;
   end loop;
 end $$;
 
@@ -98,11 +102,11 @@ create policy review_staff_write on public.review_queue for update to authentica
 create policy safety_staff_read on public.safety_events for select to authenticated
   using (tenant_id = public.current_tenant_id() and public.is_staff());
 
--- ── KG content: any tenant member reads; students only see active content ───────
+-- ── KG content with a `status` col: staff see all, students only `active` ───────
 do $$
 declare t text;
 begin
-  foreach t in array array['kg_nodes','kg_tiers','resources','socratic_ladders']
+  foreach t in array array['kg_nodes','resources','socratic_ladders']
   loop
     execute format($f$
       create policy %1$s_read on public.%1$s for select to authenticated
@@ -116,9 +120,12 @@ create policy questions_read on public.questions for select to authenticated
   using (tenant_id = public.current_tenant_id()
          and (public.is_staff() or trang_thai = 'active'));
 
+-- KG metadata without a status gate: any tenant member may read.
 create policy kg_versions_read on public.kg_versions for select to authenticated
   using (tenant_id = public.current_tenant_id());
 create policy kg_edges_read on public.kg_edges for select to authenticated
+  using (tenant_id = public.current_tenant_id());
+create policy kg_tiers_read on public.kg_tiers for select to authenticated
   using (tenant_id = public.current_tenant_id());
 
 -- token_usage / llm_cache: no client access (service_role only) → RLS on, no policy.

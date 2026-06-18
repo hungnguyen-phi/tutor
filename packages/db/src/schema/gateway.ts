@@ -9,7 +9,7 @@ import {
   date,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { tenants, profiles } from "./tenancy.js";
+import { tenants, profiles } from "./tenancy";
 
 /** Per-student/day token spend — backs TokenBudget (budget cap < $500/mo MVP). */
 export const tokenUsage = pgTable(

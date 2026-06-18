@@ -8,9 +8,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+const rawPassword = process.env.SUPABASE_DB_PASSWORD;
+const projectRef = process.env.SUPABASE_PROJECT_REF ?? "uksbvlkhcyhnpfamducc";
 const url = process.env.DATABASE_URL;
-if (!url) {
-  console.error("✗ DATABASE_URL not set.");
+
+if (!rawPassword && !url) {
+  console.error("✗ Set SUPABASE_DB_PASSWORD (raw) or DATABASE_URL.");
   process.exit(1);
 }
 
@@ -18,7 +21,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, "..");
 const files = ["kg-core.sql", "rls.sql"];
 
-const sql = postgres(url, { prepare: false, max: 1 });
+// Discrete credentials (raw password, no URL-encoding) when available.
+const sql = rawPassword
+  ? postgres({
+      host: process.env.SUPABASE_DB_HOST ?? `db.${projectRef}.supabase.co`,
+      port: Number(process.env.SUPABASE_DB_PORT ?? 5432),
+      user: process.env.SUPABASE_DB_USER ?? "postgres",
+      password: rawPassword,
+      database: "postgres",
+      ssl: "require",
+      prepare: false,
+      max: 1,
+    })
+  : postgres(url!, { prepare: false, max: 1 });
 try {
   for (const f of files) {
     const text = readFileSync(join(pkgRoot, f), "utf8");
