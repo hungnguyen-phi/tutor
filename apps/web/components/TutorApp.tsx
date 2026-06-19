@@ -331,65 +331,110 @@ function kindLabel(k: string): string {
   return k === "writing" ? "Viết" : k === "speaking" ? "Nói" : k === "rubric" ? "Tự luận" : "Trắc nghiệm";
 }
 
+interface SR {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
+  onerror: (e: { error: string }) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+}
+
+const ERR_VI: Record<string, string> = {
+  "not-allowed": "Trình duyệt chặn micro. Bấm vào biểu tượng micro trên thanh địa chỉ để Cho phép, rồi thử lại.",
+  "service-not-allowed": "Trình duyệt chặn micro. Hãy cho phép quyền micro và thử lại.",
+  "no-speech": "Chưa nghe thấy giọng nói. Em nói to và rõ hơn rồi thử lại nhé.",
+  "audio-capture": "Không tìm thấy micro. Kiểm tra micro của máy.",
+  network: "Lỗi mạng khi nhận dạng giọng nói. Em có thể gõ phần trả lời bên dưới.",
+};
+
 function SpeakBox({ disabled, onTranscript }: { disabled: boolean; onTranscript: (t: string) => void }) {
   const [recording, setRecording] = useState(false);
   const [heard, setHeard] = useState("");
-  const recRef = useRef<unknown>(null);
+  const [typed, setTyped] = useState("");
+  const [note, setNote] = useState("");
+  const recRef = useRef<SR | null>(null);
+
+  function getSR(): (new () => SR) | undefined {
+    const w = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
+    return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  }
 
   function toggle() {
-    const w = window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
-    const SR = (w.SpeechRecognition ?? w.webkitSpeechRecognition) as
-      | (new () => {
-          lang: string;
-          interimResults: boolean;
-          maxAlternatives: number;
-          onresult: (e: { results: Array<Array<{ transcript: string }>> }) => void;
-          onend: () => void;
-          start: () => void;
-          stop: () => void;
-        })
-      | undefined;
-    if (!SR) {
-      alert("Trình duyệt chưa hỗ trợ ghi âm giọng nói. Hãy dùng Chrome trên máy tính.");
+    const Ctor = getSR();
+    if (!Ctor) {
+      setNote("Trình duyệt này chưa hỗ trợ ghi âm giọng nói (hãy dùng Chrome), nhưng em có thể gõ phần trả lời bên dưới.");
       return;
     }
     if (recording) {
-      (recRef.current as { stop: () => void } | null)?.stop();
+      recRef.current?.stop();
       return;
     }
-    const rec = new SR();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.onresult = (e) => {
-      const t = e.results?.[0]?.[0]?.transcript ?? "";
-      setHeard(t);
-    };
-    rec.onend = () => setRecording(false);
-    recRef.current = rec;
-    setHeard("");
-    setRecording(true);
-    rec.start();
+    try {
+      const rec = new Ctor();
+      rec.lang = "en-US";
+      rec.interimResults = true;
+      rec.continuous = true;
+      rec.maxAlternatives = 1;
+      rec.onresult = (e) => {
+        let t = "";
+        for (let i = 0; i < e.results.length; i++) t += e.results[i]![0]!.transcript;
+        setHeard(t.trim());
+      };
+      rec.onerror = (e) => {
+        setNote(ERR_VI[e.error] ?? `Lỗi ghi âm: ${e.error}. Em có thể gõ phần trả lời bên dưới.`);
+        setRecording(false);
+      };
+      rec.onend = () => setRecording(false);
+      recRef.current = rec;
+      setHeard("");
+      setNote("");
+      setRecording(true);
+      rec.start();
+    } catch {
+      setNote("Không khởi động được micro. Em có thể gõ phần trả lời bên dưới.");
+      setRecording(false);
+    }
   }
+
+  const toSend = (heard || typed).trim();
 
   return (
     <div>
-      <div className="row">
+      <div className="row" style={{ marginTop: 0 }}>
         <button className={"btn mic" + (recording ? " recording" : "")} disabled={disabled} onClick={toggle}>
           {recording ? "⏹ Dừng ghi" : "🎙️ Bắt đầu nói (tiếng Anh)"}
         </button>
-        {heard && (
-          <button className="btn gold" disabled={disabled} onClick={() => onTranscript(heard)}>
-            Gửi phần nói
-          </button>
-        )}
+        {recording && <span className="muted">Đang nghe… nói xong bấm “Dừng ghi”.</span>}
       </div>
+
       {heard && (
         <p className="muted" style={{ marginTop: 8 }}>
           Nghe được: “{heard}”
         </p>
       )}
-      <p className="muted">Pilot dùng nhận dạng giọng nói của trình duyệt; chấm phát âm chi tiết sẽ bổ sung sau (Azure).</p>
+      {note && <div className="banner warn">{note}</div>}
+
+      <p className="muted" style={{ margin: "10px 0 4px" }}>
+        Hoặc gõ lại nội dung em muốn nói (dự phòng nếu micro không chạy):
+      </p>
+      <textarea
+        rows={2}
+        placeholder="Type what you would say in English…"
+        value={typed}
+        disabled={disabled}
+        onChange={(e) => setTyped(e.target.value)}
+      />
+
+      <div className="row">
+        <button className="btn gold" disabled={disabled || !toSend} onClick={() => onTranscript(toSend)}>
+          Gửi phần nói
+        </button>
+        <span className="muted">Pilot chấm fluency/coherence từ lời nói; chấm phát âm chi tiết sẽ bổ sung sau (Azure).</span>
+      </div>
     </div>
   );
 }

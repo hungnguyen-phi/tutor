@@ -86,7 +86,10 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
 
   const tier: Tier = args.tier ?? "default";
   const primary = MODELS[tier];
-  const models = [primary, ...FALLBACK].filter((m, i, a) => a.indexOf(m) === i);
+  const dedupe = (a: string[]) => a.filter((m, i, arr) => arr.indexOf(m) === i);
+  // OpenRouter caps the `models` array at 3 items.
+  const models = dedupe([primary, ...FALLBACK]).slice(0, 3);
+  const retryModels = dedupe(["deepseek/deepseek-v4-flash", ...models]).slice(0, 3);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
@@ -119,7 +122,7 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   let data: Record<string, unknown> = {};
   let text = "";
   for (let attempt = 0; attempt < 2 && !text; attempt++) {
-    const useModels = attempt === 0 ? models : ["deepseek/deepseek-v4-flash", ...models];
+    const useModels = attempt === 0 ? models : retryModels;
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers,
