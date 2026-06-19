@@ -46,3 +46,46 @@ export function evaluateEffortGate(i: EffortGateInput): EffortGateDecision {
 
 /** Mastery threshold (Q1=C): ≥3/4 correct at target incl. ≥1 higher-order (DOK≥3). */
 export const MASTERY = { minCorrect: 3, window: 4, minConsistent: 2 };
+
+export interface Evidence {
+  correct: boolean;
+  dok: number;
+  isTargetDifficulty: boolean;
+  at: number; // ordering (ms)
+}
+
+export interface MasteryVerdict {
+  mastered: boolean;
+  score: number; // 0..1 over the recent window
+  correctAtTarget: number;
+  windowSize: number;
+  hasHigherOrder: boolean;
+}
+
+/** Recompute mastery for one node from its evidence (Q1=C, Q5=B). */
+export function recomputeMastery(evidence: Evidence[]): MasteryVerdict {
+  const targeted = evidence.filter((e) => e.isTargetDifficulty).sort((a, b) => a.at - b.at);
+  const window = targeted.slice(-MASTERY.window);
+  const correct = window.filter((e) => e.correct);
+  const hasHigherOrder = correct.some((e) => e.dok >= 3);
+  const mastered =
+    correct.length >= MASTERY.minCorrect &&
+    window.length >= MASTERY.minCorrect &&
+    hasHigherOrder &&
+    correct.length >= MASTERY.minConsistent;
+  return {
+    mastered,
+    score: window.length ? correct.length / window.length : 0,
+    correctAtTarget: correct.length,
+    windowSize: window.length,
+    hasHigherOrder,
+  };
+}
+
+/** Leitner fixed intervals (Q2=B): 1 → 3 → 7 → 21 days. */
+export const LEITNER_DAYS = [1, 3, 7, 21];
+const DAY_MS = 86400000;
+export function nextReviewISO(box: number, fromMs: number): string {
+  const i = Math.max(0, Math.min(box, LEITNER_DAYS.length - 1));
+  return new Date(fromMs + LEITNER_DAYS[i]! * DAY_MS).toISOString();
+}

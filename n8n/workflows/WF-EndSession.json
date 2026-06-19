@@ -1,0 +1,64 @@
+{
+  "name": "WF-EndSession",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "end-session",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4a11-8a11-endsession001",
+      "name": "Webhook (session end)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "end-session-wf"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://uksbvlkhcyhnpfamducc.supabase.co/functions/v1/end-session",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "apikey", "value": "sb_publishable_ZLDlbkDCmpLDgsOQnfsG3w_lbavhh7S" },
+            { "name": "Authorization", "value": "Bearer sb_publishable_ZLDlbkDCmpLDgsOQnfsG3w_lbavhh7S" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sessionId: $json.body.sessionId }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4a11-8a11-endsession002",
+      "name": "Call end-session (mastery + Leitner)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4a11-8a11-endsession003",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [820, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (session end)": {
+      "main": [[{ "node": "Call end-session (mastery + Leitner)", "type": "main", "index": 0 }]]
+    },
+    "Call end-session (mastery + Leitner)": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

@@ -58,3 +58,11 @@ export const writing = (sessionId: string, questionId: string, text: string) =>
 
 export const speaking = (sessionId: string, questionId: string, transcript: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "speaking", questionId, transcript });
+
+export interface EndResult {
+  sessionId: string;
+  nodes: Array<{ node: string; mastered: boolean; score: number }>;
+}
+
+export const endSession = (sessionId: string) =>
+  callFn<EndResult>("end-session", { sessionId });

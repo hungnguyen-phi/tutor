@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.diagnose]
 verify_jwt = false
+
+[functions.end-session]
+verify_jwt = false

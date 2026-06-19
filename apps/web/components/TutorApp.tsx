@@ -6,9 +6,11 @@ import {
   answer,
   writing,
   speaking,
+  endSession,
   type DiagnoseResult,
   type DiagnoseQuestion,
   type TurnResult,
+  type EndResult,
 } from "../lib/api";
 
 type Msg =
@@ -28,6 +30,7 @@ export default function TutorApp() {
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [finished, setFinished] = useState<EndResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const q: DiagnoseQuestion | undefined = ses?.questions[qi];
@@ -122,17 +125,30 @@ export default function TutorApp() {
     }
   }
 
-  function next() {
+  async function next() {
     if (!ses) return;
     if (qi + 1 < ses.questions.length) {
       setQi(qi + 1);
       reset();
-    } else {
-      // session done — back to subject pick, keeping a friendly note
-      setSubject(null);
-      setSes(null);
-      reset();
+      return;
     }
+    // Last question → end session: recompute mastery + Leitner (WF-EndSession).
+    setBusy(true);
+    try {
+      const r = await endSession(ses.sessionId);
+      setFinished(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function backHome() {
+    setSubject(null);
+    setSes(null);
+    setFinished(null);
+    reset();
   }
 
   // ── Home ──────────────────────────────────────────────────────────────
@@ -161,6 +177,40 @@ export default function TutorApp() {
             Đang chuẩn bị buổi học…
           </p>
         )}
+      </main>
+    );
+  }
+
+  // ── Completion ────────────────────────────────────────────────────────
+  if (finished) {
+    const mastered = finished.nodes.filter((n) => n.mastered).length;
+    return (
+      <main className="wrap">
+        <div className="panel" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "2.4rem" }}>🎉</div>
+          <h1 className="h1">Hoàn thành buổi học!</h1>
+          <p className="sub">Cảm ơn em đã nỗ lực hôm nay. Đây là tiến bộ của em:</p>
+          <div style={{ display: "grid", gap: 8, maxWidth: 420, margin: "0 auto" }}>
+            {finished.nodes.map((n) => (
+              <div key={n.node} className="row" style={{ justifyContent: "space-between", marginTop: 0 }}>
+                <span className="chip">{n.node}</span>
+                <span>
+                  {n.mastered ? "✅ Thành thạo" : "📈 Đang tiến bộ"} · {Math.round(n.score * 100)}%
+                </span>
+              </div>
+            ))}
+          </div>
+          {mastered > 0 && (
+            <div className="banner ok" style={{ marginTop: 14 }}>
+              Em đã thành thạo {mastered} điểm kiến thức — hệ thống sẽ nhắc em ôn lại sau 1 ngày (spaced repetition).
+            </div>
+          )}
+          <div className="row" style={{ justifyContent: "center" }}>
+            <button className="btn gold" onClick={backHome}>
+              Học môn khác →
+            </button>
+          </div>
+        </div>
       </main>
     );
   }
