@@ -14,6 +14,7 @@
     "migrate": "drizzle-kit migrate",
     "push": "drizzle-kit push",
     "apply": "node --env-file=../../.env --import tsx src/apply-sql.ts",
+    "seed": "node --env-file=../../.env --import tsx src/seed.ts",
     "studio": "drizzle-kit studio",
     "lint": "echo \"(db) no lint yet\"",
     "typecheck": "tsc --noEmit"
