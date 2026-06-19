@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   diagnose,
   answer,
@@ -351,28 +351,104 @@ const ERR_VI: Record<string, string> = {
   network: "Lỗi mạng khi nhận dạng giọng nói. Em có thể gõ phần trả lời bên dưới.",
 };
 
+const SPEAK_DURATION = 30; // seconds
+const PRE_COUNT = 5; // get-ready countdown
+const WARN_AT = 5; // last-N-seconds warning
+
+type Phase = "idle" | "pre" | "rec" | "review";
+
 function SpeakBox({ disabled, onTranscript }: { disabled: boolean; onTranscript: (t: string) => void }) {
-  const [recording, setRecording] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [pre, setPre] = useState(PRE_COUNT);
+  const [remaining, setRemaining] = useState(SPEAK_DURATION);
+  const [level, setLevel] = useState(0);
   const [heard, setHeard] = useState("");
   const [typed, setTyped] = useState("");
   const [note, setNote] = useState("");
+
   const recRef = useRef<SR | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function getSR(): (new () => SR) | undefined {
     const w = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
     return w.SpeechRecognition ?? w.webkitSpeechRecognition;
   }
 
-  function toggle() {
-    const Ctor = getSR();
-    if (!Ctor) {
-      setNote("Trình duyệt này chưa hỗ trợ ghi âm giọng nói (hãy dùng Chrome), nhưng em có thể gõ phần trả lời bên dưới.");
-      return;
-    }
-    if (recording) {
+  function cleanup() {
+    if (tickRef.current) clearInterval(tickRef.current);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    try {
       recRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    audioRef.current?.close().catch(() => {});
+    recRef.current = null;
+    streamRef.current = null;
+    audioRef.current = null;
+    setLevel(0);
+  }
+
+  useEffect(() => cleanup, []);
+
+  function startPre() {
+    if (!getSR()) {
+      setNote("Trình duyệt này chưa hỗ trợ ghi âm giọng nói (hãy dùng Chrome trên máy tính). Em có thể gõ phần trả lời bên dưới.");
       return;
     }
+    setNote("");
+    setHeard("");
+    setPre(PRE_COUNT);
+    setPhase("pre");
+    let n = PRE_COUNT;
+    tickRef.current = setInterval(() => {
+      n -= 1;
+      setPre(n);
+      if (n <= 0) {
+        if (tickRef.current) clearInterval(tickRef.current);
+        beginRec();
+      }
+    }, 1000);
+  }
+
+  async function beginRec() {
+    setPhase("rec");
+    setRemaining(SPEAK_DURATION);
+
+    // 1) Live mic level meter (real "signal received" feedback).
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const AC = (window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext) as typeof AudioContext;
+      const ctx = new AC();
+      audioRef.current = ctx;
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      const buf = new Uint8Array(analyser.fftSize);
+      const loop = () => {
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const x = (buf[i]! - 128) / 128;
+          sum += x * x;
+        }
+        setLevel(Math.min(1, Math.sqrt(sum / buf.length) * 3.2));
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      loop();
+    } catch {
+      /* level meter optional — recognition still runs */
+    }
+
+    // 2) Speech-to-text transcript.
+    const Ctor = getSR()!;
     try {
       const rec = new Ctor();
       rec.lang = "en-US";
@@ -386,39 +462,93 @@ function SpeakBox({ disabled, onTranscript }: { disabled: boolean; onTranscript:
       };
       rec.onerror = (e) => {
         setNote(ERR_VI[e.error] ?? `Lỗi ghi âm: ${e.error}. Em có thể gõ phần trả lời bên dưới.`);
-        setRecording(false);
       };
-      rec.onend = () => setRecording(false);
       recRef.current = rec;
-      setHeard("");
-      setNote("");
-      setRecording(true);
       rec.start();
     } catch {
       setNote("Không khởi động được micro. Em có thể gõ phần trả lời bên dưới.");
-      setRecording(false);
     }
+
+    // 3) 30s countdown → auto stop.
+    let r = SPEAK_DURATION;
+    tickRef.current = setInterval(() => {
+      r -= 1;
+      setRemaining(r);
+      if (r <= 0) stopRec();
+    }, 1000);
+  }
+
+  function stopRec() {
+    cleanup();
+    setPhase("review");
   }
 
   const toSend = (heard || typed).trim();
 
   return (
     <div>
-      <div className="row" style={{ marginTop: 0 }}>
-        <button className={"btn mic" + (recording ? " recording" : "")} disabled={disabled} onClick={toggle}>
-          {recording ? "⏹ Dừng ghi" : "🎙️ Bắt đầu nói (tiếng Anh)"}
-        </button>
-        {recording && <span className="muted">Đang nghe… nói xong bấm “Dừng ghi”.</span>}
-      </div>
-
-      {heard && (
-        <p className="muted" style={{ marginTop: 8 }}>
-          Nghe được: “{heard}”
-        </p>
+      {phase === "idle" && (
+        <div className="row" style={{ marginTop: 0 }}>
+          <button className="btn mic" disabled={disabled} onClick={startPre}>
+            🎙️ Bắt đầu nói (30 giây)
+          </button>
+          <span className="muted">Có 30 giây để nói. Đếm ngược 5 giây chuẩn bị trước khi bắt đầu.</span>
+        </div>
       )}
-      {note && <div className="banner warn">{note}</div>}
 
-      <p className="muted" style={{ margin: "10px 0 4px" }}>
+      {phase === "pre" && (
+        <div className="speak-stage">
+          <div className="muted">Chuẩn bị… hãy nghĩ về câu trả lời</div>
+          <div className="countdown-big" key={pre}>
+            {pre > 0 ? pre : "Nói đi!"}
+          </div>
+        </div>
+      )}
+
+      {phase === "rec" && (
+        <div className="speak-stage">
+          <div
+            className="mic-orb live"
+            style={{ transform: `scale(${1 + Math.min(level * 0.5, 0.45)})` }}
+          >
+            🎙️
+            <span
+              className="ring"
+              style={{ opacity: 0.25 + level * 0.7, transform: `scale(${1 + level * 0.5})` }}
+            />
+          </div>
+          <div className="level-bar">
+            <i style={{ width: `${Math.round(level * 100)}%` }} />
+          </div>
+          <div className={"timer-pill" + (remaining <= WARN_AT ? " warn" : "")}>
+            {remaining <= WARN_AT ? `Sắp hết — còn ${remaining}s` : `Còn ${remaining}s`}
+          </div>
+          <div className="live-transcript">{heard ? `“${heard}”` : "Đang nghe… em cứ nói tiếng Anh"}</div>
+          {note && <div className="banner warn">{note}</div>}
+          <button className="btn ghost" onClick={stopRec}>
+            ⏹ Dừng sớm
+          </button>
+        </div>
+      )}
+
+      {phase === "review" && (
+        <div className="speak-stage">
+          <div className="muted">Phần nói của em:</div>
+          <div className="live-transcript">{heard ? `“${heard}”` : "(không bắt được giọng — em gõ lại bên dưới nhé)"}</div>
+          {note && <div className="banner warn">{note}</div>}
+          <div className="row" style={{ justifyContent: "center" }}>
+            <button className="btn ghost" disabled={disabled} onClick={startPre}>
+              🔁 Nói lại
+            </button>
+            <button className="btn gold" disabled={disabled || !toSend} onClick={() => onTranscript(toSend)}>
+              Gửi phần nói
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Typed fallback — always available */}
+      <p className="muted" style={{ margin: "12px 0 4px" }}>
         Hoặc gõ lại nội dung em muốn nói (dự phòng nếu micro không chạy):
       </p>
       <textarea
@@ -428,13 +558,14 @@ function SpeakBox({ disabled, onTranscript }: { disabled: boolean; onTranscript:
         disabled={disabled}
         onChange={(e) => setTyped(e.target.value)}
       />
-
-      <div className="row">
-        <button className="btn gold" disabled={disabled || !toSend} onClick={() => onTranscript(toSend)}>
-          Gửi phần nói
-        </button>
-        <span className="muted">Pilot chấm fluency/coherence từ lời nói; chấm phát âm chi tiết sẽ bổ sung sau (Azure).</span>
-      </div>
+      {phase !== "rec" && phase !== "pre" && (
+        <div className="row">
+          <button className="btn gold" disabled={disabled || !toSend} onClick={() => onTranscript(toSend)}>
+            Gửi phần nói
+          </button>
+          <span className="muted">Pilot chấm fluency/coherence; chấm phát âm chi tiết bổ sung sau (Azure).</span>
+        </div>
+      )}
     </div>
   );
 }
