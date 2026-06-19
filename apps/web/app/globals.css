@@ -370,3 +370,22 @@ textarea:focus {
   white-space: pre-wrap;
   line-height: 1.5;
 }
+
+/* Composer — the answer area, pinned below the conversation */
+.composer {
+  position: sticky;
+  bottom: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin-top: 12px;
+}
+.composer-label {
+  font-size: 0.8rem;
+  color: var(--navy);
+  font-weight: 700;
+  margin-bottom: 9px;
+}

@@ -103,15 +103,17 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
       { role: "system", content: args.system },
       { role: "user", content: args.user },
     ],
-    max_tokens: args.maxTokens ?? 700,
+    max_tokens: args.maxTokens ?? 800,
     temperature: args.temperature ?? 0.3,
+    // Reasoning models must NOT return chain-of-thought to us — it both looks
+    // broken and can leak the answer. Exclude it; we only want final content.
+    reasoning: { exclude: true },
   });
 
-  // Some reasoning models occasionally return empty `content` (output lands in
-  // `reasoning`). Read both, and retry once preferring the non-reasoning model.
+  // ONLY use final content. Never display reasoning/CoT to a student.
   const extractText = (d: unknown): string => {
     const msg = (d as { choices?: Array<{ message?: Record<string, unknown> }> }).choices?.[0]?.message;
-    return String(msg?.content ?? msg?.reasoning ?? msg?.reasoning_content ?? "").trim();
+    return String(msg?.content ?? "").trim();
   };
 
   let data: Record<string, unknown> = {};

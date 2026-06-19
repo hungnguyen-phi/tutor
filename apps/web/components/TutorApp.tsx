@@ -68,14 +68,16 @@ export default function TutorApp() {
   }
 
   async function submitObjective(ans: string) {
-    if (!ses || !q || busy || done) return;
+    if (!ses || !q || busy || done || !ans) return;
     setPicked(ans);
+    setText(""); // fresh input box for the next attempt
     setMsgs((m) => [...m, { role: "student", text: ans }]);
     setBusy(true);
     setLoading(true);
     try {
       const res = await answer(ses.sessionId, q.id, ans);
       applyTurn(res);
+      if (!res.correct) setPicked(null); // allow a clean re-pick / re-entry
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -184,68 +186,7 @@ export default function TutorApp() {
             <span className="chip">Độ khó: {q.doKho}</span>
             <span className="chip">{kindLabel(q.kind)}</span>
           </div>
-          <div className="qprompt">{q.prompt}</div>
-
-          {/* Objective with options (MCQ) */}
-          {q.kind === "objective" && q.options && (
-            <div className="options">
-              {q.options.map((opt) => (
-                <button
-                  key={opt}
-                  className={
-                    "option" +
-                    (picked === opt ? (done ? " correct" : " wrong") : "") +
-                    (done && q.options ? "" : "")
-                  }
-                  disabled={busy || done}
-                  onClick={() => submitObjective(opt)}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Objective free-input (parametrized) */}
-          {q.kind === "objective" && !q.options && (
-            <div className="row">
-              <input
-                type="text"
-                placeholder="Nhập đáp án…"
-                value={text}
-                disabled={busy || done}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitObjective(text.trim())}
-              />
-              <button className="btn" disabled={busy || done || !text.trim()} onClick={() => submitObjective(text.trim())}>
-                Trả lời
-              </button>
-            </div>
-          )}
-
-          {/* Writing */}
-          {q.kind === "writing" && (
-            <div>
-              <textarea
-                rows={4}
-                placeholder="Viết bài của em ở đây (3–4 câu)…"
-                value={text}
-                disabled={busy || done}
-                onChange={(e) => setText(e.target.value)}
-              />
-              <div className="row">
-                <button className="btn" disabled={busy || done || !text.trim()} onClick={submitWriting}>
-                  Nộp bài viết
-                </button>
-                <span className="muted">Phản hồi mang tính góp ý (formative), không phải điểm chính thức.</span>
-              </div>
-            </div>
-          )}
-
-          {/* Speaking */}
-          {q.kind === "speaking" && (
-            <SpeakBox disabled={busy || done} onTranscript={submitSpeaking} />
-          )}
+          <div className="qprompt">{prettyMath(q.prompt)}</div>
         </div>
       )}
 
@@ -255,25 +196,25 @@ export default function TutorApp() {
           m.role === "student" ? (
             <div key={i} className="bubble student">
               <div className="who">Em</div>
-              {m.text}
+              {prettyMath(m.text)}
             </div>
           ) : m.role === "tutor" ? (
             <div key={i} className="bubble tutor">
               <div className="who">Tutor</div>
-              {m.text}
+              {prettyMath(m.text)}
             </div>
           ) : m.role === "hint" ? (
             <div key={i} className="hint">
               <div className="label">GỢI Ý SOCRATIC</div>
-              {m.text}
+              {prettyMath(m.text)}
             </div>
           ) : m.role === "ok" ? (
             <div key={i} className="banner ok">
-              ✓ {m.text}
+              ✓ {prettyMath(m.text)}
             </div>
           ) : (
             <div key={i} className="feedback">
-              {m.text}
+              {prettyMath(m.text)}
             </div>
           ),
         )}
@@ -288,6 +229,69 @@ export default function TutorApp() {
         )}
       </div>
 
+      {/* Composer — always visible below the conversation while unanswered */}
+      {q && !done && (
+        <div className="composer">
+          {msgs.some((m) => m.role === "hint" || m.role === "tutor") && (
+            <div className="composer-label">
+              {q.kind === "objective" && q.options ? "Chọn lại đáp án:" : "Nhập câu trả lời mới của em:"}
+            </div>
+          )}
+
+          {q.kind === "objective" && q.options && (
+            <div className="options">
+              {q.options.map((opt) => (
+                <button
+                  key={opt}
+                  className={"option" + (picked === opt ? " sel" : "")}
+                  disabled={busy}
+                  onClick={() => submitObjective(opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {q.kind === "objective" && !q.options && (
+            <div className="row" style={{ marginTop: 0 }}>
+              <input
+                type="text"
+                placeholder="Nhập đáp án…"
+                value={text}
+                disabled={busy}
+                autoFocus
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitObjective(text.trim())}
+              />
+              <button className="btn" disabled={busy || !text.trim()} onClick={() => submitObjective(text.trim())}>
+                Trả lời
+              </button>
+            </div>
+          )}
+
+          {q.kind === "writing" && (
+            <div>
+              <textarea
+                rows={4}
+                placeholder="Viết bài của em ở đây (3–4 câu)…"
+                value={text}
+                disabled={busy}
+                onChange={(e) => setText(e.target.value)}
+              />
+              <div className="row">
+                <button className="btn" disabled={busy || !text.trim()} onClick={submitWriting}>
+                  Nộp bài viết
+                </button>
+                <span className="muted">Phản hồi góp ý (formative), không phải điểm chính thức.</span>
+              </div>
+            </div>
+          )}
+
+          {q.kind === "speaking" && <SpeakBox disabled={busy} onTranscript={submitSpeaking} />}
+        </div>
+      )}
+
       {error && <div className="banner warn">{error}</div>}
 
       {done && (
@@ -299,6 +303,28 @@ export default function TutorApp() {
       )}
     </main>
   );
+}
+
+// Lightweight inline-math prettifier (avoids a heavy KaTeX dependency).
+const SUP: Record<string, string> = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻", "+": "⁺", n: "ⁿ", x: "ˣ", i: "ⁱ" };
+const SUB: Record<string, string> = { "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉" };
+const toMap = (s: string, m: Record<string, string>) => [...s].map((c) => m[c] ?? c).join("");
+
+function prettyMath(s: string): string {
+  return (s ?? "")
+    .replace(/\$/g, "")
+    .replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, "($1)/($2)")
+    .replace(/\\sqrt\s*\{([^{}]+)\}/g, "√($1)")
+    .replace(/\\cdot/g, "·")
+    .replace(/\\times/g, "×")
+    .replace(/\\leq?\b/g, "≤")
+    .replace(/\\geq?\b/g, "≥")
+    .replace(/\\pm/g, "±")
+    .replace(/\\,/g, " ")
+    .replace(/\^\{([^{}]+)\}/g, (_, p) => toMap(p, SUP))
+    .replace(/\^(-?\w)/g, (_, p) => toMap(p, SUP))
+    .replace(/_\{([^{}]+)\}/g, (_, p) => toMap(p, SUB))
+    .replace(/_(\w)/g, (_, p) => toMap(p, SUB));
 }
 
 function kindLabel(k: string): string {
