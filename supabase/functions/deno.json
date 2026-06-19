@@ -1,6 +1,7 @@
 {
   "imports": {
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.47.10"
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.47.10",
+    "mathjs": "npm:mathjs@^13.2.3"
   },
   "lint": {
     "rules": {
