@@ -177,6 +177,9 @@ export default function TutorApp() {
             Đang chuẩn bị buổi học…
           </p>
         )}
+        <p className="muted" style={{ marginTop: 24 }}>
+          <a href="/teacher">Dành cho giáo viên — bảng điều khiển &amp; duyệt nội dung →</a>
+        </p>
       </main>
     );
   }

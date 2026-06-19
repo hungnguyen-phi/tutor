@@ -66,3 +66,21 @@ export interface EndResult {
 
 export const endSession = (sessionId: string) =>
   callFn<EndResult>("end-session", { sessionId });
+
+// ── Teacher (M3.5) ──────────────────────────────────────────────────────────
+export interface TeacherStats {
+  metrics: {
+    misconceptions: Array<{ label: string; count: number }>;
+    effort: { avgAttemptsToCorrect: number; accuracy: number; totalAttempts: number };
+    mastery: { mastered: number; tracked: number; rate: number };
+  };
+  review: {
+    questions: Array<{ id: string; key: string; node: string; kind: string; status: string; prompt: string }>;
+    ladders: Array<{ id: string; key: string; node: string; misconception: string; status: string }>;
+  };
+}
+
+export const teacherStats = () => callFn<TeacherStats>("teacher-stats", {});
+
+export const teacherReview = (kind: "question" | "ladder", id: string, status: string) =>
+  callFn<{ ok: boolean }>("teacher-review", { kind, id, status });

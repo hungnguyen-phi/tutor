@@ -30,3 +30,9 @@ verify_jwt = false
 
 [functions.end-session]
 verify_jwt = false
+
+[functions.teacher-stats]
+verify_jwt = false
+
+[functions.teacher-review]
+verify_jwt = false
