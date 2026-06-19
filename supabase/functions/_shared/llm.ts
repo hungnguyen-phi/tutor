@@ -106,11 +106,12 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
       { role: "system", content: args.system },
       { role: "user", content: args.user },
     ],
-    max_tokens: args.maxTokens ?? 800,
+    max_tokens: args.maxTokens ?? 420,
     temperature: args.temperature ?? 0.3,
-    // Reasoning models must NOT return chain-of-thought to us — it both looks
-    // broken and can leak the answer. Exclude it; we only want final content.
-    reasoning: { exclude: true },
+    // DISABLE reasoning (not just hide it): tutoring turns don't need chain-of-
+    // thought, and leaving it on made glm-5.2 take ~25s. enabled:false → fast
+    // responses + no CoT to leak. exclude:true kept as a belt-and-braces signal.
+    reasoning: { enabled: false, exclude: true },
   });
 
   // ONLY use final content. Never display reasoning/CoT to a student.

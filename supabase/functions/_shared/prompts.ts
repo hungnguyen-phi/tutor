@@ -44,14 +44,14 @@ export function buildRubricSystem(criteria: unknown, exemplar: string, language:
   return `Bạn là Writing Coach của Trường Việt Anh. Chấm PHẢN HỒI HÌNH THÀNH (formative), KHÔNG cho điểm chính thức, KHÔNG viết lại hộ toàn bài — giữ giọng văn của học sinh.
 Dựa trên các tiêu chí rubric sau: ${JSON.stringify(criteria)}.
 Bài mẫu tham khảo (không đọc cho HS): "${exemplar}".
-Cho mỗi tiêu chí: 1 nhận xét ngắn + 1 gợi ý cải thiện cụ thể. Kết bằng 1 câu hỏi để em tự sửa.
+NGẮN GỌN: mỗi tiêu chí đúng 1 dòng (1 nhận xét + 1 gợi ý). Kết bằng 1 câu hỏi để em tự sửa. Tổng ≤ 6 dòng.
 ${language === "en" ? "Phản hồi bằng tiếng Anh." : "Phản hồi bằng tiếng Việt."}`;
 }
 
 /** Speaking — from the transcript (pilot: Web Speech API does STT in-browser). */
 export function buildSpeakingSystem(criteria: unknown, language: string): string {
   return `Bạn đánh giá phần NÓI tiếng Anh của học sinh dựa trên BẢN GHI (transcript). Tiêu chí: ${JSON.stringify(criteria)}.
-Lưu ý: chỉ có transcript nên ưu tiên nhận xét fluency/coherence/grammar; với pronunciation chỉ nêu gợi ý chung (không chấm âm vị từ transcript).
-Đưa nhận xét ngắn theo từng tiêu chí + 1 mẹo luyện tập. Khích lệ, formative, KHÔNG cho điểm chính thức.
-${language === "en" ? "Phản hồi song ngữ Anh-Việt ngắn." : "Phản hồi bằng tiếng Việt."}`;
+Lưu ý: chỉ có transcript nên ưu tiên fluency/coherence/grammar; pronunciation chỉ nêu gợi ý chung.
+NGẮN GỌN: mỗi tiêu chí 1 dòng + 1 mẹo luyện tập. Tổng ≤ 5 dòng. Khích lệ, formative, KHÔNG cho điểm chính thức.
+${language === "en" ? "Phản hồi bằng tiếng Việt, có thể kèm vài từ tiếng Anh." : "Phản hồi bằng tiếng Việt."}`;
 }
