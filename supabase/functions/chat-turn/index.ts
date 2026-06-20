@@ -4,6 +4,7 @@
 // Keeps the evaluate vs guide agents on separate code paths.
 import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
+import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer } from "../_shared/cas.ts";
 import { evaluateEffortGate } from "../_shared/pedagogy.ts";
 import { anonymize, rehydrate, callLLM } from "../_shared/llm.ts";
@@ -26,6 +27,9 @@ Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
   try {
+    const ctx = await authenticate(req);
+    if (!ctx) return json({ error: "unauthorized" }, 401);
+
     const body = await req.json();
     const supa = admin();
 
@@ -36,6 +40,11 @@ Deno.serve(async (req: Request) => {
       .single();
     if (!session) return json({ error: "session not found" }, 404);
     const s = session as Session;
+
+    // The caller must own the session (student) or be staff with scope access.
+    if (s.student_id !== ctx.userId && !can(ctx, "learn:session:read_scope")) {
+      return json({ error: "forbidden" }, 403);
+    }
 
     const { data: profile } = await supa
       .from("profiles")

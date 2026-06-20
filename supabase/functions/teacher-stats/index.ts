@@ -2,16 +2,20 @@
 // review-seed list. Service-role read for the pilot tenant. (M4 binds this to a
 // teacher JWT + RLS.)
 import { handleOptions, json } from "../_shared/cors.ts";
-import { admin, PILOT_TENANT_SLUG } from "../_shared/supa.ts";
+import { admin } from "../_shared/supa.ts";
+import { authenticate, can } from "../_shared/auth.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
   try {
+    const ctx = await authenticate(req);
+    if (!ctx) return json({ error: "unauthorized" }, 401);
+    if (!can(ctx, "report:class:read") && !can(ctx, "content:review:approve")) {
+      return json({ error: "forbidden" }, 403);
+    }
     const supa = admin();
-    const { data: tenant } = await supa.from("tenants").select("id").eq("slug", PILOT_TENANT_SLUG).single();
-    if (!tenant) return json({ error: "tenant not found" }, 404);
-    const t = tenant.id;
+    const t = ctx.tenantId;
 
     const [{ data: attempts }, { data: states }, { data: questions }, { data: ladders }] = await Promise.all([
       supa.from("attempts").select("question_id, attempt_no, is_correct, matched_misconception").eq("tenant_id", t),

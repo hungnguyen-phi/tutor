@@ -7,3 +7,4 @@ export * from "./tenancy";
 export * from "./learning";
 export * from "./governance";
 export * from "./gateway";
+export * from "./rbac";

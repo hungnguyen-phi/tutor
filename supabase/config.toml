@@ -1,38 +1,37 @@
 # Supabase project config. Link with: supabase link --project-ref uksbvlkhcyhnpfamducc
 project_id = "uksbvlkhcyhnpfamducc"
 
-# NOTE: verify_jwt is false for the M3 backend demo so the pipeline can be tested
-# without a user JWT. M4 MUST set these back to true AND bind studentId to
-# auth.uid() inside each function (don't trust client-supplied studentId).
+# M4: JWT required for all functions (gateway-level). Functions additionally derive
+# identity from the token (auth.uid()) and check RBAC permissions + consent.
 [functions.hello]
 verify_jwt = false
 
 [functions.chat-turn]
-verify_jwt = false
+verify_jwt = true
 
 [functions.effort-gate]
-verify_jwt = false
+verify_jwt = true
 
 [functions.evaluate]
-verify_jwt = false
+verify_jwt = true
 
 [functions.evaluate-rubric]
-verify_jwt = false
+verify_jwt = true
 
 [functions.evaluate-speaking]
-verify_jwt = false
+verify_jwt = true
 
 [functions.guide]
-verify_jwt = false
+verify_jwt = true
 
 [functions.diagnose]
-verify_jwt = false
+verify_jwt = true
 
 [functions.end-session]
-verify_jwt = false
+verify_jwt = true
 
 [functions.teacher-stats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.teacher-review]
-verify_jwt = false
+verify_jwt = true

@@ -1,17 +1,20 @@
-import { FUNCTIONS_BASE, SUPABASE_ANON_KEY, DEMO_STUDENT_ID } from "./config";
+import { FUNCTIONS_BASE, SUPABASE_ANON_KEY } from "./config";
+import { supabase } from "./supabase";
 
 async function callFn<T>(fn: string, body: unknown): Promise<T> {
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess.session?.access_token ?? SUPABASE_ANON_KEY;
   const res = await fetch(`${FUNCTIONS_BASE}/${fn}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${token}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error ?? `${fn} failed (${res.status})`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.message ?? data?.error ?? `${fn} failed (${res.status})`);
   return data as T;
 }
 
@@ -48,7 +51,7 @@ export interface TurnResult {
 }
 
 export const diagnose = (subject: "Toan" | "Anh") =>
-  callFn<DiagnoseResult>("diagnose", { studentId: DEMO_STUDENT_ID, subject });
+  callFn<DiagnoseResult>("diagnose", { subject });
 
 export const answer = (sessionId: string, questionId: string, studentAnswer: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, studentAnswer });

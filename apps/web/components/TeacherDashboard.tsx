@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { teacherStats, teacherReview, type TeacherStats } from "../lib/api";
+import { useAuth, signOut } from "../lib/auth";
+import Login from "./Login";
 
 export default function TeacherDashboard() {
+  const { session, profile } = useAuth();
   const [data, setData] = useState<TeacherStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,8 +19,11 @@ export default function TeacherDashboard() {
     }
   }
   useEffect(() => {
-    load();
-  }, []);
+    if (session) load();
+  }, [session]);
+
+  if (session === undefined) return <main className="wrap"><p className="muted">Đang tải…</p></main>;
+  if (session === null) return <Login />;
 
   async function setStatus(kind: "question" | "ladder", id: string, status: string) {
     setBusy(true);
@@ -31,7 +37,18 @@ export default function TeacherDashboard() {
     }
   }
 
-  if (error) return <main className="wrap"><div className="banner warn">{error}</div></main>;
+  if (error)
+    return (
+      <main className="wrap">
+        <div className="banner warn">
+          {/forbidden/i.test(error) ? "Tài khoản này không đủ quyền xem bảng điều khiển giáo viên." : error}
+        </div>
+        <div className="row">
+          <a className="btn ghost" href="/">↩ Về phần học sinh</a>
+          <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
+        </div>
+      </main>
+    );
   if (!data) return <main className="wrap"><p className="muted">Đang tải dashboard…</p></main>;
 
   const m = data.metrics;
@@ -40,7 +57,11 @@ export default function TeacherDashboard() {
     <main className="wrap">
       <div className="row" style={{ justifyContent: "space-between", marginTop: 0 }}>
         <h1 className="h1" style={{ margin: 0 }}>Bảng điều khiển giáo viên</h1>
-        <a className="btn ghost" href="/">↩ Về phần học sinh</a>
+        <div className="row" style={{ marginTop: 0 }}>
+          <span className="muted">{profile?.full_name}</span>
+          <a className="btn ghost" href="/">↩ HS</a>
+          <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
+        </div>
       </div>
       <p className="sub">Chỉ số lớp học &amp; duyệt nội dung (pilot). Số liệu tính trên dữ liệu thật của tenant Việt Anh.</p>
 

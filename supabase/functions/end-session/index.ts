@@ -3,12 +3,16 @@
 // directly by the client at session end. Idempotent.
 import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
+import { authenticate, can } from "../_shared/auth.ts";
 import { recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
   try {
+    const ctx = await authenticate(req);
+    if (!ctx) return json({ error: "unauthorized" }, 401);
+
     const { sessionId } = await req.json();
     if (!sessionId) return json({ error: "sessionId required" }, 400);
     const supa = admin();
@@ -19,6 +23,9 @@ Deno.serve(async (req: Request) => {
       .eq("id", sessionId)
       .single();
     if (!s) return json({ error: "session not found" }, 404);
+    if (s.student_id !== ctx.userId && !can(ctx, "learn:session:read_scope")) {
+      return json({ error: "forbidden" }, 403);
+    }
 
     const { data: evidence } = await supa
       .from("mastery_evidence")

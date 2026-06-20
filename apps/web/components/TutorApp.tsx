@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAuth, signOut } from "../lib/auth";
+import Login from "./Login";
 import {
   diagnose,
   answer,
@@ -21,6 +23,7 @@ type Msg =
   | { role: "feedback"; text: string };
 
 export default function TutorApp() {
+  const { session, profile } = useAuth();
   const [subject, setSubject] = useState<"Toan" | "Anh" | null>(null);
   const [ses, setSes] = useState<DiagnoseResult | null>(null);
   const [qi, setQi] = useState(0);
@@ -151,11 +154,33 @@ export default function TutorApp() {
     reset();
   }
 
+  // ── Auth gate ─────────────────────────────────────────────────────────
+  if (session === undefined) return <main className="wrap"><p className="muted">Đang tải…</p></main>;
+  if (session === null) return <Login />;
+  if (profile && profile.role !== "student") {
+    return (
+      <main className="wrap">
+        <div className="panel" style={{ textAlign: "center" }}>
+          <h1 className="h1">Xin chào {profile.full_name}</h1>
+          <p className="sub">Tài khoản này không phải học sinh — phần Tutor dành cho học sinh.</p>
+          <div className="row" style={{ justifyContent: "center" }}>
+            <a className="btn gold" href="/teacher">Mở bảng điều khiển giáo viên →</a>
+            <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // ── Home ──────────────────────────────────────────────────────────────
   if (!subject || !ses) {
     return (
       <main className="wrap">
-        <h1 className="h1">Chào em! Hôm nay mình học gì nhé?</h1>
+        <div className="row" style={{ justifyContent: "space-between", marginTop: 0 }}>
+          <span className="muted">Xin chào, {profile?.full_name ?? "em"} 👋</span>
+          <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
+        </div>
+        <h1 className="h1">Hôm nay mình học gì nhé?</h1>
         <p className="sub">
           Gia sư AI sẽ dẫn dắt em tự tìm ra đáp án — không cho đáp án sẵn. Chọn một môn để bắt đầu.
         </p>
@@ -177,9 +202,6 @@ export default function TutorApp() {
             Đang chuẩn bị buổi học…
           </p>
         )}
-        <p className="muted" style={{ marginTop: 24 }}>
-          <a href="/teacher">Dành cho giáo viên — bảng điều khiển &amp; duyệt nội dung →</a>
-        </p>
       </main>
     );
   }

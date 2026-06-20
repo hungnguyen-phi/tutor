@@ -1,7 +1,8 @@
 // diagnose — MVP stub (PRD §11, Q4): creates a session and returns the active
 // questions for the subject's pilot node (full adaptive diagnostic lands at M5).
 import { handleOptions, json } from "../_shared/cors.ts";
-import { admin, PILOT_TENANT_SLUG } from "../_shared/supa.ts";
+import { admin } from "../_shared/supa.ts";
+import { authenticate, can, hasActiveConsent } from "../_shared/auth.ts";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -16,21 +17,25 @@ Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
   try {
-    const { studentId, subject } = await req.json();
-    if (!studentId || !subject) return json({ error: "studentId and subject required" }, 400);
-    const supa = admin();
+    const ctx = await authenticate(req);
+    if (!ctx) return json({ error: "unauthorized" }, 401);
+    if (!can(ctx, "learn:tutor:chat")) return json({ error: "forbidden" }, 403);
 
-    const { data: tenant } = await supa
-      .from("tenants")
-      .select("id")
-      .eq("slug", PILOT_TENANT_SLUG)
-      .single();
-    if (!tenant) return json({ error: "pilot tenant not found" }, 404);
+    const { subject } = await req.json();
+    if (!subject) return json({ error: "subject required" }, 400);
+
+    // PDPL consent gate — no active consent → no processing.
+    if (!(await hasActiveConsent(ctx.userId))) {
+      return json({ error: "consent_required", message: "Cần đồng ý xử lý dữ liệu (consent) trước khi bắt đầu học." }, 403);
+    }
+
+    const studentId = ctx.userId;
+    const supa = admin();
 
     const { data: version } = await supa
       .from("kg_versions")
       .select("id")
-      .eq("tenant_id", tenant.id)
+      .eq("tenant_id", ctx.tenantId)
       .eq("subject", subject)
       .eq("status", "published")
       .order("created_at", { ascending: false })
@@ -50,7 +55,7 @@ Deno.serve(async (req: Request) => {
     const { data: ses } = await supa
       .from("learning_sessions")
       .insert({
-        tenant_id: tenant.id,
+        tenant_id: ctx.tenantId,
         student_id: studentId,
         subject,
         kg_version_id: version.id,
