@@ -6,11 +6,21 @@
 <title>Mockup · Học sinh — Phiên học</title>
 <link rel="stylesheet" href="mockups.css" />
 <style>
-  /* hội thoại thoáng hơn */
-  .pad .bubble { margin: 16px 0; padding: 14px 17px; line-height: 1.6; max-width: 82%; }
-  .pad .hint { margin: 18px 0; padding: 15px 17px; line-height: 1.65; }
-  .pad .card { margin-bottom: 18px; }
-  .pad .muted { margin-top: 18px; }
+  /* hội thoại thoáng + canh lề ngược nhau */
+  .convo { display: flex; flex-direction: column; padding: 22px; gap: 22px; flex: 1; overflow: auto; }
+  /* câu hỏi — lề TRÁI */
+  .qbox { align-self: flex-start; max-width: 90%; background: #fff; border: 1px solid var(--border);
+          border-left: 4px solid var(--navy); border-radius: 16px; box-shadow: var(--shadow); padding: 16px 18px; }
+  .qbox .qtext { font-size: 18px; font-weight: 600; line-height: 1.5; margin-top: 12px; }
+  /* bong bóng */
+  .convo .bubble { margin: 0; padding: 15px 18px; line-height: 1.7; max-width: 84%; }
+  .convo .bubble.s { align-self: flex-end; }   /* TRẢ LỜI — lề PHẢI */
+  .convo .bubble.t { align-self: flex-start; } /* Tutor — lề TRÁI */
+  .convo .hint { align-self: flex-start; max-width: 90%; margin: 0; padding: 16px 18px; line-height: 1.7; }
+  .convo .note { align-self: center; text-align: center; }
+  .lbl { font-size: 16px; color: var(--muted); margin-bottom: 6px; }
+  .convo .s-wrap { align-self: flex-end; max-width: 84%; }
+  .convo .s-wrap .lbl { text-align: right; }
 </style>
 </head>
 <body>
@@ -26,39 +36,47 @@
           <div class="pill y">Câu 2/4 · +30 XP</div>
         </div>
 
-        <div class="pad" style="flex:1;overflow:auto">
-          <!-- question -->
-          <div class="card">
+        <div class="convo">
+          <!-- CÂU HỎI — lề trái -->
+          <div class="qbox">
             <div class="row" style="gap:6px;flex-wrap:wrap">
               <span class="pill">T_HSB2</span><span class="pill">Bậc 2</span><span class="pill">DOK 2</span>
             </div>
-            <div style="font-size:18px;font-weight:600;margin-top:12px">
-              Tìm tọa độ đỉnh của parabol y = x² − 4x + 3.
-            </div>
+            <div class="qtext">Tìm tọa độ đỉnh của parabol y = x² − 4x + 3.</div>
           </div>
 
-          <!-- conversation -->
-          <div class="bubble s">(2; 3)</div>
+          <!-- TRẢ LỜI của An — lề phải -->
+          <div class="s-wrap">
+            <div class="lbl">An trả lời</div>
+            <div class="bubble s">(2; 3)</div>
+          </div>
+
+          <!-- Tutor — lề trái -->
           <div class="bubble t"><b>Tutor.</b> Chưa đúng chỗ tung độ rồi — em thử lại một lần nữa nhé. Em tính y tại x = 2 thế nào?</div>
+
+          <!-- TRẢ LỜI — lề phải -->
           <div class="bubble s">Em không chắc…</div>
+
+          <!-- Gợi ý Socratic — lề trái -->
           <div class="hint">
             <div class="l">💡 GỢI Ý SOCRATIC</div>
             Đỉnh có hoành độ x = 2. Muốn tìm tung độ, em <b>thay x = 2</b> vào chính y = x² − 4x + 3 xem được bao nhiêu?
           </div>
-          <div class="muted" style="text-align:center;font-size:16px">Tutor không cho đáp án — dẫn em tự tìm ra 💪</div>
+
+          <div class="note muted">Tutor không cho đáp án — dẫn em tự tìm ra 💪</div>
         </div>
 
         <!-- composer -->
-        <div style="border-top:3px solid var(--yellow);background:#fff;padding:14px">
-          <div class="small" style="font-weight:700;color:var(--navy);margin-bottom:8px">Nhập câu trả lời mới của An:</div>
+        <div style="border-top:3px solid var(--yellow);background:#fff;padding:16px">
+          <div class="small" style="font-weight:700;color:var(--navy);margin-bottom:10px">Nhập câu trả lời mới của An:</div>
           <div class="row">
-            <input style="flex:1;font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:14px;padding:13px 15px" placeholder="Ví dụ: (2; -1)" />
+            <input style="flex:1;font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:14px;padding:14px 16px" placeholder="Ví dụ: (2; -1)" />
             <button class="btn">Trả lời</button>
           </div>
         </div>
       </div>
     </div>
-    <div class="cap">Học sinh — Phiên học (Tutor) <span>📱 Điện thoại · effort gate + thẻ gợi ý Socratic + ô nhập mới mỗi lượt</span></div>
+    <div class="cap">Học sinh — Phiên học (Tutor) <span>📱 Điện thoại · câu hỏi lề trái · trả lời lề phải · giãn cách thoáng</span></div>
   </div>
 </div>
 </body>

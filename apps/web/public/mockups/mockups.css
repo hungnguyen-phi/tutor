@@ -73,13 +73,13 @@ h1, h2, h3 { line-height: 1.2; margin: 0; text-wrap: balance; }
 .bar .t span { display: block; font-size: 16px; opacity: .8; font-weight: 400; }
 .bar .sp { flex: 1; }
 .bar .ico { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.14); display: grid; place-items: center; }
-.pad { padding: 18px; }
+.pad { padding: 22px; }
 .row { display: flex; gap: 12px; align-items: center; }
 .between { justify-content: space-between; }
 
 /* ── Cards / components ────────────────────────────────────── */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px; }
-.card + .card { margin-top: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); padding: 20px; }
+.card + .card { margin-top: 18px; }
 .h-eyebrow { font-size: 16px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
 .btn { font: inherit; font-weight: 700; border: none; border-radius: 14px; padding: 14px 20px; background: var(--navy); color: #fff; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
 .btn.y { background: var(--yellow); color: var(--navy); }
