@@ -17,6 +17,7 @@
     "seed": "node --env-file=../../.env --import tsx src/seed.ts",
     "seed:rbac": "node --env-file=../../.env --import tsx src/seed-rbac.ts",
     "seed:auth": "node --env-file=../../.env --import tsx src/seed-auth.ts",
+    "seed:coaching": "node --env-file=../../.env --import tsx src/seed-coaching.ts",
     "studio": "drizzle-kit studio",
     "lint": "echo \"(db) no lint yet\"",
     "typecheck": "tsc --noEmit"

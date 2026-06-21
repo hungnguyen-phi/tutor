@@ -8,3 +8,4 @@ export * from "./learning";
 export * from "./governance";
 export * from "./gateway";
 export * from "./rbac";
+export * from "./coaching";

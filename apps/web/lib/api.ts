@@ -87,3 +87,28 @@ export const teacherStats = () => callFn<TeacherStats>("teacher-stats", {});
 
 export const teacherReview = (kind: "question" | "ladder", id: string, status: string) =>
   callFn<{ ok: boolean }>("teacher-review", { kind, id, status });
+
+// ── 4DX Weekly Scoreboard ─────────────────────────────────────────────────────
+export interface Scoreboard {
+  student: { id: string; name: string };
+  weekStart: string;
+  viewer: { self: boolean; staff: boolean; mentorKind: "homeroom_coach" | "buddy" | null };
+  limited: boolean;
+  wigs: Array<{ area: string; areaLabel: string; title: string; targetDesc: string | null; progressPct: number; source: "tutor" | "manual" }>;
+  leadMeasures: Array<{ label: string; targetText: string | null; valueText: string | null; status: "green" | "amber" | "red" }>;
+  effort: { rank: number | null; scope: "lop" | "khoi" | "cap" | "truong" };
+  commitment: string;
+  subjectProgress: Array<{ subject: string; pct: number }>;
+  coach: { name: string | null; cadenceDays: number; lastMeetingAt: string | null } | null;
+  buddy: { name: string | null; lastMeetingAt: string | null } | null;
+  sync: { syncedAt: string | null };
+}
+
+export const getScoreboard = (studentId?: string) =>
+  callFn<Scoreboard>("scoreboard", { action: "get", studentId });
+
+export const commitScoreboard = (commitment: string, studentId?: string) =>
+  callFn<{ ok: boolean; commitment: string }>("scoreboard", { action: "commit", commitment, studentId });
+
+export const syncScoreboard = (studentId?: string) =>
+  callFn<{ ok: boolean; syncedAt: string; export: unknown; note: string }>("scoreboard", { action: "sync", studentId });
