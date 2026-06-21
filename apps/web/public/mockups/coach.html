@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Coach (GVCN)</title>
+<link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+<div class="stage">
+  <div>
+    <div class="laptop">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tutor.truongvietanh.workers.dev/coach</span></div>
+      <div class="bar">
+        <img src="/logo-vietanh.webp" alt="Việt Anh" />
+        <div class="t">Coach · Lớp 10A<span>GVCN — 12 học sinh · họp 4 tuần/lần</span></div>
+        <div class="sp"></div>
+        <span class="pill r">3 quá hạn họp</span>
+        <div class="ico" style="margin-left:10px">cô Bình</div>
+      </div>
+
+      <div class="pad" style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px">
+        <!-- coachee list -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="row between" style="padding:14px 16px;border-bottom:1px solid var(--border)">
+            <b>Danh sách coachee</b>
+            <span class="row" style="gap:8px"><span class="pill r">● Cần chú ý</span><span class="pill">Tất cả</span></span>
+          </div>
+          <table>
+            <thead><tr><th>Học sinh</th><th>WIG Kiến thức</th><th>Lead</th><th>Họp gần</th><th></th></tr></thead>
+            <tbody>
+              <tr style="background:var(--navy-50)"><td><b>Nguyễn An</b></td><td>HSB2 · 70%</td><td><span class="tl y"></span><span class="tl g"></span><span class="tl g"></span></td><td>31/5</td><td><button class="btn ghost" style="padding:7px 12px">Xem ›</button></td></tr>
+              <tr><td><b>Trần Bình</b> <span class="pill r">at-risk</span></td><td>HSB2 · 35%</td><td><span class="tl r"></span><span class="tl r"></span><span class="tl y"></span></td><td>02/5 ⚠️</td><td><button class="btn ghost" style="padding:7px 12px">Xem ›</button></td></tr>
+              <tr><td><b>Lê Cường</b></td><td>Vecto · 90%</td><td><span class="tl g"></span><span class="tl g"></span><span class="tl g"></span></td><td>30/5</td><td><button class="btn ghost" style="padding:7px 12px">Xem ›</button></td></tr>
+              <tr><td><b>Phạm Dung</b></td><td>HSB2 · 55%</td><td><span class="tl g"></span><span class="tl y"></span><span class="tl g"></span></td><td>29/5</td><td><button class="btn ghost" style="padding:7px 12px">Xem ›</button></td></tr>
+            </tbody>
+          </table>
+          <div class="muted" style="padding:12px 16px">⚠️ 2 HS lead measure đỏ 2 tuần liên tiếp — ưu tiên gặp.</div>
+        </div>
+
+        <!-- detail (4-weekly meeting) -->
+        <div class="card">
+          <div class="row between"><b>Nguyễn Văn An · 10A</b><span class="pill">Buổi họp 4 tuần</span></div>
+          <div class="grid2" style="margin-top:14px">
+            <div>
+              <span class="h-eyebrow">Scoreboard (chỉ đọc)</span>
+              <div style="margin-top:8px">WIG Kiến thức</div>
+              <div class="bar-track"><div class="bar-fill" style="width:70%"></div></div>
+              <div class="muted" style="margin-top:8px">Lead: <span class="tl y"></span><span class="tl g"></span><span class="tl g"></span></div>
+              <div class="muted">Misconception hay gặp: −b/2a sai dấu</div>
+              <div class="muted">Effort: 1.8 lượt/đúng · streak 5🔥</div>
+            </div>
+            <div>
+              <span class="h-eyebrow">WIG editor</span>
+              <input style="width:100%;font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:9px;margin:8px 0" value="Thành thạo Hàm số bậc hai" />
+              <div class="row" style="gap:8px"><span class="muted">Hạn</span><input style="font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:8px" value="30/9" /></div>
+              <div class="row" style="gap:8px;margin-top:8px"><span class="muted">Buổi/tuần</span><input style="width:60px;font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:8px" value="3" /></div>
+              <button class="btn y block" style="margin-top:10px">Lưu WIG</button>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <span class="h-eyebrow">Ghi chú buổi họp</span>
+            <textarea style="width:100%;font:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-top:8px" rows="3" placeholder="Nhận xét, cam kết tiếp theo…"></textarea>
+          </div>
+          <div class="row" style="margin-top:12px;gap:10px">
+            <button class="btn">Lưu &amp; chốt buổi họp</button>
+            <button class="btn ghost">+ Tạo can thiệp</button>
+            <button class="btn ghost">⚑ Cờ an toàn → cố vấn</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">Coach = Giáo viên chủ nhiệm <span>💻 Laptop · danh sách coachee (đèn lead measure) + buổi họp 4 tuần (xem scoreboard, sửa WIG, ghi chú, can thiệp)</span></div>
+  </div>
+</div>
+</body>
+</html>
