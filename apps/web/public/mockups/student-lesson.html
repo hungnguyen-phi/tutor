@@ -8,19 +8,19 @@
 <style>
   /* hội thoại thoáng + canh lề ngược nhau */
   .convo { display: flex; flex-direction: column; padding: 22px; gap: 22px; flex: 1; overflow: auto; }
-  /* câu hỏi — lề TRÁI */
-  .qbox { align-self: flex-start; max-width: 90%; background: #fff; border: 1px solid var(--border);
+  /* câu hỏi — lề TRÁI (rộng 90%) */
+  .qbox { align-self: flex-start; width: 90%; background: #fff; border: 1px solid var(--border);
           border-left: 4px solid var(--navy); border-radius: 16px; box-shadow: var(--shadow); padding: 16px 18px; }
   .qbox .qtext { font-size: 18px; font-weight: 600; line-height: 1.5; margin-top: 12px; }
-  /* bong bóng */
-  .convo .bubble { margin: 0; padding: 15px 18px; line-height: 1.7; max-width: 84%; }
-  .convo .bubble.s { align-self: flex-end; }   /* TRẢ LỜI — lề PHẢI */
-  .convo .bubble.t { align-self: flex-start; } /* Tutor — lề TRÁI */
+  /* TRẢ LỜI — lề PHẢI, rộng BẰNG box câu hỏi (90%) để hạn chế xuống hàng */
+  .ans { align-self: flex-end; width: 90%; }
+  .ans .lbl { text-align: right; }
+  .ans .bubble.s { width: 100%; box-sizing: border-box; margin: 0; padding: 15px 18px; line-height: 1.7; }
+  /* Tutor / gợi ý — lề TRÁI */
+  .convo .bubble.t { align-self: flex-start; max-width: 90%; margin: 0; padding: 15px 18px; line-height: 1.7; }
   .convo .hint { align-self: flex-start; max-width: 90%; margin: 0; padding: 16px 18px; line-height: 1.7; }
   .convo .note { align-self: center; text-align: center; }
   .lbl { font-size: 16px; color: var(--muted); margin-bottom: 6px; }
-  .convo .s-wrap { align-self: flex-end; max-width: 84%; }
-  .convo .s-wrap .lbl { text-align: right; }
 </style>
 </head>
 <body>
@@ -45,8 +45,8 @@
             <div class="qtext">Tìm tọa độ đỉnh của parabol y = x² − 4x + 3.</div>
           </div>
 
-          <!-- TRẢ LỜI của An — lề phải -->
-          <div class="s-wrap">
+          <!-- TRẢ LỜI của An — lề phải, rộng bằng box câu hỏi -->
+          <div class="ans">
             <div class="lbl">An trả lời</div>
             <div class="bubble s">(2; 3)</div>
           </div>
@@ -55,7 +55,7 @@
           <div class="bubble t"><b>Tutor.</b> Chưa đúng chỗ tung độ rồi — em thử lại một lần nữa nhé. Em tính y tại x = 2 thế nào?</div>
 
           <!-- TRẢ LỜI — lề phải -->
-          <div class="bubble s">Em không chắc…</div>
+          <div class="ans"><div class="bubble s">Em không chắc…</div></div>
 
           <!-- Gợi ý Socratic — lề trái -->
           <div class="hint">
