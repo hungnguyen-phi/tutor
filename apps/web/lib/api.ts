@@ -112,3 +112,9 @@ export const commitScoreboard = (commitment: string, studentId?: string) =>
 
 export const syncScoreboard = (studentId?: string) =>
   callFn<{ ok: boolean; syncedAt: string; export: unknown; note: string }>("scoreboard", { action: "sync", studentId });
+
+// ── Role dashboards (one role-gated endpoint) ─────────────────────────────────
+export type DashAction = "coach" | "parent" | "buddy" | "leadership" | "admin" | "dpo" | "counselor";
+// Loosely typed: each role returns its own shape (see supabase/functions/dashboard).
+export const dashboard = <T = Record<string, unknown>>(action: DashAction) =>
+  callFn<T>("dashboard", { action });

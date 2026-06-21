@@ -1,5 +1,5 @@
-import TutorApp from "../components/TutorApp";
+import RoleHub from "../components/RoleHub";
 
 export default function Home() {
-  return <TutorApp />;
+  return <RoleHub />;
 }

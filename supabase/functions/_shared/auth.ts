@@ -4,7 +4,8 @@ import { admin } from "./supa.ts";
 
 export interface AuthCtx {
   userId: string;
-  role: string;
+  role: string; // base profiles.role (student/teacher/parent/admin/leadership)
+  roles: Set<string>; // base role ∪ extra RBAC roles from user_roles
   tenantId: string;
   perms: Set<string>;
   fullName: string | null;
@@ -29,14 +30,19 @@ export async function authenticate(req: Request): Promise<AuthCtx | null> {
     .single();
   if (!prof) return null;
 
+  // Precise RBAC roles live in user_roles; union them with the base profile role.
+  const { data: extra } = await supa.from("user_roles").select("role_key").eq("user_id", userId);
+  const roles = new Set<string>([prof.role, ...((extra ?? []).map((r) => r.role_key))]);
+
   const { data: perms } = await supa
     .from("role_permissions")
     .select("perm_key")
-    .eq("role_key", prof.role);
+    .in("role_key", [...roles]);
 
   return {
     userId,
     role: prof.role,
+    roles,
     tenantId: prof.tenant_id,
     fullName: prof.full_name,
     grade: prof.grade,
@@ -46,6 +52,7 @@ export async function authenticate(req: Request): Promise<AuthCtx | null> {
 }
 
 export const can = (ctx: AuthCtx, perm: string) => ctx.perms.has(perm);
+export const hasRole = (ctx: AuthCtx, ...keys: string[]) => keys.some((k) => ctx.roles.has(k));
 
 /** Active consent check for a purpose (PDPL: withdraw → stop). */
 export async function hasActiveConsent(studentId: string, purpose = "ai_tutoring"): Promise<boolean> {

@@ -33,6 +33,7 @@ h1, h2, h3 { line-height: 1.2; margin: 0; text-wrap: balance; }
 /* Mascot Sư tử (dùng vừa phải) */
 .mascot { display: flex; gap: 10px; align-items: center; background: var(--yellow-bg); border: 1px solid #f0e9a8; border-radius: 16px; padding: 10px 14px; }
 .mascot .lion { font-size: 30px; flex: none; }
+.mascot img.lion { width: 46px; height: 46px; object-fit: contain; }
 .mascot .say { font-size: 16px; }
 
 /* WIG goal — token bóng đá/dâu tây chạy trên đường tới khung thành */

@@ -502,3 +502,18 @@ textarea:focus {
 
 .sb-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 560px) { .sb-split { grid-template-columns: 1fr; } }
+
+/* ── Role dashboards (tables / stat grids / pills) ─────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th, .tbl td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--slate-400); font-weight: 700; }
+.statgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 560px) { .statgrid { grid-template-columns: 1fr 1fr; } }
+.statcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+.statcard .n { font-size: 1.6rem; font-weight: 800; color: var(--navy); }
+.pill2 { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; display: inline-block; }
+.pill2.g { background: var(--green-50); color: #1d7a44; }
+.pill2.a { background: #fff8e0; color: #9a7b00; }
+.pill2.r { background: #fdecea; color: var(--red); }
+.pill2.n { background: var(--navy-50); color: var(--navy); }
