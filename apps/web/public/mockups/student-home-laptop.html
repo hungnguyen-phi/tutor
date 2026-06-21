@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Học sinh — Trang chủ (laptop)</title>
+<link rel="stylesheet" href="mockups.css" />
+<style>
+  .sb { width: 210px; background: var(--navy); color: #fff; padding: 18px 14px; flex: none; }
+  .sb .nav { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
+  .sb .nav a { color: #fff; text-decoration: none; padding: 11px 12px; border-radius: 12px; opacity: .8; }
+  .sb .nav a.on { background: rgba(255,255,255,.14); opacity: 1; font-weight: 700; }
+  .layout { display: flex; min-height: 560px; }
+  .content { flex: 1; padding: 22px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-content: start; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div>
+    <div class="laptop">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tutor.truongvietanh.workers.dev</span></div>
+      <div class="layout">
+        <!-- sidebar -->
+        <div class="sb">
+          <div class="row" style="gap:8px"><img src="/logo-vietanh.webp" style="height:30px" alt="" /><b>AI Tutor</b></div>
+          <div class="nav">
+            <a class="on" href="#">🏠 Trang chủ</a>
+            <a href="#">📚 Học bài</a>
+            <a href="student-scoreboard.html">📊 Bảng điểm tuần</a>
+            <a href="#">🏅 Huy hiệu</a>
+            <a href="#">🙂 Hồ sơ</a>
+          </div>
+          <div style="position:relative;margin-top:24px;text-align:center;font-size:40px">🦁</div>
+          <div style="text-align:center;font-size:16px;opacity:.85">Sư tử Việt Anh<br/>đồng hành cùng con</div>
+        </div>
+
+        <!-- content -->
+        <div class="content">
+          <!-- left column -->
+          <div>
+            <div class="row between">
+              <h2 style="font-size:26px;color:var(--navy)">Chào An 👋</h2>
+              <div class="pill y">🔥 streak 5 ngày</div>
+            </div>
+            <div class="mascot" style="margin-top:12px">
+              <span class="lion">🦁</span><span class="say">Học thêm 1 buổi nữa là đạt mục tiêu tuần — con làm được mà!</span>
+            </div>
+
+            <div class="rank" style="margin-top:16px">
+              <span class="medal">🏆</span>
+              <div style="flex:1"><b>Hạng nỗ lực #3</b> — lớp 10A
+                <div class="scope">Lên #1 lớp sẽ mở hạng Khối → Cấp → Trường · tính theo nỗ lực, không theo điểm</div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <span class="h-eyebrow">🎯 Mục tiêu lớn của con (WIG)</span>
+              <div style="font-weight:600;margin:8px 0 2px">Thành thạo chương Hàm số bậc hai</div>
+              <div class="goal">
+                <div class="line"></div><div class="done" style="width:70%"></div>
+                <div class="token" style="left:70%">⚽</div><div class="flag">🥅</div>
+              </div>
+              <div class="row between"><span class="muted">Đã đi 70% chặng đường</span><b style="color:var(--navy)">70%</b></div>
+            </div>
+
+            <div class="card">
+              <span class="h-eyebrow">Hôm nay học gì?</span>
+              <div class="subjects" style="margin-top:12px">
+                <div class="subject"><div class="e">📐</div><b>Toán 10</b><div class="muted">Hàm số bậc hai</div>
+                  <div class="bar-track" style="margin-top:8px"><div class="bar-fill" style="width:70%"></div></div></div>
+                <div class="subject"><div class="e">🗣️</div><b>Tiếng Anh</b><div class="muted">Present simple</div>
+                  <div class="bar-track" style="margin-top:8px"><div class="bar-fill" style="width:45%"></div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- right column -->
+          <div>
+            <div class="card" style="text-align:center">
+              <span class="h-eyebrow">Cấp độ của con</span>
+              <div class="ring" style="--p:72%;margin:14px auto"><div class="inner"><b>Lv.4</b><span>720 XP</span></div></div>
+              <div class="row" style="justify-content:center;gap:20px">
+                <div class="stat"><div class="n">5</div><div class="l">ngày 🔥</div></div>
+                <div class="stat"><div class="n">12</div><div class="l">thành thạo</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <span class="h-eyebrow">🏅 Huy hiệu</span>
+              <div class="row" style="margin-top:12px;gap:14px;font-size:30px">
+                <span title="Dám làm bài khó">💪</span><span title="Tự sửa lỗi">🔧</span>
+                <span title="Kiên trì">🔥</span><span title="Giải thích rõ">💡</span><span style="opacity:.3">🔒</span>
+              </div>
+            </div>
+            <a href="student-scoreboard.html" style="text-decoration:none">
+              <div class="card" style="background:var(--navy);color:#fff;border:none">
+                <span class="h-eyebrow" style="color:#ffe">📊 Bảng điểm tuần</span>
+                <div style="font-weight:700;margin-top:6px">Chia sẻ với Coach &amp; Buddy ›</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">Học sinh — Trang chủ <span>💻 Laptop · cùng nội dung điện thoại, bố cục 2 cột + sidebar · WIG bóng đá ⚽ · hạng nỗ lực · Sư tử</span></div>
+  </div>
+</div>
+</body>
+</html>

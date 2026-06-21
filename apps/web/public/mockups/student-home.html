@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mockup · Học sinh — Trang chủ</title>
+<title>Mockup · Học sinh — Trang chủ (điện thoại)</title>
 <link rel="stylesheet" href="mockups.css" />
 </head>
 <body>
@@ -20,32 +20,45 @@
         </div>
 
         <div class="pad">
-          <!-- Greeting + XP -->
-          <div class="card">
-            <div class="row between">
-              <div>
-                <h2 style="font-size:24px;color:var(--navy)">Chào An 👋</h2>
-                <div class="muted">Hôm nay mình tiến thêm một bước nhé.</div>
-              </div>
-              <div class="ring" style="--p:72%">
-                <div class="inner"><b>Lv.4</b><span>720 XP</span></div>
-              </div>
-            </div>
-            <div class="row" style="margin-top:14px;gap:18px">
-              <div class="stat"><div class="n">5</div><div class="l">ngày streak 🔥</div></div>
-              <div class="stat"><div class="n">12</div><div class="l">điểm KT thành thạo</div></div>
-              <div class="stat"><div class="n">2/3</div><div class="l">buổi tuần này</div></div>
+          <h2 style="font-size:24px;color:var(--navy);margin-bottom:10px">Chào An 👋</h2>
+
+          <!-- Mascot Sư tử -->
+          <div class="mascot">
+            <span class="lion">🦁</span>
+            <span class="say">Học thêm 1 buổi nữa là đạt mục tiêu tuần — Sư tử tin con làm được!</span>
+          </div>
+
+          <!-- Xếp hạng theo nỗ lực -->
+          <div class="rank" style="margin-top:14px">
+            <span class="medal">🏆</span>
+            <div style="flex:1">
+              <b>Hạng nỗ lực #3</b> — lớp 10A
+              <div class="scope">Lên #1 lớp sẽ mở hạng Khối → Cấp → Trường · tính theo nỗ lực, không theo điểm</div>
             </div>
           </div>
 
-          <!-- Weekly goal -->
+          <!-- WIG với quả bóng -->
+          <div class="card">
+            <span class="h-eyebrow">🎯 Mục tiêu lớn của con (WIG)</span>
+            <div style="font-weight:600;margin:8px 0 2px">Thành thạo chương Hàm số bậc hai</div>
+            <div class="goal">
+              <div class="line"></div>
+              <div class="done" style="width:70%"></div>
+              <div class="token" style="left:70%">⚽</div>
+              <div class="flag">🥅</div>
+            </div>
+            <div class="row between"><span class="muted">Đã đi được 70% chặng đường</span><b style="color:var(--navy)">70%</b></div>
+          </div>
+
+          <!-- Stats -->
           <div class="card">
             <div class="row between">
-              <span class="h-eyebrow">🎯 Mục tiêu tuần</span><span class="pill">2/3 buổi</span>
+              <div class="row" style="gap:18px">
+                <div class="stat"><div class="n">5</div><div class="l">ngày 🔥</div></div>
+                <div class="stat"><div class="n">12</div><div class="l">điểm thành thạo</div></div>
+              </div>
+              <div class="ring" style="--p:72%"><div class="inner"><b>Lv.4</b><span>720 XP</span></div></div>
             </div>
-            <div style="margin:10px 0 6px;font-weight:600">Học đều 3 buổi — tiến bộ so với chính mình</div>
-            <div class="bar-track"><div class="bar-fill y" style="width:66%"></div></div>
-            <div class="muted" style="margin-top:8px">Còn 1 buổi nữa là đạt mục tiêu tuần — cố lên!</div>
           </div>
 
           <!-- Subjects -->
@@ -75,16 +88,15 @@
               <span title="Giải thích lại rõ ràng">💡</span>
               <span style="opacity:.3" title="Chưa mở khoá">🔒</span>
             </div>
-            <div class="muted" style="margin-top:8px">Huy hiệu thưởng cho <b>nỗ lực</b>, không phải điểm số.</div>
           </div>
 
           <!-- Scoreboard teaser -->
           <a href="student-scoreboard.html" style="text-decoration:none">
             <div class="card" style="background:var(--navy);color:#fff;border:none">
               <div class="row between">
-                <div><span class="h-eyebrow" style="color:#ffe">📊 Bảng điểm tuần</span>
-                  <div style="font-weight:700;margin-top:6px">WIG Kiến thức ▓▓▓▓▓░░ 70%</div>
-                  <div style="opacity:.85;font-size:16px">Chia sẻ với Coach &amp; Buddy →</div>
+                <div>
+                  <span class="h-eyebrow" style="color:#ffe">📊 Bảng điểm tuần</span>
+                  <div style="font-weight:700;margin-top:6px">Chia sẻ tiến độ với Coach &amp; Buddy</div>
                 </div>
                 <div style="font-size:26px">›</div>
               </div>
@@ -92,7 +104,6 @@
           </a>
         </div>
 
-        <!-- bottom nav -->
         <div class="row" style="border-top:1px solid var(--border);padding:10px 24px;justify-content:space-between;background:#fff">
           <div style="text-align:center;color:var(--navy);font-weight:700">🏠<div style="font-size:16px">Trang chủ</div></div>
           <div style="text-align:center;color:var(--muted)">📚<div style="font-size:16px">Học</div></div>
@@ -101,7 +112,7 @@
         </div>
       </div>
     </div>
-    <div class="cap">Học sinh — Trang chủ <span>📱 Điện thoại · gamified (streak/XP/huy hiệu, không leaderboard)</span></div>
+    <div class="cap">Học sinh — Trang chủ <span>📱 Điện thoại · WIG dạng bóng đá ⚽ (nữ: 🍓) · hạng nỗ lực · linh vật Sư tử</span></div>
   </div>
 </div>
 </body>
