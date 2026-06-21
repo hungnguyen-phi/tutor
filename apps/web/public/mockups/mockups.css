@@ -1,14 +1,14 @@
-/* Mockup design system — Trường Việt Anh brand guideline v1.1
-   Navy #000080 (60%) · White (30%) · Yellow #FFFF00 (10%) · Be Vietnam Pro · min 16px
+/* Mockup design system — Trường Việt Anh brand guideline (latest, 2026-06-04)
+   Navy #26275D (chủ đạo) · White · Gold #F9DD0E (nhấn) · Be Vietnam Pro · min 16px
    Style: Apple-minimal + Duolingo-gamified (progress vs SELF, no leaderboard). */
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 
 :root {
-  --navy: #000080;
-  --navy-700: #00005c;
-  --navy-50: #ececfb;
-  --yellow: #ffff00;
-  --yellow-bg: #fffde0;
+  --navy: #26275d;
+  --navy-700: #1c1d47;
+  --navy-50: #eef0f8;
+  --yellow: #f9dd0e;
+  --yellow-bg: #fffdf0;
   --ink: #1a1a2e;
   --muted: #5b5b75;
   --bg: #f0f4f8;
@@ -18,7 +18,7 @@
   --green-bg: #e7f7ee;
   --red: #e23b3b;
   --r: 18px;
-  --shadow: 0 1px 3px rgba(0, 0, 128, 0.06), 0 12px 28px rgba(0, 0, 128, 0.08);
+  --shadow: 0 1px 3px rgba(38, 39, 93, 0.06), 0 12px 28px rgba(38, 39, 93, 0.08);
 }
 * { box-sizing: border-box; }
 body {
