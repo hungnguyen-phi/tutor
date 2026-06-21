@@ -127,3 +127,12 @@ th { font-size: 16px; color: var(--muted); font-weight: 600; }
 .tl.g { background: var(--green); } .tl.y { background: #e0c400; } .tl.r { background: var(--red); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 a { color: var(--navy); }
+
+/* ── Căn hàng (đặc biệt cho laptop): card cùng hàng bằng chiều cao,
+      bỏ margin lệch trong grid, giãn cách block đều nhau ── */
+.cols { display: grid; gap: 18px; align-items: stretch; }
+.subjects, .grid2 { align-items: stretch; }
+.subjects > .card,
+.grid2 > .card,
+.cols > .card { margin-top: 0; }
+.pad > * + * { margin-top: 18px; }
