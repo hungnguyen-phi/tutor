@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · DPO</title>
+<link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+<div class="stage">
+  <div>
+    <div class="laptop">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tutor.truongvietanh.workers.dev/dpo</span></div>
+      <div class="bar">
+        <img src="/logo-vietanh.webp" alt="Việt Anh" />
+        <div class="t">Bảo vệ dữ liệu (DPO)<span>Tuân thủ PDPL · Luật 91/2025 · NĐ 88/2026</span></div>
+        <div class="sp"></div>
+        <span style="white-space:nowrap;font-weight:600">🔒 chị Lan (DPO)</span>
+      </div>
+
+      <div class="pad">
+        <div class="subjects" style="grid-template-columns:repeat(4,1fr);gap:16px">
+          <div class="card"><span class="h-eyebrow">Consent hợp lệ</span><div class="stat" style="text-align:left"><div class="n">96%</div><div class="l">đồng thuận kép</div></div></div>
+          <div class="card"><span class="h-eyebrow">DSAR đang xử lý</span><div class="stat" style="text-align:left"><div class="n">2</div></div></div>
+          <div class="card"><span class="h-eyebrow">DPIA cần rà</span><div class="stat" style="text-align:left"><div class="n">1</div></div></div>
+          <div class="card"><span class="h-eyebrow">Vendor ngoài VN</span><div class="stat" style="text-align:left"><div class="n">3</div></div></div>
+        </div>
+
+        <div class="grid2" style="margin-top:18px">
+          <div class="card">
+            <span class="h-eyebrow">🔐 Consent matrix</span>
+            <table style="margin-top:10px">
+              <thead><tr><th>Mục đích</th><th>Đồng thuận kép</th><th>Trạng thái</th></tr></thead>
+              <tbody>
+                <tr><td>AI tutoring</td><td>✓</td><td><span class="pill g">active</span></td></tr>
+                <tr><td>Xử lý giọng nói (speaking)</td><td>✓</td><td><span class="pill g">active</span></td></tr>
+                <tr><td>Phân tích cải tiến</td><td>—</td><td><span class="pill r">withdrawn</span></td></tr>
+              </tbody>
+            </table>
+            <div class="muted" style="margin-top:8px">Rút đồng ý → hệ thống dừng xử lý ngay.</div>
+          </div>
+          <div class="card">
+            <span class="h-eyebrow">📩 DSAR — yêu cầu chủ thể dữ liệu</span>
+            <table style="margin-top:10px">
+              <thead><tr><th>Mã</th><th>Loại</th><th>Hạn</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>DSAR-12</td><td>Truy cập dữ liệu</td><td>còn 4 ngày</td><td><button class="btn" style="padding:6px 12px">Xử lý</button></td></tr>
+                <tr><td>DSAR-13</td><td>Xoá dữ liệu</td><td>còn 9 ngày</td><td><button class="btn ghost" style="padding:6px 12px">Mở</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <span class="h-eyebrow">🛡️ DPIA &amp; Vendor / Cross-border</span>
+            <ul style="margin:10px 0 0;padding-left:20px;line-height:1.9">
+              <li>DPIA "Tutor AI" — rà định kỳ <span class="pill y">đến hạn</span></li>
+              <li>OpenRouter (LLM) — chuyển dữ liệu ngoài VN: đã ẩn danh trước khi gửi</li>
+              <li>Cross-border log: 1.240 lượt tháng này</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="h-eyebrow">📜 Audit log (truy cập nhạy cảm + quyết định AI)</span>
+            <table style="margin-top:10px">
+              <tbody>
+                <tr><td>10:21</td><td>ai_generation · guide · glm-5.2</td><td><span class="pill">HS #a4a9…</span></td></tr>
+                <tr><td>10:19</td><td>content_review · approve</td><td><span class="pill">thầy Nam</span></td></tr>
+                <tr><td>09:50</td><td>consent · withdraw</td><td><span class="pill">PH #f78e…</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card muted" style="text-align:center">DPO chỉ thấy governance — KHÔNG truy cập nội dung học tập của học sinh.</div>
+      </div>
+    </div>
+    <div class="cap">DPO — Bảo vệ dữ liệu <span>💻 Laptop · consent matrix · DSAR · DPIA · vendor/cross-border · audit log · không xem nội dung học tập</span></div>
+  </div>
+</div>
+</body>
+</html>

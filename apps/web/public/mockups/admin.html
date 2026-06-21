@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Admin hệ thống</title>
+<link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+<div class="stage">
+  <div>
+    <div class="laptop">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tutor.truongvietanh.workers.dev/admin</span></div>
+      <div class="bar">
+        <img src="/logo-vietanh.webp" alt="Việt Anh" />
+        <div class="t">Admin hệ thống<span>RBAC · LLM Gateway · Vận hành · Observability</span></div>
+        <div class="sp"></div>
+        <span class="pill g">uptime 99.9%</span>
+        <span style="white-space:nowrap;font-weight:600;margin-left:12px">🛠️ admin</span>
+      </div>
+
+      <div class="pad">
+        <div class="grid2">
+          <!-- RBAC -->
+          <div class="card">
+            <span class="h-eyebrow">👥 RBAC &amp; phân vai trò</span>
+            <table style="margin-top:10px">
+              <thead><tr><th>Vai trò</th><th>Người dùng</th><th>Số quyền</th></tr></thead>
+              <tbody>
+                <tr><td>student</td><td>312</td><td>4</td></tr>
+                <tr><td>teacher</td><td>28</td><td>17</td></tr>
+                <tr><td>subject_lead</td><td>6</td><td>12</td></tr>
+                <tr><td>admin</td><td>2</td><td>48</td></tr>
+              </tbody>
+            </table>
+            <div class="row" style="margin-top:12px;gap:8px"><button class="btn" style="padding:8px 14px">Gán vai trò</button><button class="btn ghost" style="padding:8px 14px">Permission simulator</button></div>
+          </div>
+
+          <!-- LLM gateway -->
+          <div class="card">
+            <span class="h-eyebrow">🤖 LLM Gateway</span>
+            <table style="margin-top:10px">
+              <tbody>
+                <tr><td>Provider</td><td><b>OpenRouter</b></td><td><span class="pill g">ok</span></td></tr>
+                <tr><td>Model chính</td><td>z-ai/glm-5.2</td><td>+ fallback</td></tr>
+                <tr><td>Ngân sách token</td><td>$182 / $500</td><td><span class="pill g">36%</span></td></tr>
+              </tbody>
+            </table>
+            <div class="row" style="margin-top:12px;gap:8px"><button class="btn ghost" style="padding:8px 14px">Đổi model</button><button class="btn ghost" style="padding:8px 14px">Đặt hạn mức</button></div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <!-- AI eval lab -->
+          <div class="card">
+            <span class="h-eyebrow">🧪 AI Evaluation Lab</span>
+            <div class="row between" style="margin-top:12px"><span>Kịch bản vàng (anti-leak, effort gate, an toàn)</span><span class="pill g">28/30 pass</span></div>
+            <div class="muted" style="margin-top:8px">2 ca lỗi — <b>chặn publish prompt v4</b> cho tới khi sửa.</div>
+            <button class="btn" style="margin-top:12px;padding:8px 14px">Chạy lại bộ test</button>
+          </div>
+          <!-- feature flags + ops -->
+          <div class="card">
+            <span class="h-eyebrow">🚩 Feature flags &amp; vận hành</span>
+            <table style="margin-top:10px">
+              <tbody>
+                <tr><td>Speaking (Web Speech)</td><td><span class="pill g">on</span></td></tr>
+                <tr><td>Content Factory (AI sinh)</td><td><span class="pill">off</span></td></tr>
+                <tr><td>Streaming chat</td><td><span class="pill">off</span></td></tr>
+              </tbody>
+            </table>
+            <div class="muted" style="margin-top:8px">Deploy edge functions · n8n workflows · rotate secrets (break-glass + log).</div>
+          </div>
+        </div>
+
+        <!-- observability -->
+        <div class="card">
+          <span class="h-eyebrow">📊 Observability</span>
+          <div class="row" style="margin-top:12px;gap:28px">
+            <div class="stat"><div class="n">99.9%</div><div class="l">uptime</div></div>
+            <div class="stat"><div class="n">7.6s</div><div class="l">latency lượt chat</div></div>
+            <div class="stat"><div class="n">0.4%</div><div class="l">error rate</div></div>
+            <div class="stat"><div class="n">$182</div><div class="l">chi phí AI tháng</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">Admin hệ thống <span>💻 Laptop · RBAC · LLM gateway/budget · AI Eval Lab (chặn prompt chưa đạt) · feature flags · observability</span></div>
+  </div>
+</div>
+</body>
+</html>

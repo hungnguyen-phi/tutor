@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Tổ trưởng chuyên môn</title>
+<link rel="stylesheet" href="mockups.css" />
+</head>
+<body>
+<div class="stage">
+  <div>
+    <div class="laptop">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">tutor.truongvietanh.workers.dev/subject-lead</span></div>
+      <div class="bar">
+        <img src="/logo-vietanh.webp" alt="Việt Anh" />
+        <div class="t">Tổ trưởng chuyên môn · Toán<span>Quản trị chất lượng môn bằng dữ liệu</span></div>
+        <div class="sp"></div>
+        <span style="white-space:nowrap;font-weight:600">👨‍🏫 thầy Nam</span>
+      </div>
+
+      <div class="pad">
+        <!-- metrics -->
+        <div class="subjects" style="grid-template-columns:repeat(4,1fr);gap:16px">
+          <div class="card"><span class="h-eyebrow">Mastery TB môn</span><div class="stat" style="text-align:left"><div class="n">64%</div></div></div>
+          <div class="card"><span class="h-eyebrow">Nội dung đã duyệt</span><div class="stat" style="text-align:left"><div class="n">86%</div></div></div>
+          <div class="card"><span class="h-eyebrow">Câu đã retired</span><div class="stat" style="text-align:left"><div class="n">7</div></div></div>
+          <div class="card"><span class="h-eyebrow">Chi phí AI môn / tháng</span><div class="stat" style="text-align:left"><div class="n">$12<span class="l"> / $50</span></div></div></div>
+        </div>
+
+        <div class="grid2" style="margin-top:18px">
+          <!-- node heatmap -->
+          <div class="card">
+            <span class="h-eyebrow">📍 Điểm kiến thức cả khối sai nhiều</span>
+            <div style="margin-top:12px">
+              <div class="row between"><span>Hàm số bậc hai (đỉnh)</span><b style="color:var(--red)">42% sai</b></div>
+              <div class="bar-track" style="margin:6px 0 14px"><div class="bar-fill" style="width:42%;background:var(--red)"></div></div>
+              <div class="row between"><span>Dấu tam thức bậc hai</span><b style="color:#c98a00">28% sai</b></div>
+              <div class="bar-track" style="margin:6px 0 14px"><div class="bar-fill" style="width:28%;background:#e0c400"></div></div>
+              <div class="row between"><span>Vẽ parabol</span><b style="color:var(--green)">12% sai</b></div>
+              <div class="bar-track" style="margin:6px 0"><div class="bar-fill g" style="width:12%"></div></div>
+            </div>
+          </div>
+
+          <!-- question quality -->
+          <div class="card">
+            <span class="h-eyebrow">🧪 Chất lượng câu hỏi (sau triển khai)</span>
+            <table style="margin-top:10px">
+              <thead><tr><th>Câu</th><th>p-value</th><th>Phân biệt</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>T_HSB2_Q2</td><td>0.55</td><td>0.41 🟢</td><td><span class="pill g">tốt</span></td></tr>
+                <tr><td>T_HSB2_Q4</td><td>0.18</td><td>0.09 🔴</td><td><button class="btn ghost" style="padding:6px 12px">Retire</button></td></tr>
+                <tr><td>T_HSB2_Q3</td><td>0.62</td><td>0.33 🟡</td><td><button class="btn ghost" style="padding:6px 12px">Xem</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <!-- system prompt versions -->
+          <div class="card">
+            <span class="h-eyebrow">🤖 System prompt môn Toán</span>
+            <div class="row between" style="margin-top:12px"><div><b>v3</b> <span class="pill g">published</span><div class="muted">Cập nhật 12/6 · A/B +4% mastery</div></div>
+              <div class="row" style="gap:8px"><button class="btn" style="padding:8px 14px">Tạo v4 (draft)</button><button class="btn ghost" style="padding:8px 14px">Rollback</button></div></div>
+          </div>
+          <!-- review queue -->
+          <div class="card">
+            <span class="h-eyebrow">✅ Hàng chờ duyệt nội dung</span>
+            <div class="row between" style="margin-top:12px"><span>5 câu mới (AI sinh) chờ duyệt</span><button class="btn" style="padding:8px 14px">Mở hàng chờ</button></div>
+            <div class="muted" style="margin-top:8px">Người soạn ≠ người duyệt (tách nhiệm vụ).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">Tổ trưởng chuyên môn <span>💻 Laptop · heatmap điểm sai · chất lượng câu (retire) · system prompt · duyệt nội dung · ngân sách AI</span></div>
+  </div>
+</div>
+</body>
+</html>
