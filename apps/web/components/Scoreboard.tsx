@@ -57,11 +57,11 @@ export default function ScoreboardView() {
         <div className="titles"><b>AI Tutor</b><span>Bảng điểm tuần (4DX)</span></div>
         <div className="spacer" />
         <nav className="sb-nav">
-          <a href="/">⌂</a>
+          <a href="/app">⌂</a>
           <a href="/learn">Học</a>
           <a href="/scoreboard" className="active">Bảng điểm</a>
         </nav>
-        <button className="btn ghost" style={{ marginLeft: 10, padding: "6px 12px" }} onClick={() => supabase.auth.signOut()}>Thoát</button>
+        <button className="btn ghost" style={{ marginLeft: 10, padding: "6px 12px" }} onClick={() => supabase.auth.signOut().then(() => (window.location.href = "/"))}>Thoát</button>
       </header>
 
       <main className="wrap">

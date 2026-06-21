@@ -15,8 +15,8 @@ export default function RoleShell({ title, subtitle, children }: { title: string
         <img src="/logo-vietanh.webp" alt="Việt Anh" />
         <div className="titles"><b>{title}</b>{subtitle && <span>{subtitle}</span>}</div>
         <div className="spacer" />
-        <nav className="sb-nav"><a href="/">⌂ Trang chính</a></nav>
-        <button className="btn ghost" style={{ marginLeft: 10, padding: "6px 12px" }} onClick={() => signOut()}>Thoát</button>
+        <nav className="sb-nav"><a href="/app">⌂ Trang chính</a></nav>
+        <button className="btn ghost" style={{ marginLeft: 10, padding: "6px 12px" }} onClick={() => signOut().then(() => (window.location.href = "/"))}>Thoát</button>
       </header>
       <main className="wrap" style={{ maxWidth: 920 }}>{children}</main>
     </>

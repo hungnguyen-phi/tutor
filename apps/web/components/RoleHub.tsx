@@ -34,7 +34,7 @@ export default function RoleHub() {
         <img src="/logo-vietanh.webp" alt="Việt Anh" />
         <div className="titles"><b>AI Tutor</b><span>Trường Liên cấp Việt Anh</span></div>
         <div className="spacer" />
-        <button className="btn ghost" style={{ padding: "6px 12px" }} onClick={() => signOut()}>Thoát</button>
+        <button className="btn ghost" style={{ padding: "6px 12px" }} onClick={() => signOut().then(() => (window.location.href = "/"))}>Thoát</button>
       </header>
       <main className="wrap">
         <div className="sb-mascot">
