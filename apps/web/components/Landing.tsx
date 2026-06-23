@@ -17,8 +17,7 @@ export default function Landing() {
   return (
     <>
       <div className="land-top">
-        <img src="/logo-vietanh.webp" alt="Việt Anh" />
-        <div className="nm"><b>AI Tutor</b><span>Trường Liên cấp Việt Anh</span></div>
+        <img src="/logo-vietanh.webp" alt="Trường Liên cấp Việt Anh" />
         <div style={{ flex: 1 }} />
         <a className="btn ghost" href={cta.href}>{cta.label}</a>
       </div>
@@ -27,10 +26,9 @@ export default function Landing() {
         <div className="hero-inner">
           <img src="/brand/lion-full.png" alt="Sư tử Việt Anh" onError={(e) => (e.currentTarget.style.display = "none")} />
           <div className="copy">
-            <h1>Gia sư AI <span className="g">đồng hành</span> cùng mỗi học sinh</h1>
-            <p>Học theo phương pháp Socratic — gợi mở thay vì cho đáp án. Theo dõi tiến bộ theo <b>nỗ lực thật</b>, kết nối học sinh với coach và gia đình. Bắt đầu với Toán và Tiếng Anh.</p>
-            <a className="btn gold" href={cta.href}>{loggedIn ? "Vào ứng dụng →" : "Bắt đầu học"}</a>
-            <div className="pills"><span>Toán</span><span>Tiếng Anh</span><span>Cá nhân hoá</span><span>PDPL</span></div>
+            <h1>Viet Anh Personal Tutor</h1>
+            <p>Hành trình học tập cá nhân hoá</p>
+            <a className="btn gold" href={cta.href}>{cta.label}</a>
           </div>
         </div>
       </section>
