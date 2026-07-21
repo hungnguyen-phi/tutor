@@ -17,6 +17,8 @@ import XpCount from "../../components/XpCount";
 import LearningPath, { type PathNode } from "../../components/LearningPath";
 import LessonView from "../../components/LessonView";
 import type { NodeResource } from "../../lib/api";
+import { MathText } from "../../lib/mathrender";
+import "katex/dist/katex.min.css";
 import * as G from "../../lib/gamify";
 
 // Học liệu mẫu do Xưởng Học liệu AI xuất ra (HTML tự chứa trong /public/demo-assets).
@@ -163,7 +165,7 @@ export default function DemoPage() {
             <span className="chip">DOK 2</span>
             <span className="chip">Trắc nghiệm</span>
           </div>
-          <p className="qprompt">Toạ độ đỉnh của parabol y = x² − 4x + 3 là gì?</p>
+          <p className="qprompt"><MathText>Toạ độ đỉnh của parabol y = x² − 4x + 3 là gì?</MathText></p>
 
           {screen === "retry" && (
             <div className="thread">
@@ -178,8 +180,7 @@ export default function DemoPage() {
                     <Lightbulb aria-hidden strokeWidth={2.5} />
                     GỢI Ý SOCRATIC
                   </div>
-                  Em nhớ trục đối xứng của parabol nằm ở đâu không? Thử tính x = −b/2a với a và b
-                  của hàm số này xem.
+                  <MathText>Em nhớ trục đối xứng của parabol nằm ở đâu không? Thử tính x = −b/(2a) với a và b của hàm số này xem.</MathText>
                 </div>
               </div>
             </div>

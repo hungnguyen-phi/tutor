@@ -66,30 +66,54 @@ function frac(n: number): number {
   const x = Math.sin(n * 127.1 + 31.7) * 43758.5453;
   return x - Math.floor(x); // 0..1 tất định
 }
-function centerline(i: number): number {
-  // Quỹ đạo THÂN — TẦN THẤP để đi thẳng một đoạn RỒI mới rẽ (không lượn liên
-  // hồi như sóng). Ba sóng lệch tần → rẽ trái, rẽ phải, đôi khi vòng lại. Biên
-  // độ đủ đọc ra "đang khám phá" nhưng vẫn trong khung cuộn hẹp mobile.
-  return Math.sin(i * 0.21) * 17 + Math.sin(i * 0.085 + 1.7) * 21 + Math.sin(i * 0.043 + 0.5) * 11;
+// QUỸ ĐẠO (HƯỚNG THÂN) — đây mới là thứ CHÍNH, nhìn từ trên cao. Sư tử CAM KẾT
+// đi một hướng chéo trong cả một ĐOẠN DÀI (SEGLEN bước, nội suy TUYẾN TÍNH →
+// đường đi thẳng chéo rõ), rồi tới cuối đoạn NGOẶT HẲN sang hướng khác (đích
+// ngang đoạn kế lấy bằng hash → ngẫu nhiên, tất định). Biên độ lớn quét gần hết
+// bề ngang → đọc ra "đi hướng này một lúc rồi rẽ", không phải cột dọc lắc nhẹ.
+const SEGLEN = 4;
+function segTarget(s: number): number {
+  // TRỤC ĐƯỜNG ĐI lượn hai bên: mỗi đoạn đổi bên với biên độ ngẫu nhiên (34..54).
+  // Biên độ VỪA PHẢI (không quét hết màn) để CÒN CHỖ cho ĐỘ MỞ HAI HÀNG chân.
+  const sign = s % 2 === 0 ? -1 : 1;
+  return sign * (22 + frac(s * 3.3 + 2) * 14);
 }
+function centerline(i: number): number {
+  const s = Math.floor(i / SEGLEN);
+  const t = (i - s * SEGLEN) / SEGLEN; // TUYẾN TÍNH → đi chéo đều trong đoạn, ngoặt ở cuối
+  return segTarget(s) + (segTarget(s + 1) - segTarget(s)) * t;
+}
+
+/**
+ * MỘT BƯỚC CHÂN — theo đúng cơ chế đi của thú 4 chân (lateral-sequence walk).
+ * Thứ tự đặt chân một chu kỳ: sau-TRÁI, trước-TRÁI, sau-PHẢI, trước-PHẢI. Nên:
+ *  · Chân TRƯỚC & SAU CÙNG BÊN đi thành CẶP: bàn trước đặt SÁT bàn sau → hai dấu
+ *    CHỤM lại (gap dọc nhỏ). Xong cặp trái thì thân chuyển sang phải → GIÃN XA
+ *    (gap lớn) rồi lại chụm cặp phải. KHÔNG phải nhịp 1,2,1,2 đều như người.
+ *  · Hai hàng TRÁI/PHẢI tách rõ (±40px), nghiêng theo khúc cua (bankY vuông góc).
+ *  · Cả trackway bám ĐƯỜNG ĐI (centerline) lượn rẽ.
+ */
 function gaitStep(seq: number): { dx: number; dy: number; rot: number } {
-  const beat = ((seq % 4) + 4) % 4; // 0 LH · 1 LF · 2 RH · 3 RF
-  const side = beat < 2 ? -1 : 1; // cụm TRÁI rồi cụm PHẢI
-  const cyc = Math.floor(seq / 4);
-  const straddle = 18 + (frac(cyc) * 6 - 3); // 15..21 px, đổi mỗi chu kỳ
-  let dx = centerline(seq) + side * straddle + (frac(seq * 3.1) * 6 - 3);
-  dx = Math.max(-52, Math.min(52, dx)); // khung mobile (node ~70px vẫn trong màn)
+  const beat = ((seq % 4) + 4) % 4; // 0 sau-trái · 1 trước-trái · 2 sau-phải · 3 trước-phải
+  const side = beat < 2 ? -1 : 1; // cặp TRÁI (0,1) rồi cặp PHẢI (2,3)
+  const front = beat === 1 || beat === 3; // bàn TRƯỚC = dấu CHỤM, đặt sát bàn sau
 
-  // Khoảng cách DỌC: dấu SAU của cặp (fore) kéo SÁT dấu trước (cụm); đầu cụm giãn.
-  const fore = beat === 1 || beat === 3;
-  let dy = fore ? -11 : 6;
-  dy += frac(seq * 5.7) * 8 - 4; // ±4 nhịp tự nhiên
+  const slope = centerline(seq + 1) - centerline(seq - 1); // độ chéo đường đi tại đây
 
-  // Góc: bám HƯỚNG THÂN (slope quỹ đạo) rõ hơn — rẽ đâu, bàn chân xoay đó — cộng
-  // xòe nhẹ ra ngoài bên đặt chân + nhiễu. Nên không dấu nào cùng một hướng.
-  const slope = centerline(seq + 1) - centerline(seq - 1);
-  let rot = Math.max(-16, Math.min(16, slope * 1.15)) + side * 4 + (frac(seq * 9.3) * 5 - 2.5);
-  rot = Math.max(-22, Math.min(22, rot));
+  // Hai hàng tách rõ; bàn trước xòe ra ngoài hàng một chút để phân biệt trước/sau.
+  const straddle = 40 + (frac(seq * 1.3) * 5 - 2.5);
+  const splayX = front ? side * 7 : side * 1;
+  let dx = centerline(seq) + side * straddle + splayX + (frac(seq * 3.1) * 4 - 2);
+  dx = Math.max(-80, Math.min(80, dx)); // trục ±36 + độ mở ±43 vẫn trong khung mobile
+  const bankY = -side * slope * 0.14; // hàng bên trong khúc cua nhích lên (vuông góc hướng đi)
+
+  // CHỤM/XA: bàn TRƯỚC kéo SÁT bàn sau (gap nhỏ = chụm); mở đầu cặp bên kia GIÃN
+  // rộng (gap lớn = xa). Đây là nhịp bước của 4 chân, không đều tăm tắp.
+  let dy = (front ? -18 : 22) + (frac(seq * 5.7) * 8 - 4) + bankY;
+
+  // Bàn chân xoay theo HƯỚNG ĐI (đường chéo) + xòe nhẹ bên đặt chân + nhiễu.
+  let rot = Math.max(-24, Math.min(24, slope * 0.5)) + side * 4 + (frac(seq * 9.3) * 5 - 2.5);
+  rot = Math.max(-28, Math.min(28, rot));
 
   return { dx: Math.round(dx * 10) / 10, dy: Math.round(dy), rot: Math.round(rot * 10) / 10 };
 }
@@ -189,6 +213,15 @@ export default function LearningPath({
     // Dáng đi 4 chân tất định theo bước (xem gaitStep): lệch ngang, khoảng cách
     // dọc và GÓC dấu chân đều do mô hình quyết — không còn zigzag lặp máy móc.
     const g = gaitStep(seq);
+    // Node HIỆN TẠI có cờ "BẮT ĐẦU" phía trên + sư tử 118px đứng cạnh: kéo về
+    // GẦN GIỮA (đỡ chạm mép, chừa chỗ cho sư tử) và cho gap trên rộng an toàn để
+    // cờ không đè node phía trên. Các dấu khác giữ nguyên dáng đi tự nhiên.
+    if (n.state === "current") {
+      // Biên độ đường đi lớn → kéo mạnh về giữa (±28px) để sư tử 118px + cờ đứng
+      // cạnh không bị chèn ra mép; gap trên rộng an toàn cho cờ.
+      g.dx = Math.max(-28, Math.min(28, Math.round(g.dx * 0.35 * 10) / 10));
+      g.dy = 14;
+    }
     // Sư tử mascot đứng bên nào: theo dấu chân đang lệch trái hay phải.
     const shiftedLeft = g.dx < 0;
     const Icon = n.state === "available" ? null : ICON[n.state];

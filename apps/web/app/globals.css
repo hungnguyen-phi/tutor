@@ -1260,21 +1260,9 @@ ul {
   --scene-orb-glow: #ffe59e;
   --scene-cloud: #fff6e0;
 }
-/* Cây keo tán bằng — 2 bóng ô-liu đậm ở đường chân cỏ (near lớn/thấp, far nhỏ/
-   cao). Thuần trang trí, nằm sau dải bài (.path z-index:1) nhưng trước đồi. */
-.scene[data-world="0"] .scene-sky::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.92;
-  background-repeat: no-repeat, no-repeat;
-  background-position: left 4px bottom 92px, right 18px bottom 126px;
-  background-size: 132px auto, 82px auto;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 120'%3E%3Cg fill='%233b4a1c'%3E%3Cellipse cx='80' cy='34' rx='66' ry='13'/%3E%3Cpath d='M76 116 74 44 82 44 80 116Z'/%3E%3C/g%3E%3Cg stroke='%233b4a1c' stroke-width='3.4' fill='none' stroke-linecap='round'%3E%3Cpath d='M78 50 44 40'/%3E%3Cpath d='M78 46 54 33'/%3E%3Cpath d='M79 47 104 34'/%3E%3Cpath d='M79 51 120 41'/%3E%3Cpath d='M79 44 82 33'/%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 120'%3E%3Cg fill='%233f4f20'%3E%3Cellipse cx='80' cy='34' rx='66' ry='13'/%3E%3Cpath d='M76 116 74 44 82 44 80 116Z'/%3E%3C/g%3E%3Cg stroke='%233f4f20' stroke-width='3.4' fill='none' stroke-linecap='round'%3E%3Cpath d='M78 50 44 40'/%3E%3Cpath d='M78 46 54 33'/%3E%3Cpath d='M79 47 104 34'/%3E%3Cpath d='M79 51 120 41'/%3E%3Cpath d='M79 44 82 33'/%3E%3C/g%3E%3C/svg%3E");
-}
+/* (Đã bỏ 2 "cây keo" ::after ở thế giới 0 — render ra như cây nấm dán phẳng vào
+   đồi, "cháy vào nền", quyết định chủ dự án 2026-07-21. Thảo nguyên giờ chỉ còn
+   đồi cỏ + mặt trời + mây, sạch.) */
 .scene[data-world="1"] {
   --scene-sky: linear-gradient(180deg, #8fd3a8 0%, #b8e6cc 40%, #def4e2 68%);
   --scene-hill-back: #5fb86b;

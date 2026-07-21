@@ -34,6 +34,8 @@ import { ScoreboardBody } from "./Scoreboard";
 import * as G from "../lib/gamify";
 import * as Prefs from "../lib/prefs";
 import { usePresence, PRESENCE_ENABLED } from "../lib/presence";
+import { MathText } from "../lib/mathrender";
+import "katex/dist/katex.min.css";
 import {
   diagnose,
   answer,
@@ -1064,9 +1066,9 @@ export default function TutorApp() {
             {/* Đề có công thức → cả dòng serif italic 26 theo hi-fi; câu chữ
                 thường (tiếng Anh, đọc hiểu) giữ sans 15/1.5. */}
             {mathy(q.prompt) ? (
-              <div className="qcard-expr math">{renderRich(q.prompt)}</div>
+              <div className="qcard-expr math"><MathText>{q.prompt}</MathText></div>
             ) : (
-              <div className="qcard-text">{renderRich(q.prompt)}</div>
+              <div className="qcard-text"><MathText>{q.prompt}</MathText></div>
             )}
           </div>
         </>
@@ -1077,30 +1079,30 @@ export default function TutorApp() {
           m.role === "student" ? (
             <div key={i} className="bubble student">
               <div className="who">BẠN</div>
-              {renderRich(m.text)}
+              <MathText>{m.text}</MathText>
             </div>
           ) : m.role === "tutor" ? (
             <div key={i} className="bubble">
               <div className="who">TUTOR</div>
-              {renderRich(m.text)}
+              <MathText>{m.text}</MathText>
             </div>
           ) : m.role === "gate" ? (
             /* Cổng nỗ lực: sư tử xoay lưng dỗi — "mình hỏi, bạn nghĩ".
                Không phải hình phạt: là nhân vật hoá đúng luật chơi của app. */
             <div key={i} className="hint-says">
               <Lion mood="rebel" size={92} decorative />
-              <div className="hint-bubble">{renderRich(m.text)}</div>
+              <div className="hint-bubble"><MathText>{m.text}</MathText></div>
             </div>
           ) : m.role === "hint" ? (
             /* Gợi ý Socratic: đầu sư tử ngẫm nghĩ 52px + bong bóng trắng
                đuôi lệch (16/16/16/4) — anatomy hi-fi. */
             <div key={i} className="hint-says">
               <Lion mood="thinking" size={52} />
-              <div className="hint-bubble">{renderRich(m.text)}</div>
+              <div className="hint-bubble"><MathText>{m.text}</MathText></div>
             </div>
           ) : (
             <div key={i} className="feedback">
-              {renderRich(m.text)}
+              <MathText>{m.text}</MathText>
             </div>
           ),
         )}
@@ -1125,7 +1127,7 @@ export default function TutorApp() {
               disabled={busy || verdict != null}
               onClick={() => setPicked(opt)}
             >
-              {prettyMath(opt)}
+              <MathText>{opt}</MathText>
             </button>
           ))}
         </div>
@@ -1241,46 +1243,9 @@ export default function TutorApp() {
   );
 }
 
-// Bộ làm đẹp toán inline (tránh phụ thuộc KaTeX nặng).
-const SUP: Record<string, string> = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻", "+": "⁺", n: "ⁿ", x: "ˣ", i: "ⁱ" };
-const SUB: Record<string, string> = { "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉" };
-const toMap = (s: string, m: Record<string, string>) => [...s].map((c) => m[c] ?? c).join("");
-
-function prettyMath(s: string): string {
-  return (
-    (s ?? "")
-      .replace(/\$/g, "")
-      // LLM hay bọc công thức bằng \( \) \[ \] — client không render LaTeX,
-      // gỡ delimiter để chữ đọc sạch (nội dung bên trong đã xử lý bên dưới).
-      .replace(/\\[()[\]]/g, "")
-      .replace(/\\left|\\right/g, "")
-      .replace(/\\text\s*\{([^{}]*)\}/g, "$1")
-      .replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, "($1)/($2)")
-      .replace(/\\sqrt\s*\{([^{}]+)\}/g, "√($1)")
-      .replace(/\\cdot/g, "·")
-      .replace(/\\times/g, "×")
-      .replace(/\\leq?\b/g, "≤")
-      .replace(/\\geq?\b/g, "≥")
-      .replace(/\\ne(?:q)?\b/g, "≠")
-      .replace(/\\pm/g, "±")
-      .replace(/\\,/g, " ")
-      .replace(/\^\{([^{}]+)\}/g, (_, p) => toMap(p, SUP))
-      .replace(/\^(-?\w)/g, (_, p) => toMap(p, SUP))
-      .replace(/_\{([^{}]+)\}/g, (_, p) => toMap(p, SUB))
-      .replace(/_(\w)/g, (_, p) => toMap(p, SUB))
-      // Ghi chú soạn bài lọt vào nội dung (VD "(khuôn tham số: b, c nguyên)")
-      // là metadata của người soạn — học sinh không bao giờ cần thấy.
-      .replace(/\s*\(khu[ôo]n tham s[ốo][^)]*\)/gi, "")
-  );
-}
-
-/** Chữ giàu tối giản cho lời Tutor: **đậm** → <b>, còn lại qua prettyMath.
- *  KHÔNG phải markdown đầy đủ — chỉ đúng thứ LLM hay dùng, tránh hiện dấu sao thô. */
-function renderRich(s: string): React.ReactNode {
-  const parts = prettyMath(s ?? "").split(/\*\*([^*]+)\*\*/g);
-  if (parts.length === 1) return parts[0];
-  return parts.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : p));
-}
+// Render toán chuyển hẳn sang KaTeX qua <MathText> (lib/mathrender) — chuẩn cho
+// học sinh, thay bộ "làm đẹp" inline cũ. Đây chỉ còn cờ nhận biết đề có chất toán
+// để chọn kiểu chữ serif.
 
 /** Eyebrow trên thẻ câu hỏi — lệnh làm bài theo dạng câu (hi-fi 3b). */
 function kindEyebrow(q: DiagnoseQuestion): string {
