@@ -7,6 +7,35 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 type Tier = "cheap" | "default" | "strong";
 
+// ── Token budget: trần token/HS/ngày (PRD §9.4, giữ MVP < $500/tháng) ─────────
+// Kiểm TRƯỚC khi gọi OpenRouter; chạm trần → ném BudgetExceededError thay vì tiêu
+// thêm token. Đọc theo token_usage(student_id, day). Cấu hình qua env, mặc định
+// 200k token/HS/ngày.
+const DAILY_TOKEN_LIMIT = Number(Deno.env.get("LLM_DAILY_TOKEN_LIMIT") ?? "200000");
+
+export class BudgetExceededError extends Error {
+  constructor(
+    public studentId: string,
+    public limit: number,
+    public spent: number,
+  ) {
+    super(`Token budget exceeded for ${studentId}: ${spent}/${limit}`);
+    this.name = "BudgetExceededError";
+  }
+}
+
+/** Khóa ngày UTC dạng YYYY-MM-DD cho cột token_usage.day (kiểu date). */
+function dayKeyUTC(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Chạy một promise ở NỀN: giữ isolate sống tới khi xong nhưng KHÔNG chặn phản
+ *  hồi. Không có EdgeRuntime (vd test local) → bỏ qua an toàn. */
+function runInBackground(p: Promise<unknown>): void {
+  (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+    .EdgeRuntime?.waitUntil?.(p);
+}
+
 const MODELS: Record<Tier, string> = {
   cheap: "deepseek/deepseek-v4-flash",
   default: "z-ai/glm-5.2",
@@ -84,6 +113,24 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   const key = Deno.env.get("OPENROUTER_API_KEY");
   if (!key) throw new Error("OPENROUTER_API_KEY not set in function secrets.");
 
+  // KIỂM TOKEN-BUDGET TRƯỚC KHI GỌI LLM: đọc tổng token HS này đã tiêu hôm nay;
+  // đã chạm trần → dừng, ném lỗi budget (caller bắt để báo HS "hết lượt hôm nay")
+  // thay vì đốt thêm token. Chỉ tính khi có studentId + supa (lượt ẩn danh/chẩn
+  // đoán không đo ở đây).
+  if (args.supa && args.studentId) {
+    const day = dayKeyUTC();
+    const { data: rows } = await args.supa
+      .from("token_usage")
+      .select("tokens")
+      .eq("student_id", args.studentId)
+      .eq("day", day);
+    const spent = ((rows ?? []) as Array<{ tokens: number | null }>)
+      .reduce((s, r) => s + (r.tokens ?? 0), 0);
+    if (spent >= DAILY_TOKEN_LIMIT) {
+      throw new BudgetExceededError(args.studentId, DAILY_TOKEN_LIMIT, spent);
+    }
+  }
+
   const tier: Tier = args.tier ?? "default";
   const primary = MODELS[tier];
   const dedupe = (a: string[]) => a.filter((m, i, arr) => arr.indexOf(m) === i);
@@ -140,16 +187,48 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     outputTokens: (data.usage as { completion_tokens?: number } | undefined)?.completion_tokens ?? 0,
   };
 
-  // Audit every AI decision (PDPL traceability) + meter tokens.
+  // Audit mọi quyết định AI (PDPL) + ĐO token đã tiêu — CHẠY NỀN (waitUntil) để
+  // KHÔNG chặn phản hồi cho học sinh. Lỗi ghi nuốt im lặng: đây là nhật ký/đo
+  // lường, không phải dữ liệu quyết định học tập.
   if (args.supa) {
-    await args.supa.from("audit_logs").insert({
-      tenant_id: args.tenantId ?? null,
-      actor_id: null,
-      action: "ai_generation",
-      subject_type: "session",
-      subject_id: args.studentId ?? null,
-      ai_decision: { agent: args.agent, provider: "openrouter", model, tier, usage },
-    });
+    const supa = args.supa;
+    const total = usage.inputTokens + usage.outputTokens;
+    const bg = (async () => {
+      await supa.from("audit_logs").insert({
+        tenant_id: args.tenantId ?? null,
+        actor_id: null,
+        action: "ai_generation",
+        subject_type: "session",
+        subject_id: args.studentId ?? null,
+        ai_decision: { agent: args.agent, provider: "openrouter", model, tier, usage },
+      });
+      // Cộng dồn token_usage cho (HS, ngày) để lần gọi sau kiểm budget có số thật.
+      // Best-effort read-modify-write; đủ cho phép đo (nếu cần tuyệt đối nguyên tử
+      // thì thay bằng RPC increment — TODO khi có).
+      if (args.studentId && total > 0) {
+        const day = dayKeyUTC();
+        const { data: cur } = await supa
+          .from("token_usage")
+          .select("tokens")
+          .eq("student_id", args.studentId)
+          .eq("day", day)
+          .maybeSingle();
+        await supa.from("token_usage").upsert(
+          {
+            tenant_id: args.tenantId ?? null,
+            student_id: args.studentId,
+            day,
+            tokens: ((cur?.tokens as number | undefined) ?? 0) + total,
+          },
+          { onConflict: "student_id,day" },
+        );
+      }
+    })().catch((e) =>
+      console.error("llm: ghi audit/đo token nền thất bại —", e instanceof Error ? e.message : e)
+    );
+    runInBackground(bg);
   }
+  // TODO(streaming): khi cần trả token dần cho UI, thêm cờ args.stream để trả
+  // ReadableStream từ OpenRouter (stream:true) thay vì gom hết rồi trả một cục.
   return { text, model, usage };
 }

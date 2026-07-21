@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set NEXT_DIST_DIR=.next-preview&& pnpm --filter @tutor/web dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

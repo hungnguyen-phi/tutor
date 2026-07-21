@@ -1,15 +1,121 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { teacherStats, teacherReview, type TeacherStats } from "../lib/api";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Clock,
+  Home,
+  Inbox,
+  Info,
+  LayoutGrid,
+  LogOut,
+  ScanSearch,
+  Undo2,
+  UploadCloud,
+  Users,
+} from "lucide-react";
+import {
+  teacherStats,
+  teacherReview,
+  recomputeQuestionStats,
+  type TeacherStats,
+  type RosterStudent,
+} from "../lib/api";
 import { useAuth, signOut } from "../lib/auth";
-import Login from "./Login";
+import RedirectToLogin from "./RedirectToLogin";
+import StudioIntake from "./StudioIntake";
+import QuestionIntake from "./QuestionIntake";
+
+/** Top bar hi-fi 4f: crest 34 + wordmark + tên GV thật từ profile + avatar chữ cái. */
+function TopBar({ name, initial }: { name: string; initial: string }) {
+  return (
+    <header className="tdb-top">
+      <div className="tdb-brand">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo-crest-80.webp" alt="" width={34} />
+        <div>
+          <b>AI Tutor · Giáo viên</b>
+          <span>Trường Việt Anh</span>
+        </div>
+      </div>
+      <div className="tdb-user">
+        <span className="tdb-user-name">{name}</span>
+        <span className="tdb-avatar" aria-hidden>
+          {initial}
+        </span>
+        <a className="btn btn-quiet role-home" href="/app">
+          <Home aria-hidden strokeWidth={2} />
+          Trang chính
+        </a>
+        <button
+          className="btn btn-quiet"
+          onClick={() => signOut().then(() => (window.location.href = "/"))}
+        >
+          <LogOut aria-hidden strokeWidth={2} />
+          Thoát
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ── Tiện ích trình bày (thuần hiển thị, không suy diễn số) ────────────────────
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+/** Thời gian tương đối tiếng Việt cho cột "hoạt động gần nhất". */
+function relTime(iso: string | null): string {
+  if (!iso) return "chưa học";
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "—";
+  const diff = Date.now() - ms;
+  const d = Math.floor(diff / 86_400_000);
+  if (d <= 0) return "hôm nay";
+  if (d === 1) return "hôm qua";
+  if (d < 7) return `${d} ngày trước`;
+  if (d < 30) return `${Math.floor(d / 7)} tuần trước`;
+  return `${Math.floor(d / 30)} tháng trước`;
+}
+
+/** Cờ → nhóm màu (đi kèm CHỮ, không chỉ dựa vào màu — a11y). */
+const flagKind: Record<string, string> = {
+  "cần kèm": "warn",
+  "đến hạn ôn": "sky",
+  "chưa bắt đầu": "mute",
+  "lâu chưa học": "mane",
+};
+function FlagChips({ flags }: { flags: string[] }) {
+  if (flags.length === 0) {
+    return (
+      <span className="tdb-chip" data-kind="ok">
+        <Check aria-hidden strokeWidth={2.5} />
+        ổn
+      </span>
+    );
+  }
+  return (
+    <span className="tdb-chips">
+      {flags.map((f) => (
+        <span className="tdb-chip" data-kind={flagKind[f] ?? "mute"} key={f}>
+          {f}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const initialOf = (name: string) => (name.split(/\s+/).pop() ?? "?").charAt(0).toUpperCase();
+
+type Tab = "overview" | "students" | "topics" | "content";
 
 export default function TeacherDashboard() {
   const { session, profile } = useAuth();
   const [data, setData] = useState<TeacherStats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("overview");
 
   async function load() {
     try {
@@ -22,119 +128,651 @@ export default function TeacherDashboard() {
     if (session) load();
   }, [session]);
 
-  if (session === undefined) return <main className="wrap"><p className="muted">Đang tải…</p></main>;
-  if (session === null) return <Login />;
-
   async function setStatus(kind: "question" | "ladder", id: string, status: string) {
-    setBusy(true);
+    setBusy(id);
     try {
       await teacherReview(kind, id, status);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  if (error)
-    return (
-      <main className="wrap">
-        <div className="banner warn">
-          {/forbidden/i.test(error) ? "Tài khoản này không đủ quyền xem bảng điều khiển giáo viên." : error}
-        </div>
-        <div className="row">
-          <a className="btn ghost" href="/">↩ Về phần học sinh</a>
-          <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
-        </div>
-      </main>
-    );
-  if (!data) return <main className="wrap"><p className="muted">Đang tải dashboard…</p></main>;
+  // Quét câu kém (question-stats): tính p_value/discrimination toàn ngân hàng,
+  // câu quá dễ/khó/không phân biệt tự về hàng chờ duyệt. Đêm có pg_cron chạy
+  // hộ — nút này để giáo viên chủ động sau một buổi lớp làm bài.
+  const [scanNote, setScanNote] = useState<string | null>(null);
+  async function scanQuestions() {
+    setBusy("scan");
+    setScanNote(null);
+    try {
+      const r = await recomputeQuestionStats();
+      setScanNote(
+        r.flagged > 0
+          ? `Đã tính lại ${r.updated} câu — ${r.flagged} câu kém vừa được đưa vào hàng chờ duyệt.`
+          : `Đã tính lại ${r.updated} câu — chưa câu nào chạm ngưỡng cần thay.`,
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
 
-  const m = data.metrics;
+  // Cổng đăng nhập — TeacherDashboard tự dựng top bar theo hi-fi 4f nên không
+  // dùng RoleShell nữa, nhưng giữ nguyên 3 trạng thái phiên của nó.
+  if (session === undefined) {
+    return (
+      <div className="tdb">
+        <main className="tdb-main">
+          <div className="skel" style={{ height: 88 }} />
+          <div className="skel" style={{ height: 240 }} />
+        </main>
+      </div>
+    );
+  }
+  if (session === null) return <RedirectToLogin />;
+
+  const name = profile?.full_name?.trim() || "Giáo viên";
+  const initial = initialOf(name);
+
+  if (error) {
+    return (
+      <div className="tdb">
+        <TopBar name={name} initial={initial} />
+        <main className="tdb-main">
+          <div className="banner err">
+            <AlertTriangle aria-hidden strokeWidth={2} />
+            <span>
+              {/forbidden/i.test(error)
+                ? "Tài khoản này không đủ quyền xem bảng điều khiển giáo viên."
+                : error}
+            </span>
+          </div>
+          <div className="row">
+            <a className="btn btn-ghost" href="/learn">
+              Về phần học sinh
+            </a>
+            <button className="btn btn-ghost" onClick={() => signOut()}>
+              Đăng xuất
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="tdb">
+        <TopBar name={name} initial={initial} />
+        <main className="tdb-main">
+          <div className="skel" style={{ height: 88 }} />
+          <div className="skel" style={{ height: 240 }} />
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <main className="wrap">
-      <div className="row" style={{ justifyContent: "space-between", marginTop: 0 }}>
-        <h1 className="h1" style={{ margin: 0 }}>Bảng điều khiển giáo viên</h1>
-        <div className="row" style={{ marginTop: 0 }}>
-          <span className="muted">{profile?.full_name}</span>
-          <a className="btn ghost" href="/">↩ HS</a>
-          <button className="btn ghost" onClick={() => signOut()}>Đăng xuất</button>
+    <div className="tdb">
+      <TopBar name={name} initial={initial} />
+      <main className="tdb-main">
+        <Console
+          data={data}
+          tab={tab}
+          setTab={setTab}
+          busy={busy}
+          setStatus={setStatus}
+          onScan={scanQuestions}
+          scanNote={scanNote}
+        />
+      </main>
+    </div>
+  );
+}
+
+// ── Thân bảng điều khiển — tách riêng để `data` đã chắc chắn không null ────────
+function Console({
+  data,
+  tab,
+  setTab,
+  busy,
+  setStatus,
+  onScan,
+  scanNote,
+}: {
+  data: TeacherStats;
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  busy: string | null;
+  setStatus: (kind: "question" | "ladder", id: string, status: string) => void;
+  onScan: () => void;
+  scanNote: string | null;
+}) {
+  const m = data.metrics;
+  const roster = data.roster;
+  const topics = data.topics ?? [];
+  const activity = data.activity;
+  const masteryPct = Math.round(m.mastery.rate * 100);
+
+  const pendingReview =
+    data.review.questions.filter((q) => q.status !== "active").length +
+    data.review.ladders.filter((l) => l.status !== "active").length;
+
+  const needAttention = roster?.needAttention ?? 0;
+
+  const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: "overview", label: "Tổng quan", icon: <LayoutGrid aria-hidden strokeWidth={2} /> },
+    { id: "students", label: "Học sinh", icon: <Users aria-hidden strokeWidth={2} />, badge: roster?.total },
+    { id: "topics", label: "Chủ đề", icon: <BookOpen aria-hidden strokeWidth={2} />, badge: topics.length || undefined },
+    { id: "content", label: "Duyệt & nội dung", icon: <Inbox aria-hidden strokeWidth={2} />, badge: pendingReview || undefined },
+  ];
+
+  return (
+    <>
+      {/* KPI lớp — chỉ số nỗ lực THẬT (không phải hero-metric trang trí) */}
+      <div className="tdb-kpis">
+        <div className="tdb-kpi">
+          <span>Nỗ lực trung bình</span>
+          <b className="num">
+            {m.effort.avgAttemptsToCorrect} <small>lượt thử tới khi đúng</small>
+          </b>
+        </div>
+        <div className="tdb-kpi">
+          <span>Độ chính xác</span>
+          <b className="num">
+            {pct(m.effort.accuracy)} <small>{m.effort.totalAttempts} lượt</small>
+          </b>
+        </div>
+        <div className="tdb-kpi">
+          <span>Thành thạo</span>
+          <b className="num">
+            {masteryPct}%{" "}
+            <small>
+              {m.mastery.mastered}/{m.mastery.tracked} điểm
+            </small>
+          </b>
+        </div>
+        <div className="tdb-kpi" data-tone={needAttention > 0 ? "mane" : undefined}>
+          <span>Học sinh cần chú ý</span>
+          <b className="num">
+            {needAttention} <small>trên {roster?.total ?? 0} em</small>
+          </b>
         </div>
       </div>
-      <p className="sub">Chỉ số lớp học &amp; duyệt nội dung (pilot). Số liệu tính trên dữ liệu thật của tenant Việt Anh.</p>
 
-      {/* 3 metric cards */}
-      <div className="subjects" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-        <div className="panel" style={{ margin: 0 }}>
-          <small className="muted">MISCONCEPTION hàng đầu</small>
-          <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-            {m.misconceptions.length === 0 && <span className="muted">Chưa có dữ liệu</span>}
-            {m.misconceptions.slice(0, 5).map((x) => (
-              <div key={x.label} className="row" style={{ justifyContent: "space-between", marginTop: 0 }}>
-                <span style={{ fontSize: ".82rem" }}>{x.label}</span>
-                <span className="chip">{x.count}</span>
-              </div>
-            ))}
+      {/* Thanh tab điều hướng bảng điều khiển */}
+      <div className="tdb-tabs" role="tablist" aria-label="Khu vực quản trị">
+        {tabs.map((tb) => (
+          <button
+            key={tb.id}
+            role="tab"
+            aria-selected={tab === tb.id}
+            className="tdb-tab"
+            onClick={() => setTab(tb.id)}
+          >
+            {tb.icon}
+            {tb.label}
+            {typeof tb.badge === "number" && tb.badge > 0 && (
+              <span className="tdb-tab-badge num">{tb.badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+        <OverviewTab m={m} activity={activity} masteryPct={masteryPct} />
+      )}
+      {tab === "students" && <StudentsTab roster={roster} />}
+      {tab === "topics" && <TopicsTab topics={topics} />}
+      {tab === "content" && (
+        <ContentTab
+          data={data}
+          busy={busy}
+          setStatus={setStatus}
+          pending={pendingReview}
+          onScan={onScan}
+          scanNote={scanNote}
+        />
+      )}
+    </>
+  );
+}
+
+// ── Tab: Tổng quan ────────────────────────────────────────────────────────────
+function OverviewTab({
+  m,
+  activity,
+  masteryPct,
+}: {
+  m: TeacherStats["metrics"];
+  activity: TeacherStats["activity"];
+  masteryPct: number;
+}) {
+  const signals = activity
+    ? [
+        { label: "Đang học lúc này", value: activity.activeSessions, sub: "phiên", tone: "ok" },
+        { label: "Hoạt động 7 ngày", value: activity.activeStudents7d, sub: "em", tone: "sky" },
+        { label: "Đến hạn ôn", value: activity.dueReviewsTotal, sub: "lượt", tone: "mane" },
+        { label: "Bài chờ chấm", value: activity.pendingSubmissions, sub: "bài", tone: "navy" },
+      ]
+    : [];
+
+  return (
+    <div className="tdb-grid">
+      <div className="tdb-col">
+        {signals.length > 0 && (
+          <section className="tdb-card">
+            <span className="tdb-card-title">Nhịp lớp hôm nay</span>
+            <div className="tdb-signals">
+              {signals.map((s) => (
+                <div className="tdb-signal" data-tone={s.tone} key={s.label}>
+                  <b className="num">{s.value}</b>
+                  <span>
+                    {s.label}
+                    <small> · {s.sub}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Quan niệm sai cần chú ý — dữ liệu thật, mục nóng nhất nền hổ phách */}
+        <section className="tdb-card">
+          <div className="tdb-card-head">
+            <span className="tdb-card-title">Quan niệm sai cần chú ý</span>
           </div>
-        </div>
-        <div className="panel" style={{ margin: 0 }}>
-          <small className="muted">EFFORT (nỗ lực)</small>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--navy)" }}>{m.effort.avgAttemptsToCorrect}</div>
-          <span className="muted">lượt thử TB tới khi đúng</span>
-          <div style={{ marginTop: 8 }}>Độ chính xác: <b>{Math.round(m.effort.accuracy * 100)}%</b> ({m.effort.totalAttempts} lượt)</div>
-        </div>
-        <div className="panel" style={{ margin: 0 }}>
-          <small className="muted">MASTERY (thành thạo)</small>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--green)" }}>{Math.round(m.mastery.rate * 100)}%</div>
-          <span className="muted">{m.mastery.mastered}/{m.mastery.tracked} điểm kiến thức đã thành thạo</span>
-        </div>
+          {m.misconceptions.length === 0 && <p className="muted">Chưa có dữ liệu.</p>}
+          {m.misconceptions.slice(0, 6).map((x, i) => (
+            <div className="tdb-flag" key={x.label} data-hot={i === 0 || undefined}>
+              <span className="tdb-flag-rank num" aria-hidden>
+                {i + 1}
+              </span>
+              <div className="tdb-flag-label">
+                <b title={x.label}>{x.label}</b>
+                <span>{x.count} lượt ghi nhận trong lớp</span>
+              </div>
+            </div>
+          ))}
+          <div className="tdb-note">
+            <Info aria-hidden strokeWidth={2} />
+            <span>
+              Cờ an toàn luôn qua giáo viên xác minh — không bao giờ tự động gửi phụ huynh.
+            </span>
+          </div>
+        </section>
       </div>
 
-      {/* Review queue */}
-      <h2 className="h1" style={{ fontSize: "1.15rem", marginTop: 24 }}>Duyệt nội dung (human-in-the-loop)</h2>
-      <p className="sub">Chỉ nội dung trạng thái <b>active</b> mới phục vụ học sinh. GV duyệt/thu hồi tại đây.</p>
+      <div className="tdb-col">
+        {/* Thành thạo lớp — 1 đoạn gold trên track, không bịa phân đoạn */}
+        <section className="tdb-card">
+          <span className="tdb-card-title">Thành thạo lớp</span>
+          <div
+            className="tdb-bar"
+            role="img"
+            aria-label={`Thành thạo ${masteryPct}% điểm kiến thức được theo dõi`}
+          >
+            <i className="seg-gold" style={{ width: `${masteryPct}%` }} />
+          </div>
+          <div className="tdb-legend">
+            <span>
+              <i style={{ background: "var(--gold)" }} />
+              Thành thạo
+            </span>
+            <span>
+              <i style={{ background: "var(--line)" }} />
+              Chưa thành thạo
+            </span>
+          </div>
+          <p className="muted">
+            {m.mastery.mastered}/{m.mastery.tracked} điểm kiến thức được theo dõi.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
 
-      <div className="panel">
-        <small className="muted">CÂU HỎI</small>
-        <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
-          {data.review.questions.map((q) => (
-            <div key={q.id} className="row" style={{ justifyContent: "space-between", marginTop: 0, gap: 8 }}>
-              <span style={{ flex: 1, fontSize: ".82rem" }}>
-                <span className="chip">{q.node}</span> {q.prompt}…
-              </span>
-              <span className={"chip"} style={{ background: q.status === "active" ? "var(--green-50)" : "#fff7ed", color: q.status === "active" ? "#1d7a44" : "#9a6b00" }}>
-                {q.status}
-              </span>
-              {q.status !== "active" ? (
-                <button className="btn" disabled={busy} onClick={() => setStatus("question", q.id, "active")}>Duyệt ✓</button>
-              ) : (
-                <button className="btn ghost" disabled={busy} onClick={() => setStatus("question", q.id, "retired")}>Thu hồi</button>
-              )}
-            </div>
+// ── Tab: Học sinh (roster) ────────────────────────────────────────────────────
+type SortKey = "attention" | "name" | "mastered" | "accuracy" | "recent";
+
+function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
+  const [sort, setSort] = useState<SortKey>("attention");
+  const students = roster?.students ?? [];
+
+  const sorted = useMemo(() => {
+    const arr = [...students];
+    switch (sort) {
+      case "name":
+        return arr.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+      case "mastered":
+        return arr.sort((a, b) => b.mastered - a.mastered);
+      case "accuracy":
+        return arr.sort((a, b) => b.accuracy - a.accuracy);
+      case "recent":
+        return arr.sort(
+          (a, b) => (Date.parse(b.lastActiveAt ?? "") || 0) - (Date.parse(a.lastActiveAt ?? "") || 0),
+        );
+      default: // attention — giữ thứ tự server (nhiều cờ trước)
+        return arr;
+    }
+  }, [students, sort]);
+
+  if (students.length === 0) {
+    return (
+      <section className="tdb-card">
+        <div className="empty">
+          <Users aria-hidden strokeWidth={1.75} />
+          <p className="muted">Chưa có học sinh nào trong lớp này.</p>
+        </div>
+      </section>
+    );
+  }
+
+  const sorts: { key: SortKey; label: string }[] = [
+    { key: "attention", label: "Cần chú ý" },
+    { key: "recent", label: "Gần đây" },
+    { key: "mastered", label: "Thành thạo" },
+    { key: "accuracy", label: "Chính xác" },
+    { key: "name", label: "Tên A–Z" },
+  ];
+
+  return (
+    <section className="tdb-card">
+      <div className="tdb-card-head">
+        <span className="tdb-card-title">Danh sách học sinh</span>
+        <div className="tdb-sort" role="group" aria-label="Sắp xếp">
+          {sorts.map((s) => (
+            <button
+              key={s.key}
+              className="tdb-sort-btn"
+              aria-pressed={sort === s.key}
+              onClick={() => setSort(s.key)}
+            >
+              {s.label}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="panel">
-        <small className="muted">THANG SOCRATIC</small>
-        <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
-          {data.review.ladders.map((l) => (
-            <div key={l.id} className="row" style={{ justifyContent: "space-between", marginTop: 0, gap: 8 }}>
-              <span style={{ flex: 1, fontSize: ".82rem" }}>
-                <span className="chip">{l.node}</span> {l.misconception}
-              </span>
-              <span className="chip" style={{ background: l.status === "active" ? "var(--green-50)" : "#fff7ed", color: l.status === "active" ? "#1d7a44" : "#9a6b00" }}>{l.status}</span>
-              {l.status !== "active" ? (
-                <button className="btn" disabled={busy} onClick={() => setStatus("ladder", l.id, "active")}>Duyệt ✓</button>
-              ) : (
-                <button className="btn ghost" disabled={busy} onClick={() => setStatus("ladder", l.id, "review")}>Gỡ duyệt</button>
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="tdb-tablewrap">
+        <table className="tdb-table">
+          <thead>
+            <tr>
+              <th scope="col">Học sinh</th>
+              <th scope="col">Thành thạo</th>
+              <th scope="col" className="tdb-num-col">Chính xác</th>
+              <th scope="col" className="tdb-num-col">Nỗ lực</th>
+              <th scope="col">Gần nhất</th>
+              <th scope="col">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((s) => (
+              <StudentRow key={s.id} s={s} />
+            ))}
+          </tbody>
+        </table>
       </div>
-    </main>
+
+      <div className="tdb-note">
+        <Info aria-hidden strokeWidth={2} />
+        <span>
+          Độ chính xác &amp; nỗ lực suy từ mẫu lượt trả lời gần nhất. Cờ là gợi ý để thầy/cô xem kỹ
+          — không phải kết luận về em.
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function StudentRow({ s }: { s: RosterStudent }) {
+  const masteredPct = s.tracked ? Math.round((s.mastered / s.tracked) * 100) : 0;
+  return (
+    <tr data-attention={s.flags.some((f) => f === "cần kèm") || undefined}>
+      <th scope="row" className="tdb-td-name">
+        <span className="tdb-td-avatar" aria-hidden>
+          {initialOf(s.name)}
+        </span>
+        <span className="tdb-td-nametext">
+          <b>{s.name}</b>
+          {s.grade && <small>Khối {s.grade}</small>}
+        </span>
+      </th>
+      <td>
+        <div className="tdb-cellbar" title={`${s.mastered}/${s.tracked} điểm`}>
+          <div className="tdb-mini-bar" aria-hidden>
+            <i style={{ width: `${masteredPct}%` }} />
+          </div>
+          <span className="num">
+            {s.mastered}/{s.tracked || 0}
+          </span>
+        </div>
+      </td>
+      <td className="tdb-num-col">
+        {s.attempts > 0 ? <span className="num">{pct(s.accuracy)}</span> : <span className="muted">—</span>}
+      </td>
+      <td className="tdb-num-col">
+        {s.avgEffort > 0 ? <span className="num">{s.avgEffort}</span> : <span className="muted">—</span>}
+      </td>
+      <td>
+        <span className="tdb-recent">
+          <Clock aria-hidden strokeWidth={2} />
+          {relTime(s.lastActiveAt)}
+        </span>
+      </td>
+      <td>
+        <FlagChips flags={s.flags} />
+      </td>
+    </tr>
+  );
+}
+
+// ── Tab: Chủ đề ───────────────────────────────────────────────────────────────
+function TopicsTab({ topics }: { topics: NonNullable<TeacherStats["topics"]> }) {
+  if (topics.length === 0) {
+    return (
+      <section className="tdb-card">
+        <div className="empty">
+          <BookOpen aria-hidden strokeWidth={1.75} />
+          <p className="muted">Chưa có điểm kiến thức nào được theo dõi.</p>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="tdb-card">
+      <div className="tdb-card-head">
+        <span className="tdb-card-title">Thành thạo theo điểm kiến thức</span>
+        <span className="muted" style={{ fontSize: "0.75rem" }}>
+          Chỗ cả lớp yếu nhất xếp trước
+        </span>
+      </div>
+      <ul className="tdb-topics">
+        {topics.map((t) => {
+          const p = t.tracked ? Math.round((t.mastered / t.tracked) * 100) : 0;
+          const hot = p < 50;
+          return (
+            <li className="tdb-topic" key={t.nodeKey}>
+              <div className="tdb-topic-head">
+                <b title={t.label}>{t.label}</b>
+                <span className="num" data-hot={hot || undefined}>
+                  {t.mastered}/{t.tracked}
+                </span>
+              </div>
+              <div className="tdb-mini-bar tdb-mini-bar--lg" aria-label={`${p}% thành thạo`}>
+                <i data-hot={hot || undefined} style={{ width: `${p}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+// ── Tab: Duyệt & nội dung ─────────────────────────────────────────────────────
+function ContentTab({
+  data,
+  busy,
+  setStatus,
+  pending,
+  onScan,
+  scanNote,
+}: {
+  data: TeacherStats;
+  busy: string | null;
+  setStatus: (kind: "question" | "ladder", id: string, status: string) => void;
+  pending: number;
+  onScan: () => void;
+  scanNote: string | null;
+}) {
+  return (
+    <div className="tdb-col">
+      <section className="tdb-card">
+        <div className="tdb-card-head">
+          <span className="tdb-card-title">Hàng chờ duyệt</span>
+          <span className="tdb-queue-count num">{pending}</span>
+          {/* Thống kê là trọng tài: quét p_value/độ phân biệt, câu kém tự về hàng chờ */}
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ marginLeft: "auto" }}
+            disabled={busy === "scan"}
+            data-loading={busy === "scan" || undefined}
+            onClick={onScan}
+            title="Tính lại tỉ lệ đúng + độ phân biệt từ bài làm thật; câu quá dễ / quá khó / không phân biệt tự vào hàng chờ duyệt"
+          >
+            <ScanSearch aria-hidden strokeWidth={2} />
+            Quét câu kém
+          </button>
+        </div>
+        <p className="muted">
+          Chỉ nội dung <b>active</b> mới phục vụ học sinh. Không có bước này thì AI nói thẳng với các
+          em.
+        </p>
+        {scanNote && <p className="muted">{scanNote}</p>}
+
+        <h3 className="tdb-subhead">Câu hỏi</h3>
+        {data.review.questions.length === 0 && (
+          <div className="empty">
+            <Inbox aria-hidden strokeWidth={1.75} />
+            <p className="muted">Không có câu hỏi nào chờ duyệt.</p>
+          </div>
+        )}
+        {data.review.questions.map((q) => (
+          <div className="tdb-row" key={q.id}>
+            <span className="tdb-badge" title={q.node}>
+              {q.node}
+            </span>
+            <p title={q.prompt}>{q.prompt}…</p>
+            {/* Thống kê sống từ bài làm thật — chỉ hiện khi câu đã có dữ liệu.
+                Đỏ khi chạm ngưỡng đào thải (quá dễ ≥95% / quá khó ≤15% / không
+                phân biệt ≤0.05) để giáo viên thấy ngay vì sao câu bị gắn cờ. */}
+            {q.statsN != null && q.statsN > 0 && q.pValue != null && (() => {
+              // Câu chạm ngưỡng đào thải = CẢNH BÁO nội dung (amber), KHÔNG phải
+              // lỗi hệ thống (đỏ dành riêng cho hỏng thật). Kèm icon cảnh báo để
+              // không truyền trạng thái CHỈ bằng màu (nhiều em/GV mù màu đỏ-lục).
+              const flagged =
+                q.pValue >= 0.95 || q.pValue <= 0.15 || (q.discrimination ?? 0) <= 0.05;
+              return (
+                <span
+                  className={`pill num ${flagged ? "a" : "g"}`}
+                  title={`${q.statsN} lượt làm lần-đầu · ${Math.round(q.pValue * 100)}% đúng · độ phân biệt ${
+                    q.discrimination != null ? q.discrimination.toFixed(2) : "—"
+                  }${flagged ? " — nên xem lại" : ""}`}
+                >
+                  {flagged && <AlertTriangle aria-hidden strokeWidth={2.5} style={{ width: 12, height: 12 }} />}
+                  {Math.round(q.pValue * 100)}% · n={q.statsN}
+                </span>
+              );
+            })()}
+            <span className={`pill ${q.status === "active" ? "g" : "a"}`}>{q.status}</span>
+            {q.status !== "active" ? (
+              <button
+                className="btn btn-sm"
+                disabled={busy === q.id}
+                data-loading={busy === q.id || undefined}
+                onClick={() => setStatus("question", q.id, "active")}
+              >
+                <Check aria-hidden strokeWidth={2.5} />
+                Duyệt
+              </button>
+            ) : (
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={busy === q.id}
+                onClick={() => setStatus("question", q.id, "retired")}
+              >
+                <Undo2 aria-hidden strokeWidth={2} />
+                Thu hồi
+              </button>
+            )}
+          </div>
+        ))}
+
+        <h3 className="tdb-subhead">Thang Socratic</h3>
+        {data.review.ladders.length === 0 && (
+          <div className="empty">
+            <Inbox aria-hidden strokeWidth={1.75} />
+            <p className="muted">Không có thang nào chờ duyệt.</p>
+          </div>
+        )}
+        {data.review.ladders.map((l) => (
+          <div className="tdb-row" key={l.id}>
+            <span className="tdb-badge" title={l.node}>
+              {l.node}
+            </span>
+            <p title={l.misconception}>{l.misconception}</p>
+            <span className={`pill ${l.status === "active" ? "g" : "a"}`}>{l.status}</span>
+            {l.status !== "active" ? (
+              <button
+                className="btn btn-sm"
+                disabled={busy === l.id}
+                data-loading={busy === l.id || undefined}
+                onClick={() => setStatus("ladder", l.id, "active")}
+              >
+                <Check aria-hidden strokeWidth={2.5} />
+                Duyệt
+              </button>
+            ) : (
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={busy === l.id}
+                onClick={() => setStatus("ladder", l.id, "review")}
+              >
+                <Undo2 aria-hidden strokeWidth={2} />
+                Gỡ duyệt
+              </button>
+            )}
+          </div>
+        ))}
+      </section>
+
+      {/* Cắm bộ câu hỏi vào bàn cờ — mảnh Đợt 2: giáo viên thả file câu hỏi,
+          app ghép vào phiên bản KG đã publish, node đầy dần. Mở sẵn (không thu
+          gọn) vì đây là việc chính khi ngân hàng câu hỏi về. */}
+      <QuestionIntake />
+
+      {/* Nhập liệu KHUNG Studio — thu gọn: việc duyệt chính nằm ở app sản xuất,
+          mục này chỉ để nạp bundle khung node/cạnh khi cần. */}
+      <details className="tdb-collapse">
+        <summary className="tdb-collapse-sum">
+          <UploadCloud aria-hidden strokeWidth={2} />
+          <span className="tdb-collapse-text">
+            <b>Nhập liệu KHUNG tri thức từ Studio</b>
+            <small>Nạp node/cạnh (bàn cờ) — câu hỏi dùng ô "Cắm bộ câu hỏi" ở trên</small>
+          </span>
+          <ChevronDown className="tdb-collapse-caret" aria-hidden strokeWidth={2} />
+        </summary>
+        <div className="tdb-collapse-body">
+          <StudioIntake />
+        </div>
+      </details>
+    </div>
   );
 }

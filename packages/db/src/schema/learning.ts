@@ -142,9 +142,16 @@ export const masteryEvidence = pgTable(
     doKho: doKhoEnum("do_kho").notNull(),
     isTargetDifficulty: boolean("is_target_difficulty").notNull().default(true),
     kgVersionId: uuid("kg_version_id").notNull(),
+    // Phiên ghi bằng chứng — dedup CHỐNG FARM theo (session_id, question_id):
+    // trả lời lại cùng câu TRONG PHIÊN không sinh thêm; phiên khác (ôn giãn cách)
+    // vẫn ghi được. Nullable cho hàng lịch sử trước khi thêm cột (security-hardening.sql §2).
+    sessionId: uuid("session_id").references(() => learningSessions.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index("evidence_student_node_idx").on(t.studentId, t.nodeId)],
+  (t) => [
+    index("evidence_student_node_idx").on(t.studentId, t.nodeId),
+    uniqueIndex("mastery_evidence_session_question_uq").on(t.sessionId, t.questionId),
+  ],
 );
 
 /** Mastery state per node, pinned to the KG version learned (Q27). */

@@ -1,6 +1,25 @@
 import { FUNCTIONS_BASE, SUPABASE_ANON_KEY } from "./config";
 import { supabase } from "./supabase";
 
+/**
+ * Lỗi gọi Edge Function có MÃ để UI xử lý nhã nhặn thay vì phơi lỗi trần.
+ * `code` bám theo `error` server trả (vd "rate_limited"); `retryAfter` là số
+ * GIÂY nên chờ trước khi thử lại (đọc từ header `Retry-After` hoặc body).
+ * Kế thừa Error nên mọi nơi bắt lỗi cũ (`e instanceof Error ? e.message`) vẫn chạy.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+  readonly retryAfter?: number;
+  constructor(message: string, opts: { status: number; code?: string; retryAfter?: number }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = opts.status;
+    this.code = opts.code;
+    this.retryAfter = opts.retryAfter;
+  }
+}
+
 async function callFn<T>(fn: string, body: unknown): Promise<T> {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token ?? SUPABASE_ANON_KEY;
@@ -14,7 +33,31 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.message ?? data?.error ?? `${fn} failed (${res.status})`);
+  if (!res.ok) {
+    // ── Rate limit (429) ──────────────────────────────────────────────────
+    // Bị chặn vì thao tác quá nhanh (helper rl_hit ở server). Ném lỗi CÓ MÃ
+    // "rate_limited" để UI hiện lời dịu ("Em thao tác hơi nhanh, chờ chút
+    // nhé") kèm số giây chờ, thay vì stack trace. retryAfter: ưu tiên header
+    // chuẩn `Retry-After` (giây), rồi tới `retryAfter` trong body helper.
+    if (res.status === 429 || data?.error === "rate_limited") {
+      const headerRA = Number(res.headers.get("Retry-After"));
+      const bodyRA = typeof data?.retryAfter === "number" ? data.retryAfter : NaN;
+      const retryAfter = Number.isFinite(headerRA) && headerRA > 0
+        ? Math.ceil(headerRA)
+        : Number.isFinite(bodyRA) && bodyRA > 0
+          ? Math.ceil(bodyRA)
+          : undefined;
+      throw new ApiError("Em thao tác hơi nhanh, chờ chút nhé.", {
+        status: 429,
+        code: "rate_limited",
+        retryAfter,
+      });
+    }
+    throw new ApiError(data?.message ?? data?.error ?? `${fn} failed (${res.status})`, {
+      status: res.status,
+      code: typeof data?.error === "string" ? data.error : undefined,
+    });
+  }
   return data as T;
 }
 
@@ -39,6 +82,27 @@ export interface DiagnoseResult {
   questions: DiagnoseQuestion[];
 }
 
+/** Câu do ENGINE ÁP CỨNG tiêm động (vá nền / leo ngược) — khác DiagnoseQuestion
+ *  ở chỗ tier có thể null và kind luôn "objective". */
+export interface EngineQuestion {
+  id: string;
+  nodeKey: string;
+  tier: number | null;
+  dok: number;
+  doKho: string;
+  kind: string;
+  prompt: string;
+  options?: string[];
+}
+
+/** XP server-authoritative (bảng student_xp) — số THẬT thay cho cache máy. */
+export interface XpState {
+  total: number;
+  streak: number;
+  /** XP thật sự cộng thêm lượt này (0 = nguồn này đã ăn trước đó, chống farm). */
+  gained: number;
+}
+
 export interface TurnResult {
   correct?: boolean;
   attemptNo?: number;
@@ -48,13 +112,41 @@ export interface TurnResult {
   feedback?: string;
   kind?: string;
   note?: string;
+  /** Engine áp cứng: mastery sống sau mỗi câu. */
+  mastered?: boolean;
+  masteryScore?: number;
+  /** Server cộng XP mỗi lượt trả lời — UI ghi đè cache máy bằng số này. */
+  xp?: XpState;
+  /** Sai + hết thang → lan truyền ngược: engine kéo về nguyên tử nền còn hổng. */
+  remediate?: { nodeKey: string; label: string; question: EngineQuestion };
+  /** Vá xong nền (mastered) → leo ngược về node đang kẹt kèm câu của nó. */
+  climb?: { nodeKey: string; question: EngineQuestion };
+  /** Đúng nhưng nền chưa vững → câu nền kế tiếp để tiếp tục vá. */
+  continue?: { nodeKey: string; question: EngineQuestion };
 }
 
-export const diagnose = (subject: "Toan" | "Anh") =>
-  callFn<DiagnoseResult>("diagnose", { subject });
+/** Môn học web hỗ trợ. Toan/Anh đã live (có ngân hàng câu hỏi trong DB);
+ *  Van đang XEM TRƯỚC — learning-path trả rỗng/lỗi thì web tự về lộ trình tĩnh. */
+export type Subject = "Toan" | "Van" | "Anh";
 
-export const answer = (sessionId: string, questionId: string, studentAnswer: string) =>
-  callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, studentAnswer });
+export const diagnose = (subject: Subject, nodeKey?: string) =>
+  callFn<DiagnoseResult>("diagnose", nodeKey ? { subject, nodeKey } : { subject });
+
+/** `remediation`: bật khi trả lời câu engine TIÊM (vá nền) để engine biết phục
+ *  vụ câu nền kế tiếp / leo ngược thay vì coi như luồng chính. */
+export const answer = (
+  sessionId: string,
+  questionId: string,
+  studentAnswer: string,
+  remediation = false,
+) =>
+  callFn<TurnResult>("chat-turn", {
+    sessionId,
+    action: "answer",
+    questionId,
+    studentAnswer,
+    ...(remediation ? { remediation: true } : {}),
+  });
 
 export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
@@ -65,12 +157,29 @@ export const speaking = (sessionId: string, questionId: string, transcript: stri
 export interface EndResult {
   sessionId: string;
   nodes: Array<{ node: string; mastered: boolean; score: number }>;
+  /** +20 XP hoàn thành buổi (một lần mỗi phiên). */
+  xp?: XpState;
 }
 
 export const endSession = (sessionId: string) =>
   callFn<EndResult>("end-session", { sessionId });
 
 // ── Teacher (M3.5) ──────────────────────────────────────────────────────────
+/** Một học sinh trong roster quản trị (server suy từ attempts + node_state). */
+export interface RosterStudent {
+  id: string;
+  name: string;
+  grade: string | null;
+  mastered: number;
+  tracked: number;
+  accuracy: number;   // 0..1
+  avgEffort: number;  // lượt thử TB tới khi đúng
+  attempts: number;
+  lastActiveAt: string | null;
+  dueReviews: number;
+  flags: string[];    // vd "cần kèm", "đến hạn ôn", "chưa bắt đầu", "lâu chưa học"
+}
+
 export interface TeacherStats {
   metrics: {
     misconceptions: Array<{ label: string; count: number }>;
@@ -78,8 +187,25 @@ export interface TeacherStats {
     mastery: { mastered: number; tracked: number; rate: number };
   };
   review: {
-    questions: Array<{ id: string; key: string; node: string; kind: string; status: string; prompt: string }>;
+    questions: Array<{
+      id: string; key: string; node: string; kind: string; status: string; prompt: string;
+      /** Thống kê sống (question-stats) — null khi chưa đủ dữ liệu trả lời. */
+      pValue?: number | null; discrimination?: number | null; statsN?: number | null;
+    }>;
     ladders: Array<{ id: string; key: string; node: string; misconception: string; status: string }>;
+  };
+  // ── Quản trị lớp (THÊM — optional để tương thích khi server chưa cập nhật) ──
+  roster?: {
+    total: number;
+    needAttention: number;
+    students: RosterStudent[];
+  };
+  topics?: Array<{ nodeKey: string; label: string; mastered: number; tracked: number; avgScore: number }>;
+  activity?: {
+    activeSessions: number;
+    dueReviewsTotal: number;
+    pendingSubmissions: number;
+    activeStudents7d: number;
   };
 }
 
@@ -87,6 +213,12 @@ export const teacherStats = () => callFn<TeacherStats>("teacher-stats", {});
 
 export const teacherReview = (kind: "question" | "ladder", id: string, status: string) =>
   callFn<{ ok: boolean }>("teacher-review", { kind, id, status });
+
+/** Quét câu kém: tính p_value/discrimination toàn ngân hàng + tự đưa câu quá
+ *  dễ/khó/không phân biệt vào hàng duyệt. Chạy đêm bằng pg_cron; nút này là
+ *  đường gọi tay. */
+export const recomputeQuestionStats = () =>
+  callFn<{ ok: boolean; updated: number; flagged: number }>("question-stats", {});
 
 // ── 4DX Weekly Scoreboard ─────────────────────────────────────────────────────
 export interface Scoreboard {
@@ -102,6 +234,10 @@ export interface Scoreboard {
   coach: { name: string | null; cadenceDays: number; lastMeetingAt: string | null } | null;
   buddy: { name: string | null; lastMeetingAt: string | null } | null;
   sync: { syncedAt: string | null };
+  /** XP server của học sinh đang xem: tổng + tuần này + chuỗi ngày. */
+  xp?: { total: number; week: number; streak: number; lastDay: string | null };
+  /** BẢNG TUẦN THẬT: bạn cùng khối, XP tuần + chuỗi từ server (self/staff mới có). */
+  board?: { scope: string; rows: Array<{ id: string; name: string; xp: number; streak: number; me: boolean }> } | null;
 }
 
 export const getScoreboard = (studentId?: string) =>
@@ -113,8 +249,87 @@ export const commitScoreboard = (commitment: string, studentId?: string) =>
 export const syncScoreboard = (studentId?: string) =>
   callFn<{ ok: boolean; syncedAt: string; export: unknown; note: string }>("scoreboard", { action: "sync", studentId });
 
+// ── Lộ trình & học liệu (KG v2.2) ────────────────────────────────────────────
+// Hai function này có thể CHƯA deploy — nơi gọi phải tự bắt lỗi và fallback,
+// giao diện không được phép vỡ khi server trả 404.
+export type PathNodeState = "mastered" | "stale" | "current" | "available" | "locked";
+
+export interface LearningPathNode {
+  key: string;
+  label: string;
+  state: PathNodeState;
+  /** Với node bị khoá: các điểm tiên quyết còn thiếu (mảng KEY). */
+  blockedBy?: string[];
+  /** Tên chương/Unit — có thì lộ trình gom thành CHẶNG (điểm dừng khi cuộn). */
+  chapter?: string;
+}
+
+export interface LearningPathResult {
+  version_id: string;
+  version_label: string;
+  nodes: LearningPathNode[];
+}
+
+export const learningPath = (subject: Subject) =>
+  callFn<LearningPathResult>("learning-path", { subject });
+
+// Khớp enum `Resource.format` trong @tutor/shared (kg/types.ts).
+export type ResourceFormat =
+  | "text"
+  | "infographic"
+  | "video"
+  | "animation"
+  | "mindmap"
+  | "podcast"
+  | "worked_example"
+  | "interactive"
+  | "slide"
+  | "worksheet"
+  | "flashcard"
+  | "quiz";
+
+export interface NodeResource {
+  id: string;
+  format: ResourceFormat;
+  tier?: 1 | 2 | 3;
+  uri?: string;
+  ly_do_chon_format?: string;
+  dual_coding?: boolean;
+}
+
+export const nodeResources = (subject: Subject, nodeKey: string) =>
+  callFn<{ resources: NodeResource[] }>("resources", { subject, node_key: nodeKey });
+
 // ── Role dashboards (one role-gated endpoint) ─────────────────────────────────
 export type DashAction = "coach" | "parent" | "buddy" | "leadership" | "admin" | "dpo" | "counselor";
 // Loosely typed: each role returns its own shape (see supabase/functions/dashboard).
 export const dashboard = <T = Record<string, unknown>>(action: DashAction) =>
   callFn<T>("dashboard", { action });
+
+// ── Nhập liệu từ App sản xuất (Studio) ────────────────────────────────────────
+// Server đưa bundle vào review_queue chờ duyệt — KHÔNG publish thẳng.
+// Function `import-kg` thuộc GĐ1: chưa deploy thì lỗi — UI nói thật và đưa
+// lệnh CLI cho đội vận hành thay vì giả vờ đã nạp.
+export type ImportKgResult = {
+  ok: boolean;
+  version?: string;
+  nodes?: number;
+  edges?: number;
+  message?: string;
+};
+export const importKg = (bundle: unknown) => callFn<ImportKgResult>("import-kg", bundle);
+
+// ── Cửa cắm bộ câu hỏi (Đợt 2) ────────────────────────────────────────────────
+// Gói va.kg-questions/2.2 → câu hỏi vào 'review' của phiên bản khớp version_label.
+export type ImportQuestionsResult = {
+  ok: boolean;
+  version?: string;
+  accepted?: number;
+  rejected?: number;
+  queued?: number;
+  coverage?: { nodesWithQuestions: number; totalNodes: number };
+  rejectedSample?: { id: string; reason: string }[];
+  message?: string;
+};
+export const importQuestions = (bundle: unknown) =>
+  callFn<ImportQuestionsResult>("import-questions", bundle);

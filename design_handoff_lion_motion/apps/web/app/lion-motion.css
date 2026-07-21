@@ -1,0 +1,466 @@
+/* ═══ Sư tử — BỘ CẢM XÚC ĐỘNG (tầng choreography CSS) ═══════════════════
+   Đi kèm components/Lion.tsx bản mở rộng (LionMotion.tsx). Import sau
+   globals.css:  @import "./lion-motion.css";
+   Dựa trên vocabulary sẵn có: .lion, lion-breathe, lion-sway, lion-hop.
+
+   Chiều sâu hoán frame: mỗi mood có lớp overlay (.lion-frame) đảo opacity
+   theo chu kỳ — lông mày, khẩu hình, tay chân, và xoay người 4 góc như 3D
+   (lion-t-*). Base của mood đó ẩn đồng bộ qua .lion-<mood> .lion-base.
+   Mọi thứ tắt theo prefers-reduced-motion ở cuối file. */
+
+/* ── Nhịp chuyển động thân ─────────────────────────────────────────── */
+
+@keyframes lion-bounce {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  35% { transform: translateY(-8px) scale(0.98, 1.03); }
+  70% { transform: translateY(0) scale(1.04, 0.96); }
+  88% { transform: scale(1, 1); }
+}
+@keyframes lion-bigbounce {
+  0%, 100% { transform: translateY(0) scale(1.05, 0.94); }
+  42% { transform: translateY(-15px) scale(0.95, 1.07); }
+  84% { transform: translateY(0) scale(1.05, 0.94); }
+}
+@keyframes lion-thinkbreathe {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(-6deg) translateY(-4px); }
+}
+@keyframes lion-slump {
+  0%, 100% { transform: rotate(-2.4deg) translateY(2px); }
+  55% { transform: rotate(-3.4deg) translateY(4px); }
+}
+@keyframes lion-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  14% { transform: translateX(-3px) rotate(-2.2deg); }
+  30% { transform: translateX(3px) rotate(2.2deg); }
+  46% { transform: translateX(-3px) rotate(-1.6deg); }
+  62% { transform: translateX(2px) rotate(1.4deg); }
+  78% { transform: translateX(-1px) rotate(0deg); }
+}
+@keyframes lion-type {
+  0%, 100% { transform: translateY(0); }
+  8% { transform: translateY(-2px); }
+  16% { transform: translateY(0); }
+  26% { transform: translateY(-2px); }
+  34% { transform: translateY(0); }
+  48% { transform: translateY(-1.5px); }
+  58% { transform: translateY(0); }
+}
+@keyframes lion-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  5% { transform: translateY(1px) scale(1.08, 0.9); }
+  12% { transform: translateY(-13px) scale(0.94, 1.08); }
+  20% { transform: translateY(0) scale(1.06, 0.94); }
+  27% { transform: scale(1, 1); }
+  42% { transform: rotate(0.8deg); }
+  50% { transform: rotate(-0.8deg); }
+  58% { transform: rotate(0deg); }
+}
+@keyframes lion-pop {
+  0% { transform: scale(0.2) translateY(14px); opacity: 0; }
+  55% { transform: scale(1.12) translateY(-4px); opacity: 1; }
+  78% { transform: scale(0.97) translateY(0); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+/* Nhớ nhung: đung đưa ngóng chờ, khựng lại rồi trĩu xuống khi tim vỡ (46%) */
+@keyframes lion-missbody {
+  0% { transform: rotate(0deg) translateY(0); }
+  12% { transform: rotate(-2.4deg) translateY(0); }
+  28% { transform: rotate(1.8deg) translateY(-1px); }
+  42%, 45% { transform: rotate(0deg) translateY(0); }
+  48% { transform: rotate(-2.4deg) translateY(3px); }
+  58% { transform: rotate(-1.6deg) translateY(2px); }
+  74% { transform: rotate(-2.6deg) translateY(3px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+/* Nổi loạn: né vai lấy đà (8%), whip khi xoay, nghiêng người lúc ngoái nhìn */
+@keyframes lion-rebelbody {
+  0%, 6% { transform: rotate(0deg) translateY(0) scale(1, 1); }
+  8% { transform: rotate(2deg) translateY(1px) scale(1.02, 0.98); }
+  11% { transform: rotate(-2.6deg) translateY(2px) scale(1, 1); }
+  14.5% { transform: rotate(2deg) translateY(2px); }
+  18% { transform: rotate(0deg) translateY(0); }
+  30% { transform: rotate(1.6deg); }
+  36% { transform: rotate(-0.8deg); }
+  42% { transform: rotate(0.6deg); }
+  48% { transform: rotate(0deg); }
+  51% { transform: rotate(-1.8deg) translateY(1.5px); }
+  57% { transform: rotate(-3.2deg) translateY(1px); }
+  63% { transform: rotate(-1.5deg) translateY(1.5px); }
+  70% { transform: rotate(0deg) translateY(0); }
+  78% { transform: rotate(1.8deg); }
+  83% { transform: rotate(-0.6deg); }
+  89% { transform: rotate(-1.6deg) translateY(1.5px); }
+  92.5% { transform: rotate(2deg) translateY(2px); }
+  96%, 100% { transform: rotate(0deg) translateY(0); }
+}
+
+/* ── Hoán frame mặt/tư thế (overlay ↔ base, đảo opacity) ───────────── */
+
+@keyframes lion-f-show-mouth { 0%, 88% { opacity: 0; } 88.1%, 96% { opacity: 1; } 96.1%, 100% { opacity: 0; } }
+@keyframes lion-f-show-alt { 0%, 72% { opacity: 0; } 72.1%, 95% { opacity: 1; } 95.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-alt { 0%, 72% { opacity: 1; } 72.1%, 95% { opacity: 0; } 95.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-arm { 0%, 62% { opacity: 0; } 62.1%, 88% { opacity: 1; } 88.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-arm { 0%, 62% { opacity: 1; } 62.1%, 88% { opacity: 0; } 88.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-blink2 { 0%, 91.5% { opacity: 0; } 91.6%, 95.5% { opacity: 1; } 95.6%, 100% { opacity: 0; } }
+@keyframes lion-f-show-quiver { 0%, 60% { opacity: 0; } 60.1%, 74% { opacity: 1; } 74.1%, 100% { opacity: 0; } }
+@keyframes lion-f-show-up { 0%, 55% { opacity: 0; } 55.1%, 75% { opacity: 1; } 75.1%, 100% { opacity: 0; } }
+@keyframes lion-f-show-pre { 0%, 4% { opacity: 1; } 4.1%, 94% { opacity: 0; } 94.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-breath { 0%, 51% { opacity: 0; } 51.1%, 86% { opacity: 1; } 86.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-breath { 0%, 51% { opacity: 1; } 51.1%, 86% { opacity: 0; } 86.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-pose { 0%, 58% { opacity: 0; } 58.1%, 86% { opacity: 1; } 86.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-pose { 0%, 58% { opacity: 1; } 58.1%, 86% { opacity: 0; } 86.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-hope { 0%, 44% { opacity: 1; } 44.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-hope { 0%, 44% { opacity: 0; } 44.1%, 100% { opacity: 1; } }
+@keyframes lion-f-show-panic { 0%, 70% { opacity: 0; } 70.1%, 93% { opacity: 1; } 93.1%, 100% { opacity: 0; } }
+@keyframes lion-f-hide-panic { 0%, 70% { opacity: 1; } 70.1%, 93% { opacity: 0; } 93.1%, 100% { opacity: 1; } }
+
+/* ── Xoay người 4 frame như 3D (chu kỳ 7.5s):
+     front 0–10 → ¾ 10–13 → nghiêng 13–16 → LƯNG 16–50 (dỗi, phẩy đuôi)
+     → nghiêng 50–53 → ¾ 53–62 (ngoái nhìn) → nghiêng 62–65
+     → LƯNG 65–88 → nghiêng 88–91 → ¾ 91–94 → front 94–100 ── */
+
+@keyframes lion-t-show-front { 0%, 10% { opacity: 1; } 10.1%, 93.9% { opacity: 0; } 94%, 100% { opacity: 1; } }
+@keyframes lion-t-show-34 { 0%, 10% { opacity: 0; } 10.1%, 13% { opacity: 1; } 13.1%, 52.9% { opacity: 0; } 53%, 61.9% { opacity: 1; } 62%, 90.9% { opacity: 0; } 91%, 93.9% { opacity: 1; } 94%, 100% { opacity: 0; } }
+@keyframes lion-t-show-side { 0%, 13% { opacity: 0; } 13.1%, 16% { opacity: 1; } 16.1%, 49.9% { opacity: 0; } 50%, 52.9% { opacity: 1; } 53%, 61.9% { opacity: 0; } 62%, 65% { opacity: 1; } 65.1%, 87.9% { opacity: 0; } 88%, 90.9% { opacity: 1; } 91%, 100% { opacity: 0; } }
+@keyframes lion-t-show-back { 0%, 16% { opacity: 0; } 16.1%, 49.9% { opacity: 1; } 50%, 65% { opacity: 0; } 65.1%, 87.9% { opacity: 1; } 88%, 100% { opacity: 0; } }
+
+/* ── Hiệu ứng vector ───────────────────────────────────────────────── */
+
+@keyframes fx-tear {
+  0% { transform: translateY(0) rotate(-14deg); opacity: 0; }
+  14% { opacity: 0.95; }
+  68% { transform: translateY(15px) rotate(-14deg); opacity: 0.9; }
+  100% { transform: translateY(21px) rotate(-14deg); opacity: 0; }
+}
+@keyframes fx-sweat {
+  0% { transform: translate(0, 0) rotate(-18deg); opacity: 0; }
+  16% { opacity: 0.9; }
+  100% { transform: translate(4px, 19px) rotate(-18deg); opacity: 0; }
+}
+@keyframes fx-orbit { to { transform: rotate(360deg); } }
+@keyframes fx-spark {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  28% { transform: scale(1.15) rotate(18deg); opacity: 1; }
+  60% { transform: scale(0.9) rotate(30deg); opacity: 0.9; }
+  100% { transform: scale(0) rotate(45deg); opacity: 0; }
+}
+@keyframes fx-aura {
+  0%, 100% { opacity: 0.32; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.07); }
+}
+@keyframes fx-zzz {
+  0% { transform: translate(0, 0) scale(0.55); opacity: 0; }
+  22% { opacity: 1; }
+  100% { transform: translate(12px, -36px) scale(1.1); opacity: 0; }
+}
+@keyframes fx-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+@keyframes fx-bob { 50% { transform: translateY(-4px); } }
+@keyframes fx-rays {
+  0% { transform: rotate(0deg); opacity: 0.9; }
+  70% { opacity: 0.5; }
+  100% { transform: rotate(120deg); opacity: 0; }
+}
+@keyframes fx-bang {
+  0%, 100% { transform: scale(0.4); opacity: 0; }
+  8% { transform: scale(1.2); opacity: 1; }
+  24% { transform: scale(1); opacity: 1; }
+  36% { transform: scale(0.9); opacity: 0; }
+}
+@keyframes fx-star {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.95; }
+  50% { transform: scale(1.16) rotate(12deg); opacity: 1; }
+}
+/* Khói "hứ" theo chu kỳ 7.5s của rebel: chỉ phụt ở 0–9% mỗi vòng */
+@keyframes fx-puff75 {
+  0% { transform: translateY(2px) scale(0.4); opacity: 0; }
+  2% { opacity: 0.85; }
+  9% { transform: translateY(-22px) scale(1.1); opacity: 0; }
+  100% { transform: translateY(-22px) scale(1.1); opacity: 0; }
+}
+/* Trái tim tan vỡ dần (chu kỳ 6s): hiện → đập chậm dần → khựng (44%)
+   → nứt đôi (46%) → trĩu → rơi lịm mờ đi → vòng mới "nhớ lại" */
+@keyframes fx-hb-all {
+  0% { transform: scale(0.7) translateY(0); opacity: 0; }
+  3% { transform: scale(1) translateY(0); opacity: 1; }
+  9% { transform: scale(1.16) translateY(0); }
+  15% { transform: scale(1) translateY(0); }
+  21% { transform: scale(1.13) translateY(0); }
+  27% { transform: scale(1) translateY(0); }
+  35% { transform: scale(1.07) translateY(0); }
+  41%, 44% { transform: scale(1) translateY(0); }
+  47% { transform: scale(1) translateY(2px); }
+  80% { transform: scale(1) translateY(3px); opacity: 1; }
+  93%, 100% { transform: scale(1) translateY(7px); opacity: 0; }
+}
+@keyframes fx-hb-l {
+  0%, 44% { transform: rotate(-45deg) translate(0, 0); }
+  46%, 100% { transform: rotate(-63deg) translate(-2px, 2px); }
+}
+@keyframes fx-hb-r {
+  0%, 44% { transform: rotate(45deg) translate(0, 0); }
+  46%, 100% { transform: rotate(63deg) translate(2px, 2px); }
+}
+
+/* ── Phần tử hiệu ứng (component render, vị trí inline) ────────────── */
+
+.lion .fx { pointer-events: none; z-index: 2; }
+
+.lion .fx-spark {
+  background: var(--gold, #f9dd0e);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  animation: fx-spark 1.6s ease-out infinite;
+}
+.lion .fx-mane { background: #f4b24a; }
+.lion .fx-key {
+  width: 9px; height: 9px;
+  background: var(--gold, #f9dd0e);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  animation: fx-spark 0.9s ease-out infinite;
+}
+.lion .fx-tear {
+  width: 8px; height: 11px;
+  background: #5b9bd9;
+  border-radius: 50% 6% 50% 50%;
+  animation: fx-tear 2.9s ease-in infinite;
+}
+.lion .fx-sweat {
+  width: 9px; height: 12px;
+  background: #5b9bd9;
+  border-radius: 50% 6% 50% 50%;
+  animation: fx-sweat 2.4s ease-in infinite;
+}
+.lion .fx-puff75 {
+  border-radius: 50%;
+  background: #aeb6d0;
+  animation: fx-puff75 7.5s ease-out 0.1s infinite;
+}
+.lion .fx-puff75.fx-pd2 { background: #c3cadf; animation-delay: 1.6s; }
+.lion .fx-puff75.fx-pd3 { background: #c3cadf; animation-delay: 5.1s; }
+.lion .fx-zzz {
+  font-weight: 800;
+  color: var(--navy, #26275d);
+  line-height: 1;
+  animation: fx-zzz 3.2s ease-out infinite;
+}
+.lion .fx-bang {
+  font-size: 30px; font-weight: 800;
+  color: var(--gold, #f9dd0e);
+  text-shadow: 0 1px 0 #b8930b;
+  line-height: 1;
+  animation: fx-bang 3.4s ease-out infinite;
+}
+.lion .fx-star {
+  background: var(--gold, #f9dd0e);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  filter: drop-shadow(0 1px 0 #b8930b);
+  animation: fx-star 2.2s ease-in-out infinite;
+}
+.lion .fx-aura {
+  left: 50%; bottom: -4%;
+  width: 150%; height: 120%;
+  margin-left: -75%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(249, 221, 14, 0.55), rgba(249, 221, 14, 0));
+  animation: fx-aura 3.4s ease-in-out infinite;
+  z-index: -1;
+}
+.lion .fx-rays {
+  left: 50%; bottom: -8%;
+  width: 145%; aspect-ratio: 1;
+  margin-left: -72.5%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(249, 221, 14, 0.85) 0deg 7deg, rgba(249, 221, 14, 0) 7deg 26deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 26%, transparent 70%);
+  mask-image: radial-gradient(closest-side, #000 26%, transparent 70%);
+  animation: fx-rays 2.6s ease-out 1 forwards;
+  z-index: -1;
+}
+.lion .fx-bubble {
+  display: flex; gap: 5px; align-items: center;
+  background: #fff;
+  border-radius: 14px;
+  padding: 9px 12px;
+  box-shadow: 0 4px 12px rgba(38, 39, 93, 0.14);
+  animation: fx-bob 3s ease-in-out infinite;
+}
+.lion .fx-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: -7px; left: 8px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(38, 39, 93, 0.12);
+}
+.lion .fx-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -14px; left: 2px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #fff;
+}
+.lion .fx-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--navy, #26275d);
+  animation: fx-dot 1.3s ease-in-out infinite;
+}
+.lion .fx-orbit { width: 0; height: 0; animation: fx-orbit 3.2s linear infinite; }
+.lion .fx-orbit b { position: absolute; font-weight: 800; line-height: 1; }
+.lion .fx-orbit .fx-q { left: -44px; top: -6px; font-size: 19px; color: var(--navy, #26275d); }
+.lion .fx-orbit .fx-x { left: 34px; top: -12px; font-size: 22px; color: #2e6db4; }
+.lion .fx-orbit .fx-q2 { left: -6px; top: -30px; font-size: 15px; color: #c96e30; }
+/* Trái tim tan vỡ: hai mảnh rect bo đầu ghép chéo, mỗi mảnh gãy riêng */
+.lion .fx-heartbreak {
+  width: 20px; height: 17px;
+  animation: fx-hb-all 6s ease-in-out infinite;
+}
+.lion .fx-heartbreak i {
+  position: absolute;
+  top: 0;
+  width: 10px; height: 15px;
+  background: #e25555;
+  border-radius: 10px 10px 0 0;
+}
+.lion .fx-heartbreak .fx-hb-l {
+  left: 10px;
+  transform: rotate(-45deg);
+  transform-origin: 0 100%;
+  animation: fx-hb-l 6s linear infinite;
+}
+.lion .fx-heartbreak .fx-hb-r {
+  left: 0;
+  transform: rotate(45deg);
+  transform-origin: 100% 100%;
+  animation: fx-hb-r 6s linear infinite;
+}
+/* Nhịp lệch pha — dùng chung cho fx lặp */
+.lion .fx-d2 { animation-delay: 0.45s; }
+.lion .fx-d3 { animation-delay: 0.9s; }
+/* Bùng một lần (trophy): sparkle chạy 1 vòng rồi biến mất */
+.lion .fx-once { animation-iteration-count: 1; animation-fill-mode: both; animation-delay: 0.25s; }
+.lion .fx-once.fx-d2 { animation-delay: 0.5s; }
+.lion .fx-once.fx-d3 { animation-delay: 0.75s; }
+
+/* ── Choreography theo mood ────────────────────────────────────────── */
+
+/* Vui vẻ: nhún + chốc chốc miệng mở cười toe (laugh phủ lên smile) */
+.lion-happy {
+  transform-origin: 50% 100%;
+  animation: lion-bounce 2.5s ease-in-out infinite;
+}
+.lion-happy .lion-f-mouth { animation: lion-f-show-mouth 7.4s linear infinite; }
+
+/* Thích thú: nảy squash & stretch + mặt đảo cười lớn ↔ "ồ!" */
+.lion-excited {
+  transform-origin: 50% 100%;
+  animation: lion-bigbounce 0.66s ease-in-out infinite;
+}
+.lion-excited .lion-base { animation: lion-f-hide-alt 2.2s linear infinite; }
+.lion-excited .lion-f-alt { animation: lion-f-show-alt 2.2s linear infinite; }
+
+/* Chào: lắc quanh bàn chân + vẫy 1 tay ↔ vung 2 tay */
+.lion-greet {
+  transform-origin: 50% 94%;
+  animation: lion-sway 3.2s ease-in-out infinite;
+}
+.lion-greet .lion-base { animation: lion-f-hide-arm 5s linear infinite; }
+.lion-greet .lion-f-arm { animation: lion-f-show-arm 5s linear infinite; }
+
+/* Buồn: trĩu vai + mày nhíu run (confused) + chớp mắt chậm (sleep) */
+.lion-sad {
+  transform-origin: 50% 100%;
+  animation: lion-slump 4.4s ease-in-out infinite;
+}
+.lion-sad .lion-f-quiver { animation: lion-f-show-quiver 7s linear infinite; }
+.lion-sad .lion-f-blink2 { animation: lion-f-show-blink2 4.8s linear infinite; }
+
+/* Suy nghĩ: nghiêng 6° thở + buông cằm ngước lên "à?" */
+.lion-think {
+  transform-origin: 50% 100%;
+  animation: lion-thinkbreathe 4.2s ease-in-out infinite;
+}
+.lion-think .lion-f-up { animation: lion-f-show-up 6.4s linear infinite; }
+
+/* Bất ngờ: mặt thường → giật nảy trợn tròn (anticipation) */
+.lion-surprised {
+  transform-origin: 50% 100%;
+  animation: lion-jump 3.4s ease-in-out infinite;
+}
+.lion-surprised .lion-f-pre { animation: lion-f-show-pre 3.4s linear infinite; }
+
+/* Ngủ: thở sâu + miệng khép mở theo hơi (sleep ↔ content) */
+.lion-sleepy {
+  opacity: 0.95;
+  transform-origin: 50% 100%;
+  animation: lion-breathe 5.6s ease-in-out infinite;
+}
+.lion-sleepy .lion-base { animation: lion-f-hide-breath 5.6s linear infinite; }
+.lion-sleepy .lion-f-breath { animation: lion-f-show-breath 5.6s linear infinite; }
+
+/* Tự tin: đứng dáng + xoay ¾ như tạo dáng chụp hình */
+.lion-proud {
+  transform-origin: 50% 96%;
+  animation: lion-sway 4.6s ease-in-out infinite;
+}
+.lion-proud .lion-base { animation: lion-f-hide-pose 6s linear infinite; }
+.lion-proud .lion-f-pose { animation: lion-f-show-pose 6s linear infinite; }
+
+/* Chăm chỉ: gõ phím lạch cạch */
+.lion-diligent .lion-base { animation: lion-type 1.1s linear infinite; }
+
+/* Tập trung: chỉ nhịp thở chậm + quầng sáng (fx-aura) */
+.lion-focus .lion-base { animation: lion-breathe 5s ease-in-out infinite; }
+
+/* Nhớ nhung (chốt B): ngóng chờ (curious) → tim nứt đôi → buồn (sad) */
+.lion-miss {
+  transform-origin: 50% 100%;
+  animation: lion-missbody 6s ease-in-out infinite;
+}
+.lion-miss .lion-base { animation: lion-f-hide-hope 6s linear infinite; opacity: 0; }
+.lion-miss .lion-f-hope { animation: lion-f-show-hope 6s linear infinite; opacity: 1; }
+
+/* Hỗn loạn (chốt A): lắc đầu + mặt bối rối bật sang hoảng hốt + ?! xoay */
+.lion-chaos {
+  transform-origin: 50% 100%;
+  animation: lion-shake 1s ease-in-out infinite;
+}
+.lion-chaos .lion-base { animation: lion-f-hide-panic 2.7s linear infinite; }
+.lion-chaos .lion-f-panic { animation: lion-f-show-panic 2.7s linear infinite; }
+
+/* Nổi loạn (bản mới): xoay người 4 frame như 3D + khói "hứ" */
+.lion-rebel {
+  transform-origin: 50% 96%;
+  animation: lion-rebelbody 7.5s ease-in-out infinite;
+}
+.lion-rebel .lion-base { animation: lion-t-show-front 7.5s linear infinite; }
+.lion-rebel .lion-t-34 { animation: lion-t-show-34 7.5s linear infinite; }
+.lion-rebel .lion-t-side { animation: lion-t-show-side 7.5s linear infinite; }
+.lion-rebel .lion-t-back { animation: lion-t-show-back 7.5s linear infinite; }
+
+/* Trophy & success: bùng 1 lần rồi lắng về nhịp thở. Phát lại = remount (key). */
+.lion-trophy .lion-base {
+  transform-origin: 50% 100%;
+  animation: lion-pop 0.72s cubic-bezier(0.34, 1.56, 0.64, 1) 1 backwards,
+    lion-breathe 4s ease-in-out 1s infinite;
+}
+.lion-success .lion-base {
+  transform-origin: 50% 100%;
+  animation: lion-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1 backwards,
+    lion-breathe 4s ease-in-out 0.8s infinite;
+}
+
+/* ── Reduced motion: frame đứng yên ở khung cơ bản, ẩn hiệu ứng ────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lion, .lion *, .lion::before, .lion::after {
+    animation: none !important;
+  }
+  .lion .fx, .lion .lion-frame { display: none; }
+  .lion .lion-base { opacity: 1 !important; }
+}

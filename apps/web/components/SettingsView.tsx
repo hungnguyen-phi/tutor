@@ -1,0 +1,519 @@
+"use client";
+
+/**
+ * Cài đặt (yêu cầu chủ dự án: "quản lí tài khoản, cài avt, đổi tên, chế độ
+ * sáng tối, cùng các chế độ khác mà 1 app học tập có").
+ *
+ * NGUYÊN TẮC: chỉ bày control THẬT — mọi nút đều làm được việc hôm nay:
+ *  · Avatar + tên hiển thị + giao diện + cỡ chữ + giảm chuyển động: tuỳ chọn
+ *    thiết bị (lib/prefs) — đổi là ăn ngay.
+ *  · Đổi tên: THỬ đổi chính thức trên server trước (profiles.full_name);
+ *    RLS chưa mở quyền (policy profiles_self_update chờ deploy) thì update
+ *    về 0 dòng → rơi về tên hiển thị cục bộ và NÓI RÕ với học sinh.
+ *  · Đổi mật khẩu: supabase.auth.updateUser — chạy thật với phiên hiện tại.
+ *  · Xoá tiến độ trên máy: xoá localStorage gamify (XP đang lưu cục bộ cho
+ *    tới GĐ1.4) — có confirm, nói rõ hậu quả.
+ * Không có: thông báo nhắc học, âm thanh (hệ thống chưa tồn tại — không vẽ
+ * công tắc chết; xem ROADMAP GĐ5).
+ */
+
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Check,
+  Eraser,
+  KeyRound,
+  Monitor,
+  Moon,
+  PencilLine,
+  Settings,
+  Sun,
+  Type,
+  UserCircle,
+  Users,
+  Wind,
+  LogOut,
+} from "lucide-react";
+import Lion from "./Lion";
+import Sheet from "./Sheet";
+import { useAuth, signOut } from "../lib/auth";
+import { supabase } from "../lib/supabase";
+import * as Prefs from "../lib/prefs";
+import { PRESENCE_ENABLED } from "../lib/presence";
+
+const TONES: { key: Prefs.AvatarTone; label: string }[] = [
+  { key: "gold", label: "Vàng sư tử" },
+  { key: "navy", label: "Navy trường" },
+  { key: "sky", label: "Trời sáng" },
+  { key: "ok", label: "Cỏ non" },
+  { key: "mane", label: "Bờm cam" },
+];
+
+export default function SettingsView({ onBack }: { onBack?: () => void }) {
+  const { session, profile } = useAuth();
+  const uid = session?.user.id;
+
+  // Tuỳ chọn hiện hành — đọc một lần lúc mount (prefs là nguồn sự thật)
+  const [theme, setThemeState] = useState<Prefs.ThemeMode>("system");
+  const [font, setFontState] = useState<Prefs.FontScale>("md");
+  const [motion, setMotionState] = useState(false);
+  const [presence, setPresenceState] = useState(false);
+  const [ava, setAva] = useState<{ kind: Prefs.AvatarKind; tone: Prefs.AvatarTone }>({
+    kind: "initial",
+    tone: "gold",
+  });
+
+  const [name, setName] = useState("");
+  const [nameMsg, setNameMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savingName, setSavingName] = useState(false);
+
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savingPw, setSavingPw] = useState(false);
+
+  const [parentLinked, setParentLinked] = useState(false);
+  const [cleared, setCleared] = useState(false);
+  // Sheet xác nhận xoá — thay window.confirm (hộp thoại trình duyệt lộ web)
+  const [askClear, setAskClear] = useState(false);
+
+  useEffect(() => {
+    setThemeState(Prefs.getTheme());
+    setFontState(Prefs.getFont());
+    setMotionState(Prefs.getReduceMotion());
+    setPresenceState(Prefs.getPresenceOptIn());
+    setAva(Prefs.getAvatar());
+    setName(Prefs.getDisplayName() ?? "");
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    supabase
+      .from("guardian_links")
+      .select("id")
+      .eq("student_id", uid)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (alive && !error) setParentLinked((data?.length ?? 0) > 0);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
+
+  const officialName = profile?.full_name ?? "Học sinh Việt Anh";
+  const shownName = Prefs.displayNameOf(officialName) ?? officialName;
+  const initial = shownName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "V";
+
+  const pickTheme = (m: Prefs.ThemeMode) => {
+    Prefs.setTheme(m);
+    setThemeState(m);
+  };
+  const pickFont = (s: Prefs.FontScale) => {
+    Prefs.setFont(s);
+    setFontState(s);
+  };
+  const toggleMotion = () => {
+    const next = !motion;
+    Prefs.setReduceMotion(next);
+    setMotionState(next);
+  };
+  const togglePresence = () => {
+    const next = !presence;
+    Prefs.setPresenceOptIn(next);
+    setPresenceState(next);
+  };
+  const pickAva = (kind: Prefs.AvatarKind, tone: Prefs.AvatarTone) => {
+    Prefs.setAvatar(kind, tone);
+    setAva({ kind, tone });
+  };
+
+  async function saveName() {
+    const clean = name.trim();
+    if (!clean) {
+      // Xoá override — quay về tên chính thức
+      Prefs.setDisplayName(null);
+      setNameMsg({ ok: true, text: `Đã quay về tên chính thức: ${officialName}.` });
+      return;
+    }
+    setSavingName(true);
+    setNameMsg(null);
+    // Thử đổi CHÍNH THỨC trước. RLS chưa mở → update 0 dòng, KHÔNG lỗi —
+    // phải select lại để biết server có nhận hay không.
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ full_name: clean })
+      .eq("id", uid!)
+      .select("full_name");
+    if (!error && data && data.length > 0 && data[0]!.full_name === clean) {
+      Prefs.setDisplayName(null); // server là nguồn sự thật — bỏ override máy
+      setNameMsg({ ok: true, text: "Đã đổi tên chính thức trên hệ thống trường." });
+    } else {
+      Prefs.setDisplayName(clean);
+      setNameMsg({
+        ok: true,
+        text:
+          "Trường chưa mở quyền đổi tên chính thức — tên này sẽ hiển thị trên máy của bạn. " +
+          `Tên trong sổ của trường vẫn là "${officialName}".`,
+      });
+    }
+    setSavingName(false);
+  }
+
+  async function savePassword() {
+    if (pw.length < 8) {
+      setPwMsg({ ok: false, text: "Mật khẩu mới cần ít nhất 8 ký tự." });
+      return;
+    }
+    if (pw !== pw2) {
+      setPwMsg({ ok: false, text: "Hai ô mật khẩu chưa khớp nhau." });
+      return;
+    }
+    setSavingPw(true);
+    setPwMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    if (error) {
+      setPwMsg({ ok: false, text: "Đổi mật khẩu thất bại: " + error.message });
+    } else {
+      setPw("");
+      setPw2("");
+      setPwMsg({ ok: true, text: "Đã đổi mật khẩu — lần đăng nhập sau dùng mật khẩu mới nhé." });
+    }
+    setSavingPw(false);
+  }
+
+  function clearLocal() {
+    try {
+      window.localStorage.removeItem("va-tutor-progress");
+      window.localStorage.removeItem("va-tutor-mastered");
+      setCleared(true);
+    } catch {
+      /* bị chặn — thôi */
+    }
+    setAskClear(false);
+  }
+
+  return (
+    <div className="ws">
+      {/* HERO gọn — cài đặt là "hậu trường", không cần sân khấu lớn */}
+      <header className="ws-hero st-hero">
+        {onBack && (
+          <button type="button" className="st-back" onClick={onBack} aria-label="Quay lại Hồ sơ">
+            <ArrowLeft strokeWidth={2.25} />
+          </button>
+        )}
+        <div className="ws-hero-text">
+          <span className="ws-kicker">
+            <Settings aria-hidden strokeWidth={2.5} />
+            Cài đặt
+          </span>
+          <h1 className="ws-title">Không gian của {shownName.split(/\s+/).pop()}</h1>
+          <p className="ws-lead">
+            Chỉnh app theo ý bạn — avatar, giao diện, cỡ chữ. Mọi thay đổi ăn ngay, không cần lưu.
+          </p>
+        </div>
+        <span className="ws-hero-lion" aria-hidden>
+          <Lion mood="idle" size={120} variant="full" decorative />
+        </span>
+      </header>
+
+      <div className="ws-grid">
+        {/* ── CỘT CHÍNH: Tài khoản ── */}
+        <section className="ws-panel">
+          <h2 className="ws-panel-title">
+            <UserCircle aria-hidden strokeWidth={2.25} />
+            Tài khoản
+          </h2>
+
+          {/* Avatar: đĩa màu + chữ cái, hoặc sư tử — tuỳ chọn trên máy */}
+          <div className="st-row">
+            <b className="st-row-title">Avatar</b>
+            <div className="st-ava-line">
+              <span className="ws-hero-ava st-ava-preview" data-tone={ava.tone} aria-hidden>
+                {ava.kind === "lion" ? <Lion mood="idle" size={40} decorative /> : initial}
+              </span>
+              <div className="st-ava-opts">
+                <div className="st-seg" role="radiogroup" aria-label="Kiểu avatar">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={ava.kind === "initial"}
+                    onClick={() => pickAva("initial", ava.tone)}
+                  >
+                    Chữ cái
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={ava.kind === "lion"}
+                    onClick={() => pickAva("lion", ava.tone)}
+                  >
+                    Sư tử
+                  </button>
+                </div>
+                <div className="st-tones" role="radiogroup" aria-label="Màu avatar">
+                  {TONES.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={ava.tone === t.key}
+                      className="st-tone"
+                      data-tone={t.key}
+                      title={t.label}
+                      aria-label={t.label}
+                      onClick={() => pickAva(ava.kind, t.key)}
+                    >
+                      {ava.tone === t.key && <Check strokeWidth={3} aria-hidden />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Đổi tên — server trước, máy sau (nói rõ từng trường hợp) */}
+          <div className="st-row">
+            <b className="st-row-title">
+              <PencilLine aria-hidden strokeWidth={2.25} />
+              Tên hiển thị
+            </b>
+            <div className="st-name-line">
+              <input
+                type="text"
+                value={name}
+                maxLength={60}
+                placeholder={officialName}
+                onChange={(e) => setName(e.target.value)}
+                aria-label="Tên hiển thị"
+                autoComplete="nickname"
+                autoCapitalize="words"
+                enterKeyHint="done"
+              />
+              <button
+                className="btn btn-sm"
+                onClick={saveName}
+                disabled={savingName}
+                data-loading={savingName || undefined}
+              >
+                Lưu tên
+              </button>
+            </div>
+            {nameMsg && (
+              <p className={nameMsg.ok ? "st-msg ok" : "st-msg err"} role="status">
+                {nameMsg.text}
+              </p>
+            )}
+          </div>
+
+          {/* Đổi mật khẩu — thật qua supabase.auth */}
+          <div className="st-row">
+            <b className="st-row-title">
+              <KeyRound aria-hidden strokeWidth={2.25} />
+              Đổi mật khẩu
+            </b>
+            <div className="st-name-line">
+              <input
+                type="password"
+                value={pw}
+                autoComplete="new-password"
+                placeholder="Mật khẩu mới (≥ 8 ký tự)"
+                onChange={(e) => setPw(e.target.value)}
+                aria-label="Mật khẩu mới"
+                enterKeyHint="next"
+              />
+              <input
+                type="password"
+                value={pw2}
+                autoComplete="new-password"
+                placeholder="Nhập lại"
+                onChange={(e) => setPw2(e.target.value)}
+                aria-label="Nhập lại mật khẩu mới"
+                enterKeyHint="done"
+              />
+              <button
+                className="btn btn-sm"
+                onClick={savePassword}
+                disabled={savingPw || !pw || !pw2}
+                data-loading={savingPw || undefined}
+              >
+                Đổi
+              </button>
+            </div>
+            {pwMsg && (
+              <p className={pwMsg.ok ? "st-msg ok" : "st-msg err"} role="status">
+                {pwMsg.text}
+              </p>
+            )}
+          </div>
+
+          {/* Thông tin chỉ đọc — trường quản lý */}
+          <div className="st-row">
+            <b className="st-row-title">Thông tin do trường quản lý</b>
+            <dl className="st-facts">
+              <div>
+                <dt>Email</dt>
+                <dd>{session?.user.email ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Vai trò</dt>
+                <dd>{roleLabel(profile?.role)}</dd>
+              </div>
+              <div>
+                <dt>Tên chính thức</dt>
+                <dd>{officialName}</dd>
+              </div>
+            </dl>
+            {parentLinked && (
+              <div className="pf-acct-row">
+                <span>
+                  <Users aria-hidden strokeWidth={2} />
+                  Phụ huynh đã liên kết
+                </span>
+                <BadgeCheck className="pf-acct-ok" strokeWidth={2} aria-hidden />
+              </div>
+            )}
+          </div>
+
+          <button
+            className="btn btn-ghost btn-block"
+            onClick={() => signOut().then(() => (window.location.href = "/"))}
+          >
+            <LogOut aria-hidden strokeWidth={2} />
+            Đăng xuất
+          </button>
+        </section>
+
+        {/* ── CỘT PHẢI: Giao diện · Trợ năng · Dữ liệu ── */}
+        <aside className="ws-side">
+          <section className="ws-panel">
+            <h2 className="ws-panel-title">
+              <Sun aria-hidden strokeWidth={2.25} />
+              Giao diện
+            </h2>
+            <div className="st-row">
+              <b className="st-row-title">Chế độ màu</b>
+              <div className="st-seg st-seg-3" role="radiogroup" aria-label="Chế độ màu">
+                <button type="button" role="radio" aria-checked={theme === "light"} onClick={() => pickTheme("light")}>
+                  <Sun aria-hidden strokeWidth={2.25} />
+                  Sáng
+                </button>
+                <button type="button" role="radio" aria-checked={theme === "dark"} onClick={() => pickTheme("dark")}>
+                  <Moon aria-hidden strokeWidth={2.25} />
+                  Tối
+                </button>
+                <button type="button" role="radio" aria-checked={theme === "system"} onClick={() => pickTheme("system")}>
+                  <Monitor aria-hidden strokeWidth={2.25} />
+                  Theo máy
+                </button>
+              </div>
+            </div>
+            <div className="st-row">
+              <b className="st-row-title">
+                <Type aria-hidden strokeWidth={2.25} />
+                Cỡ chữ
+              </b>
+              <div className="st-seg st-seg-3" role="radiogroup" aria-label="Cỡ chữ">
+                <button type="button" role="radio" aria-checked={font === "sm"} onClick={() => pickFont("sm")}>
+                  Nhỏ
+                </button>
+                <button type="button" role="radio" aria-checked={font === "md"} onClick={() => pickFont("md")}>
+                  Vừa
+                </button>
+                <button type="button" role="radio" aria-checked={font === "lg"} onClick={() => pickFont("lg")}>
+                  Lớn
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="ws-panel">
+            <h2 className="ws-panel-title">
+              <Wind aria-hidden strokeWidth={2.25} />
+              Trợ năng
+            </h2>
+            <label className="st-switch">
+              <span>
+                <b>Giảm chuyển động</b>
+                <span className="muted">Sư tử đứng yên, thẻ thôi nhún — đỡ mỏi mắt.</span>
+              </span>
+              <input type="checkbox" checked={motion} onChange={toggleMotion} role="switch" />
+            </label>
+          </section>
+
+          {/* "Học cùng nhau" tạm gỡ qua cờ PRESENCE_ENABLED (lib/presence). */}
+          {PRESENCE_ENABLED && (
+            <section className="ws-panel">
+              <h2 className="ws-panel-title">
+                <Users aria-hidden strokeWidth={2.25} />
+                Học cùng nhau
+              </h2>
+              <label className="st-switch">
+                <span>
+                  <b>Hiện mình đang học cùng bạn</b>
+                  <span className="muted">
+                    Bật để thấy bạn cùng khối đang online — và để các bạn thấy bạn.
+                    Chỉ hiện tên gọi + đang học môn nào, KHÔNG lộ gì thêm. Mặc định tắt.
+                  </span>
+                </span>
+                <input type="checkbox" checked={presence} onChange={togglePresence} role="switch" />
+              </label>
+            </section>
+          )}
+
+          <section className="ws-panel">
+            <h2 className="ws-panel-title">
+              <Eraser aria-hidden strokeWidth={2.25} />
+              Dữ liệu trên máy
+            </h2>
+            <p className="muted">
+              XP, chuỗi ngày và điểm thành thạo hiện lưu trên máy này (sẽ chuyển lên hệ thống trường
+              trong bản tới).
+            </p>
+            {cleared ? (
+              <p className="st-msg ok" role="status">
+                Đã xoá tiến độ trên máy này.
+              </p>
+            ) : (
+              <button className="btn btn-ghost btn-block" onClick={() => setAskClear(true)}>
+                <Eraser aria-hidden strokeWidth={2} />
+                Xoá tiến độ trên máy này
+              </button>
+            )}
+          </section>
+        </aside>
+      </div>
+
+      {/* Sheet xác nhận xoá — autofocus vào "Giữ lại": Enter vô ý không phá dữ liệu */}
+      <Sheet open={askClear} onClose={() => setAskClear(false)} title="Xoá tiến độ trên máy này?">
+        <p>
+          XP, chuỗi ngày và các điểm thành thạo đang lưu trên máy này sẽ mất — không hoàn tác được.
+          Điểm số trên hệ thống trường không bị ảnh hưởng.
+        </p>
+        <div className="sheet-actions">
+          <button className="btn btn-ghost" data-autofocus onClick={() => setAskClear(false)}>
+            Giữ lại
+          </button>
+          <button className="btn" onClick={clearLocal}>
+            Xoá tiến độ
+          </button>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
+function roleLabel(role?: string | null): string {
+  switch (role) {
+    case "teacher":
+      return "Giáo viên";
+    case "parent":
+      return "Phụ huynh";
+    case "admin":
+      return "Quản trị";
+    default:
+      return "Học sinh";
+  }
+}

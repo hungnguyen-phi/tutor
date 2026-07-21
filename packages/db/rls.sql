@@ -48,6 +48,15 @@ end $$;
 create policy profiles_self_or_staff on public.profiles for select to authenticated
   using (id = auth.uid() or (tenant_id = public.current_tenant_id() and public.is_staff()));
 
+-- Tự đổi TÊN của chính mình (màn Cài đặt trong app). Policy update mở cả dòng
+-- nhưng CỘT nào ghi được do GRANT quyết định — giới hạn đúng full_name nên học
+-- sinh không thể tự sửa role/tenant. (Web có sẵn fallback tên-cục-bộ khi policy
+-- này chưa apply; apply xong thì đổi tên trong app thành chính thức.)
+revoke update on public.profiles from authenticated;
+grant update (full_name) on public.profiles to authenticated;
+create policy profiles_self_update on public.profiles for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid());
+
 create policy tenants_member_read on public.tenants for select to authenticated
   using (id = public.current_tenant_id());
 

@@ -1,24 +1,56 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Home, LogOut } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
-import Login from "./Login";
+import RedirectToLogin from "./RedirectToLogin";
 
-/** Shared chrome for every staff/role page: header + auth gate. */
-export default function RoleShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+/** Khung chung cho mọi màn vai trò: header + cổng đăng nhập. */
+export default function RoleShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
   const { session } = useAuth();
-  if (session === undefined) return <main className="wrap"><p className="muted">Đang tải…</p></main>;
-  if (session === null) return <Login />;
+
+  if (session === undefined) {
+    return (
+      <main className="role-main">
+        <div className="skel" style={{ height: 28, width: 240, marginBottom: 16 }} />
+        <div className="skel" style={{ height: 120 }} />
+      </main>
+    );
+  }
+  if (session === null) return <RedirectToLogin />;
+
   return (
     <>
-      <header className="app-header">
-        <img src="/logo-vietanh.webp" alt="Việt Anh" />
-        <div className="titles"><b>{title}</b>{subtitle && <span>{subtitle}</span>}</div>
-        <div className="spacer" />
-        <nav className="sb-nav"><a href="/app">⌂ Trang chính</a></nav>
-        <button className="btn ghost" style={{ marginLeft: 10, padding: "6px 12px" }} onClick={() => signOut().then(() => (window.location.href = "/"))}>Thoát</button>
+      <header className="role-head">
+        <div className="role-head-inner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-vietanh.webp" alt="" height={34} />
+          <div className="role-titles">
+            <b>{title}</b>
+            {subtitle && <span>{subtitle}</span>}
+          </div>
+          <a className="btn btn-quiet role-home" href="/app">
+            <Home aria-hidden strokeWidth={2} />
+            Trang chính
+          </a>
+          <button
+            className="btn btn-quiet"
+            onClick={() => signOut().then(() => (window.location.href = "/"))}
+          >
+            <LogOut aria-hidden strokeWidth={2} />
+            Thoát
+          </button>
+        </div>
       </header>
-      <main className="wrap" style={{ maxWidth: 920 }}>{children}</main>
+      <main className="role-main">{children}</main>
     </>
   );
 }

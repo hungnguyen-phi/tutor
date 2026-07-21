@@ -21,15 +21,24 @@ Deno.serve(async (req: Request) => {
 
     if (kind === "question") {
       if (!QUESTION_STATUSES.includes(status)) return json({ error: "bad status" }, 400);
-      const { error } = await supa.from("questions").update({ trang_thai: status }).eq("id", id);
+      // CHỐT tenant: chỉ đổi trạng thái nội dung THUỘC tenant của người duyệt.
+      // .select("id") để xác nhận có đúng một hàng khớp — id lạ / khác tenant sẽ
+      // KHÔNG khớp và trả 404 thay vì âm thầm "ok".
+      const { data, error } = await supa
+        .from("questions").update({ trang_thai: status })
+        .eq("id", id).eq("tenant_id", ctx.tenantId).select("id");
       if (error) return json({ error: error.message }, 500);
+      if (!data || data.length === 0) return json({ error: "not found" }, 404);
       await supa.from("audit_logs").insert({ action: "content_review", subject_type: "question", subject_id: id, actor_id: ctx.userId, tenant_id: ctx.tenantId, ai_decision: { status } });
       return json({ ok: true, kind, id, status });
     }
     if (kind === "ladder") {
       if (!LADDER_STATUSES.includes(status)) return json({ error: "bad status" }, 400);
-      const { error } = await supa.from("socratic_ladders").update({ status }).eq("id", id);
+      const { data, error } = await supa
+        .from("socratic_ladders").update({ status })
+        .eq("id", id).eq("tenant_id", ctx.tenantId).select("id");
       if (error) return json({ error: error.message }, 500);
+      if (!data || data.length === 0) return json({ error: "not found" }, 404);
       await supa.from("audit_logs").insert({ action: "content_review", subject_type: "ladder", subject_id: id, actor_id: ctx.userId, tenant_id: ctx.tenantId, ai_decision: { status } });
       return json({ ok: true, kind, id, status });
     }

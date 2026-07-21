@@ -5,6 +5,8 @@ import { supabase } from "./supabase";
 export interface Profile {
   role: string;
   full_name: string | null;
+  tenant_id: string | null;
+  grade: string | null;
 }
 
 /** undefined = loading, null = signed out, Session = signed in. */
@@ -23,7 +25,7 @@ export function useAuth() {
   useEffect(() => {
     if (!session) { setProfile(null); setRoles([]); setIsBuddy(false); return; }
     const uid = session.user.id;
-    supabase.from("profiles").select("role, full_name").eq("id", uid).single()
+    supabase.from("profiles").select("role, full_name, tenant_id, grade").eq("id", uid).single()
       .then(({ data }) => {
         const p = (data as Profile) ?? null;
         setProfile(p);
@@ -38,3 +40,19 @@ export function useAuth() {
 }
 
 export const signOut = () => supabase.auth.signOut();
+
+/** Vai nào về nhà nấy — nguồn chân lý DUY NHẤT cho điều hướng sau đăng nhập
+ *  (quyết định chủ dự án: học sinh vào THẲNG /learn, không qua hub). */
+export function roleHome(role?: string | null): string {
+  switch (role) {
+    case "teacher":
+      return "/teacher/";
+    case "parent":
+      return "/parent/";
+    case "student":
+      return "/learn/";
+    default:
+      // admin/staff/vai chưa rõ → hub chọn vai
+      return "/app/";
+  }
+}

@@ -1,0 +1,4322 @@
+{
+  "schema": "va.kg-bundle/2.2",
+  "subject": "Toan",
+  "grade": 10,
+  "version_label": "khung-toan-10",
+  "nguon": "Studio db.json (D:/school ai/studio/data/db.json) — quy trình 6 Trạm, xuất 2026-07-10",
+  "nodes": [
+    {
+      "id": "TO10-C01-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Khái niệm mệnh đề logic",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết một câu là mệnh đề (có tính đúng hoặc sai) hay không phải mệnh đề"
+    },
+    {
+      "id": "TO10-C01-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Xác định tính đúng/sai của mệnh đề",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xét và khẳng định một mệnh đề cho trước là đúng hay sai"
+    },
+    {
+      "id": "TO10-C01-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề chứa biến",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết và cho ví dụ về mệnh đề chứa biến; tìm giá trị biến làm mệnh đề đúng"
+    },
+    {
+      "id": "TO10-C01-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề phủ định và kí hiệu",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa và kí hiệu mệnh đề phủ định \\(\\bar{P}\\)"
+    },
+    {
+      "id": "TO10-C01-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Phát biểu và xét tính đúng/sai mệnh đề phủ định",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Phát biểu mệnh đề phủ định; xác định đúng/sai của phủ định"
+    },
+    {
+      "id": "TO10-C01-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề kéo theo \\(P\\Rightarrow Q\\) và bảng chân trị",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa, kí hiệu mệnh đề kéo theo; lập bảng chân trị"
+    },
+    {
+      "id": "TO10-C01-A07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Điều kiện cần, điều kiện đủ",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xác định giả thiết, kết luận; phát biểu điều kiện cần, điều kiện đủ"
+    },
+    {
+      "id": "TO10-C01-A08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề đảo \\(Q\\Rightarrow P\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa mệnh đề đảo và tính độc lập đúng/sai so với mệnh đề gốc"
+    },
+    {
+      "id": "TO10-C01-A09",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề tương đương \\(P\\Leftrightarrow Q\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu điều kiện cần và đủ; kí hiệu \\(P\\Leftrightarrow Q\\); điều kiện để tương đương đúng"
+    },
+    {
+      "id": "TO10-C01-A10",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Xét tính đúng/sai mệnh đề kéo theo và đảo",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xét tính đúng/sai của \\(P\\Rightarrow Q\\) và \\(Q\\Rightarrow P\\), dùng phản ví dụ khi cần"
+    },
+    {
+      "id": "TO10-C01-A11",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề chứa kí hiệu \\(\\forall\\) (với mọi)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu ý nghĩa kí hiệu \\(\\forall\\); viết và đọc mệnh đề dùng \\(\\forall\\)"
+    },
+    {
+      "id": "TO10-C01-A12",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Mệnh đề chứa kí hiệu \\(\\exists\\) (tồn tại)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu ý nghĩa kí hiệu \\(\\exists\\); viết và đọc mệnh đề dùng \\(\\exists\\)"
+    },
+    {
+      "id": "TO10-C01-A13",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Xét tính đúng/sai mệnh đề có \\(\\forall,\\exists\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định tính đúng/sai của mệnh đề chứa lượng từ bằng ví dụ/phản ví dụ"
+    },
+    {
+      "id": "TO10-C01-A14",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Phủ định mệnh đề chứa \\(\\forall\\) và \\(\\exists\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết đúng mệnh đề phủ định khi đổi \\(\\forall\\leftrightarrow\\exists\\)"
+    },
+    {
+      "id": "TO10-C01-A15",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Kí hiệu mệnh đề bằng chữ P, Q",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Dùng kí hiệu chữ cái để đặt tên và biểu diễn một mệnh đề"
+    },
+    {
+      "id": "TO10-C01-A16",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Phân biệt mệnh đề toán học và mệnh đề thường gặp",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phân biệt mệnh đề có nội dung toán học với câu khẳng định thông thường"
+    },
+    {
+      "id": "TO10-C01-A17",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Phát biểu mệnh đề tương đương bằng 'khi và chỉ khi'",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Phát biểu \\(P\\Leftrightarrow Q\\) bằng các cách diễn đạt 'khi và chỉ khi', 'điều kiện cần và đủ'"
+    },
+    {
+      "id": "TO10-C01-A18",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "A. Mệnh đề",
+      "label": "Xác định điều kiện cần và đủ giữa hai mệnh đề",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Cho hai mệnh đề, chỉ ra mệnh đề nào là điều kiện cần, điều kiện đủ của mệnh đề kia"
+    },
+    {
+      "id": "TO10-C01-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Khái niệm tập hợp và phần tử",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết tập hợp, phần tử; dùng kí hiệu \\(\\in,\\notin\\)"
+    },
+    {
+      "id": "TO10-C01-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Mô tả tập hợp bằng cách liệt kê",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết tập hợp bằng cách liệt kê phần tử"
+    },
+    {
+      "id": "TO10-C01-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Mô tả tập hợp bằng tính chất đặc trưng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết tập hợp bằng chỉ ra tính chất đặc trưng; chuyển đổi giữa hai cách"
+    },
+    {
+      "id": "TO10-C01-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Tập rỗng \\(\\emptyset\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết và cho ví dụ tập rỗng"
+    },
+    {
+      "id": "TO10-C01-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Tập hợp con \\((\\subset)\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa tập con; chứng minh \\(A\\subset B\\)"
+    },
+    {
+      "id": "TO10-C01-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Hai tập hợp bằng nhau",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa hai tập bằng nhau; chứng minh A=B"
+    },
+    {
+      "id": "TO10-C01-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Biểu đồ Ven biểu diễn quan hệ bao hàm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Biểu diễn tập hợp và quan hệ tập con bằng biểu đồ Ven"
+    },
+    {
+      "id": "TO10-C01-B08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Đếm số tập con của một tập hợp hữu hạn",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định số tập con \\((2^n)\\) của tập hợp có \\(n\\) phần tử"
+    },
+    {
+      "id": "TO10-C01-B09",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "B. Tập hợp",
+      "label": "Phân biệt quan hệ \\(\\in\\) (phần tử) và \\(\\subset\\) (tập con)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phân biệt kí hiệu \\(\\in\\) (phần tử) với \\(\\subset\\) (tập con) khi viết quan hệ"
+    },
+    {
+      "id": "TO10-C01-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "C. Tập hợp số",
+      "label": "Các tập hợp số N, Z, Q, R và quan hệ",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhớ và nêu quan hệ \\(\\mathbb{N}\\subset\\mathbb{Z}\\subset\\mathbb{Q}\\subset\\mathbb{R}\\); xác định số thuộc tập nào"
+    },
+    {
+      "id": "TO10-C01-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "C. Tập hợp số",
+      "label": "Khoảng, đoạn, nửa khoảng trên R",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết và viết đúng kí hiệu khoảng, đoạn, nửa khoảng"
+    },
+    {
+      "id": "TO10-C01-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "C. Tập hợp số",
+      "label": "Biểu diễn khoảng/đoạn/nửa khoảng trên trục số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Vẽ tập hợp số trên trục số và đọc ngược lại"
+    },
+    {
+      "id": "TO10-C01-D01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Giao của hai tập hợp \\(A\\cap B\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa, kí hiệu giao của hai tập hợp"
+    },
+    {
+      "id": "TO10-C01-D02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Hợp của hai tập hợp \\(A\\cup B\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa, kí hiệu hợp của hai tập hợp"
+    },
+    {
+      "id": "TO10-C01-D03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Hiệu và phần bù của tập hợp",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa hiệu \\(A\\setminus B\\) và phần bù \\(C_E A\\)"
+    },
+    {
+      "id": "TO10-C01-D04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Tính phép toán tập hợp với tập số hữu hạn",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính \\(A\\cap B, A\\cup B, A\\setminus B\\) với các tập hợp số liệt kê được"
+    },
+    {
+      "id": "TO10-C01-D05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Tính phép toán tập hợp với khoảng/đoạn",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính giao, hợp, hiệu của các khoảng, đoạn trên trục số"
+    },
+    {
+      "id": "TO10-C01-D06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Vận dụng tập hợp giải bài toán đếm thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Dùng \\(n(A\\cup B)=n(A)+n(B)-n(A\\cap B)\\) giải bài toán đếm thực tế"
+    },
+    {
+      "id": "TO10-C01-D07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương I. Mệnh đề và Tập hợp",
+      "cluster": "D. Phép toán tập hợp",
+      "label": "Tính chất phép toán tập hợp (giao hoán, kết hợp)",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu tính giao hoán, kết hợp của phép giao và hợp tập hợp"
+    },
+    {
+      "id": "TO10-C02-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Khái niệm BPT bậc nhất hai ẩn \\(ax+by\\leq c\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết dạng tổng quát bất phương trình bậc nhất hai ẩn"
+    },
+    {
+      "id": "TO10-C02-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Nghiệm của BPT bậc nhất hai ẩn",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu khái niệm nghiệm (cặp số); kiểm tra một cặp số có là nghiệm"
+    },
+    {
+      "id": "TO10-C02-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Vẽ đường thẳng ax+by=c để xác định bờ miền nghiệm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Vẽ đúng đường thẳng ax+by=c trên mặt phẳng tọa độ"
+    },
+    {
+      "id": "TO10-C02-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Biểu diễn miền nghiệm BPT bằng cách chọn điểm thử",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chọn điểm thử, xác định và tô miền nghiệm của BPT"
+    },
+    {
+      "id": "TO10-C02-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Xác định miền nghiệm khi c=0 (đường qua gốc)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xử lí trường hợp đường thẳng qua gốc; chọn điểm thử (1;0) hoặc (0;1)"
+    },
+    {
+      "id": "TO10-C02-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Vận dụng BPT bậc nhất hai ẩn vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập BPT từ bài toán thực tế; biểu diễn miền thỏa mãn"
+    },
+    {
+      "id": "TO10-C02-A07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "A. Bất phương trình bậc nhất hai ẩn",
+      "label": "Lập BPT bậc nhất hai ẩn từ điều kiện ràng buộc",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chuyển một điều kiện ràng buộc thực tế thành bất phương trình bậc nhất hai ẩn"
+    },
+    {
+      "id": "TO10-C02-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "B. Hệ bất phương trình bậc nhất hai ẩn",
+      "label": "Khái niệm hệ BPT bậc nhất hai ẩn",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết hệ BPT; xác định nghiệm của hệ"
+    },
+    {
+      "id": "TO10-C02-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "B. Hệ bất phương trình bậc nhất hai ẩn",
+      "label": "Biểu diễn miền nghiệm hệ BPT (lấy phần giao)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Vẽ miền nghiệm từng BPT; lấy phần chung làm miền nghiệm của hệ"
+    },
+    {
+      "id": "TO10-C02-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "B. Hệ bất phương trình bậc nhất hai ẩn",
+      "label": "Tìm giá trị lớn nhất/nhỏ nhất hàm mục tiêu trên miền",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính giá trị hàm F=ax+by tại các đỉnh miền nghiệm để tìm min/max"
+    },
+    {
+      "id": "TO10-C02-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "B. Hệ bất phương trình bậc nhất hai ẩn",
+      "label": "Vận dụng hệ BPT vào bài toán tối ưu thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập hệ BPT từ bài toán kinh tế; tìm giá trị lớn/nhỏ nhất của hàm mục tiêu"
+    },
+    {
+      "id": "TO10-C02-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương II. Bất phương trình và hệ bất phương trình bậc nhất hai ẩn",
+      "cluster": "B. Hệ bất phương trình bậc nhất hai ẩn",
+      "label": "Xác định các đỉnh của miền nghiệm (miền đa giác)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tìm tọa độ các đỉnh miền nghiệm bằng cách giải các hệ phương trình giao điểm"
+    },
+    {
+      "id": "TO10-C03-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Định nghĩa GTLG mở rộng qua nửa đường tròn đơn vị",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xây dựng định nghĩa \\(\\sin,\\cos,\\tan,\\cot\\) qua điểm \\(M(x_0;y_0)\\) trên nửa đường tròn đơn vị"
+    },
+    {
+      "id": "TO10-C03-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "GTLG của góc đặc biệt \\(0^\\circ,30^\\circ,45^\\circ,60^\\circ,90^\\circ,180^\\circ\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tra/nhớ bảng giá trị lượng giác các góc đặc biệt"
+    },
+    {
+      "id": "TO10-C03-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Dùng MTCT tính GTLG của một góc",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Bấm phím đúng trên MTCT để tính sin, cos, tan của một góc"
+    },
+    {
+      "id": "TO10-C03-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Dùng MTCT tìm góc khi biết GTLG",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Dùng MTCT tra ngược để tìm số đo góc từ một giá trị lượng giác"
+    },
+    {
+      "id": "TO10-C03-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Quan hệ GTLG hai góc bù nhau",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu và chứng minh \\(\\sin(180^\\circ-\\alpha)=\\sin\\alpha\\); \\(\\cos(180^\\circ-\\alpha)=-\\cos\\alpha\\)"
+    },
+    {
+      "id": "TO10-C03-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Tính GTLG góc tù qua quan hệ góc bù",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chuyển góc tù về góc nhọn bù nhau để tính GTLG"
+    },
+    {
+      "id": "TO10-C03-A07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "A. Giá trị lượng giác góc 0°–180°",
+      "label": "Quan hệ dấu của GTLG theo loại góc (nhọn/tù)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xác định dấu của sin, cos, tan, cot khi góc là nhọn hay tù"
+    },
+    {
+      "id": "TO10-C03-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Định lí côsin \\(a^2=b^2+c^2-2bc\\cdot\\cos A\\)",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu và nhớ ba dạng định lí côsin; nhận ra Pythagore là trường hợp đặc biệt"
+    },
+    {
+      "id": "TO10-C03-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Tính cạnh tam giác dùng định lí côsin",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Áp dụng định lí côsin để tính cạnh còn lại khi biết hai cạnh và góc xen giữa"
+    },
+    {
+      "id": "TO10-C03-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Tính góc tam giác dùng định lí côsin",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Biến đổi định lí côsin để tính số đo góc khi biết ba cạnh"
+    },
+    {
+      "id": "TO10-C03-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Định lí sin a/sinA=b/sinB=c/sinC=2R",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu định lí sin; nhận biết bán kính đường tròn ngoại tiếp"
+    },
+    {
+      "id": "TO10-C03-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Tính cạnh, góc tam giác dùng định lí sin",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chọn đúng tỉ số để tính cạnh hoặc góc còn lại bằng định lí sin"
+    },
+    {
+      "id": "TO10-C03-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Liên hệ R với cạnh và góc qua định lí sin",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính bán kính đường tròn ngoại tiếp R từ định lí sin"
+    },
+    {
+      "id": "TO10-C03-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "B. Định lí côsin và sin",
+      "label": "Nhận dạng dữ kiện để chọn định lí sin hay côsin",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Phân tích dữ kiện tam giác để quyết định dùng định lí sin hay côsin"
+    },
+    {
+      "id": "TO10-C03-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Công thức diện tích \\(S=\\dfrac{1}{2}bc\\sin A\\)",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu và nhớ ba dạng công thức diện tích theo hai cạnh và góc xen giữa"
+    },
+    {
+      "id": "TO10-C03-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Công thức Heron",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Biết công thức Heron \\(S=\\sqrt{p(p-a)(p-b)(p-c)}\\); xác định \\(p\\) là nửa chu vi"
+    },
+    {
+      "id": "TO10-C03-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Tính diện tích tam giác trong từng trường hợp dữ kiện",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chọn công thức diện tích phù hợp với dữ kiện (2 cạnh+góc, ba cạnh, có R/r)"
+    },
+    {
+      "id": "TO10-C03-C04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Giải tam giác",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chọn đúng định lí côsin/sin để tính đủ các yếu tố tam giác từ dữ kiện cho trước"
+    },
+    {
+      "id": "TO10-C03-C05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Vận dụng hệ thức lượng giải bài toán đo đạc thực tế",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập tam giác từ bài toán thực tế; áp dụng định lí sin/côsin/diện tích để giải"
+    },
+    {
+      "id": "TO10-C03-C06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương III. Hệ thức lượng trong tam giác",
+      "cluster": "C. Diện tích và giải tam giác",
+      "label": "Công thức diện tích qua bán kính nội tiếp \\(S=p\\cdot r\\)",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Biết công thức diện tích \\(S=p\\cdot r\\) với \\(r\\) là bán kính đường tròn nội tiếp"
+    },
+    {
+      "id": "TO10-C04-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "A. Khái niệm vectơ",
+      "label": "Khái niệm vectơ, vectơ-không, độ dài",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết vectơ (hướng + độ lớn); kí hiệu \\(\\overrightarrow{AB}\\); vectơ-không \\(\\vec{0}\\) và độ dài"
+    },
+    {
+      "id": "TO10-C04-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "A. Khái niệm vectơ",
+      "label": "Hai vectơ cùng phương, cùng hướng, ngược hướng",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phân biệt cùng phương/cùng hướng/ngược hướng theo định nghĩa"
+    },
+    {
+      "id": "TO10-C04-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "A. Khái niệm vectơ",
+      "label": "Hai vectơ bằng nhau",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết hai vectơ bằng nhau (cùng hướng + cùng độ dài)"
+    },
+    {
+      "id": "TO10-C04-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "A. Khái niệm vectơ",
+      "label": "Biểu diễn đại lượng vật lí bằng vectơ",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Dùng vectơ biểu diễn lực hoặc vận tốc; đọc hiểu ví dụ thực tế"
+    },
+    {
+      "id": "TO10-C04-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "A. Khái niệm vectơ",
+      "label": "Dựng một vectơ bằng vectơ cho trước từ một điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Từ một điểm cho trước, dựng vectơ bằng vectơ đã cho"
+    },
+    {
+      "id": "TO10-C04-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Tổng hai vectơ theo quy tắc ba điểm",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa tổng vectơ; quy tắc ba điểm \\(\\overrightarrow{AB}+\\overrightarrow{BC}=\\overrightarrow{AC}\\)"
+    },
+    {
+      "id": "TO10-C04-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Quy tắc hình bình hành tính tổng vectơ",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu quy tắc hình bình hành; áp dụng \\(\\overrightarrow{AB}+\\overrightarrow{AD}=\\overrightarrow{AC}\\)"
+    },
+    {
+      "id": "TO10-C04-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Vectơ đối và hiệu hai vectơ",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu vectơ đối \\(-\\vec{a}\\); tính \\(\\vec{a}-\\vec{b}=\\vec{a}+(-\\vec{b})\\)"
+    },
+    {
+      "id": "TO10-C04-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Biểu diễn trung điểm, trọng tâm bằng vectơ",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết công thức trung điểm \\(\\overrightarrow{OM}=\\dfrac{1}{2}(\\overrightarrow{OA}+\\overrightarrow{OB})\\) và trọng tâm \\(\\overrightarrow{OG}=\\dfrac{1}{3}(\\overrightarrow{OA}+\\overrightarrow{OB}+\\overrightarrow{OC})\\)"
+    },
+    {
+      "id": "TO10-C04-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Vận dụng phép cộng vectơ: tổng hợp lực, vận tốc",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Tính vận tốc/lực tổng hợp dùng quy tắc hình bình hành"
+    },
+    {
+      "id": "TO10-C04-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "B. Tổng và hiệu vectơ",
+      "label": "Chứng minh đẳng thức vectơ đơn giản",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Biến đổi và chứng minh các đẳng thức vectơ bằng quy tắc ba điểm, hình bình hành"
+    },
+    {
+      "id": "TO10-C04-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "C. Tích vectơ với một số",
+      "label": "Tích của vectơ với một số \\(k\\cdot\\vec{a}\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa \\(k\\cdot\\vec{a}\\); hướng và độ dài khi \\(k>0, k<0, k=0\\)"
+    },
+    {
+      "id": "TO10-C04-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "C. Tích vectơ với một số",
+      "label": "Tính chất phép nhân vectơ với số",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu tính chất kết hợp, phân phối; điều kiện cùng phương qua \\(k\\cdot\\vec{a}\\)"
+    },
+    {
+      "id": "TO10-C04-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "C. Tích vectơ với một số",
+      "label": "Phân tích vectơ theo hai vectơ không cùng phương",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Phân tích \\(\\vec{c}=h\\cdot\\vec{a}+k\\cdot\\vec{b}\\) khi \\(\\vec{a},\\vec{b}\\) không cùng phương"
+    },
+    {
+      "id": "TO10-C04-D01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "D. Vectơ trong mặt phẳng tọa độ",
+      "label": "Tọa độ của vectơ trong Oxy",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu tọa độ vectơ \\((x;y)\\); xác định tọa độ \\(\\overrightarrow{AB}\\) từ hai điểm"
+    },
+    {
+      "id": "TO10-C04-D02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "D. Vectơ trong mặt phẳng tọa độ",
+      "label": "Phép toán vectơ qua tọa độ",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính tọa độ \\(\\vec{a}+\\vec{b}\\); \\(\\vec{a}-\\vec{b}\\); \\(k\\cdot\\vec{a}\\) theo tọa độ thành phần"
+    },
+    {
+      "id": "TO10-C04-D03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "D. Vectơ trong mặt phẳng tọa độ",
+      "label": "Tọa độ trung điểm và khoảng cách hai điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính tọa độ trung điểm, khoảng cách hai điểm bằng tọa độ"
+    },
+    {
+      "id": "TO10-C04-D04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "D. Vectơ trong mặt phẳng tọa độ",
+      "label": "Điều kiện hai vectơ cùng phương theo tọa độ",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phát biểu điều kiện \\(x_1y_2-x_2y_1=0\\) để hai vectơ cùng phương"
+    },
+    {
+      "id": "TO10-C04-D05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "D. Vectơ trong mặt phẳng tọa độ",
+      "label": "Tìm điểm thỏa điều kiện vectơ cho trước",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tìm tọa độ điểm thỏa mãn một đẳng thức vectơ (vd điểm chia đoạn)"
+    },
+    {
+      "id": "TO10-C04-E01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Góc giữa hai vectơ",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xác định góc \\((\\vec{u},\\vec{v})\\) từ \\(0^\\circ\\) đến \\(180^\\circ\\); điều kiện \\(\\vec{u}\\perp\\vec{v}\\)"
+    },
+    {
+      "id": "TO10-C04-E02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Định nghĩa tích vô hướng \\(\\vec{a}\\cdot\\vec{b}\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa \\(\\vec{a}\\cdot\\vec{b}=|\\vec{a}|\\cdot|\\vec{b}|\\cdot\\cos(\\vec{a},\\vec{b})\\); ý nghĩa dấu của tích vô hướng"
+    },
+    {
+      "id": "TO10-C04-E03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Công thức tọa độ tích vô hướng và tính chất",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu \\(\\vec{a}\\cdot\\vec{b}=x_1x_2+y_1y_2\\); tính chất giao hoán, phân phối"
+    },
+    {
+      "id": "TO10-C04-E04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Tính góc và điều kiện vuông góc dùng tích vô hướng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Dùng tích vô hướng tính góc giữa hai vectơ; chứng minh vuông góc"
+    },
+    {
+      "id": "TO10-C04-E05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Vận dụng tích vô hướng vào vật lí và hình học",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Tính công của lực; liên hệ tích vô hướng với hệ thức lượng tam giác"
+    },
+    {
+      "id": "TO10-C04-E06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IV. Vectơ",
+      "cluster": "E. Tích vô hướng",
+      "label": "Tính độ dài vectơ qua tích vô hướng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Dùng \\(|\\vec{a}|=\\sqrt{\\vec{a}\\cdot\\vec{a}}\\) để tính độ dài vectơ từ tọa độ"
+    },
+    {
+      "id": "TO10-C05-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Số gần đúng và sai số tuyệt đối",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu số gần đúng \\(\\bar{a}\\); sai số tuyệt đối \\(\\Delta a=|a-\\bar{a}|\\)"
+    },
+    {
+      "id": "TO10-C05-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Độ chính xác d của số gần đúng",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xác định độ chính xác d; viết ā với độ chính xác cho trước"
+    },
+    {
+      "id": "TO10-C05-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Sai số tương đối",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Tính sai số tương đối \\(\\delta a=\\dfrac{\\Delta a}{|a|}\\); ý nghĩa so với sai số tuyệt đối"
+    },
+    {
+      "id": "TO10-C05-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Quy tròn số gần đúng với độ chính xác cho trước",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Áp dụng quy tắc làm tròn đúng để đạt độ chính xác d cho trước"
+    },
+    {
+      "id": "TO10-C05-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Tính toán với số gần đúng bằng MTCT",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Thực hiện phép tính với số gần đúng; kiểm soát sai số trên MTCT"
+    },
+    {
+      "id": "TO10-C05-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "A. Số gần đúng và sai số",
+      "label": "Xác định số chữ số chắc của số gần đúng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định các chữ số đáng tin (chữ số chắc) của một số gần đúng"
+    },
+    {
+      "id": "TO10-C05-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Số trung bình \\(\\bar{x}\\)",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa và công thức \\(\\bar{x}=\\dfrac{\\sum x_i}{n}\\); ý nghĩa đại diện mẫu"
+    },
+    {
+      "id": "TO10-C05-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Tính số trung bình từ bảng tần số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Dùng \\(\\bar{x}=\\dfrac{\\sum m_i x_i}{n}\\) khi mẫu cho dưới dạng bảng tần số"
+    },
+    {
+      "id": "TO10-C05-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Trung vị Me",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu khái niệm trung vị; xác định Me với n chẵn và n lẻ"
+    },
+    {
+      "id": "TO10-C05-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Tứ phân vị Q1, Q2, Q3",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Tính Q1, Q2, Q3 từ dãy số liệu đã sắp xếp"
+    },
+    {
+      "id": "TO10-C05-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Mốt Mo",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xác định mốt là giá trị xuất hiện nhiều nhất trong mẫu"
+    },
+    {
+      "id": "TO10-C05-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Lựa chọn số đặc trưng xu thế trung tâm phù hợp",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Chọn \\(\\bar{x}\\), \\(Me\\) hay \\(Mo\\) phù hợp ngữ cảnh; rút kết luận từ số đặc trưng"
+    },
+    {
+      "id": "TO10-C05-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "B. Số đặc trưng đo xu thế trung tâm",
+      "label": "Tính trung vị và tứ phân vị từ bảng tần số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định Me, Q1, Q3 khi mẫu cho dưới dạng bảng tần số"
+    },
+    {
+      "id": "TO10-C05-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Khoảng biến thiên R",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Tính R=x_max−x_min; ý nghĩa đo độ phân tán"
+    },
+    {
+      "id": "TO10-C05-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Khoảng tứ phân vị IQR",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Tính IQR=Q3−Q1; ý nghĩa đo độ phân tán ổn định hơn R"
+    },
+    {
+      "id": "TO10-C05-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Phương sai và độ lệch chuẩn",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu công thức phương sai \\(s^2\\); lấy căn bậc hai được độ lệch chuẩn \\(s\\)"
+    },
+    {
+      "id": "TO10-C05-C04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Tính phương sai, độ lệch chuẩn từ bảng tần số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Áp dụng công thức có tần số để tính \\(s^2\\) và \\(s\\)"
+    },
+    {
+      "id": "TO10-C05-C05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Phát hiện giá trị bất thường dùng IQR",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định phần tử nằm ngoài \\([Q_1-1{,}5\\cdot IQR; Q_3+1{,}5\\cdot IQR]\\)"
+    },
+    {
+      "id": "TO10-C05-C06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "So sánh độ phân tán và rút kết luận",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "So sánh R, IQR, s của hai mẫu; kết luận về sự ổn định, đều đặn"
+    },
+    {
+      "id": "TO10-C05-C07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương V. Các số đặc trưng của mẫu số liệu không ghép nhóm",
+      "cluster": "C. Số đặc trưng đo độ phân tán",
+      "label": "Ý nghĩa thực tiễn của độ lệch chuẩn",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Giải thích ý nghĩa độ lệch chuẩn trong việc đánh giá độ ổn định của số liệu"
+    },
+    {
+      "id": "TO10-C06-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Khái niệm hàm số, tập xác định, tập giá trị",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết hàm số; xác định tập xác định và tập giá trị từ bảng, đồ thị, công thức"
+    },
+    {
+      "id": "TO10-C06-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Tìm tập xác định của hàm số cho bởi công thức",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tìm điều kiện để biểu thức có nghĩa (căn thức, mẫu thức); viết tập xác định"
+    },
+    {
+      "id": "TO10-C06-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Đồ thị của hàm số",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa đồ thị; nhận biết điểm thuộc hay không thuộc đồ thị"
+    },
+    {
+      "id": "TO10-C06-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Vẽ đồ thị hàm số từ bảng giá trị",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Lập bảng giá trị; biểu diễn điểm; nối thành đồ thị"
+    },
+    {
+      "id": "TO10-C06-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Hàm số đồng biến, nghịch biến trên khoảng",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa đồng biến, nghịch biến; nhận biết qua đồ thị"
+    },
+    {
+      "id": "TO10-C06-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Xác định khoảng đồng biến, nghịch biến từ đồ thị",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Đọc đồ thị để chỉ ra các khoảng hàm số đồng biến/nghịch biến"
+    },
+    {
+      "id": "TO10-C06-A07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Vận dụng hàm số mô tả bài toán thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Viết hàm số mô tả tình huống thực tế; tìm tập xác định và giá trị hàm số"
+    },
+    {
+      "id": "TO10-C06-A08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Tính giá trị hàm số tại một điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Thay giá trị biến để tính \\(f(x_0)\\); kiểm tra điểm thuộc tập xác định"
+    },
+    {
+      "id": "TO10-C06-A09",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "A. Hàm số",
+      "label": "Xét tính chẵn, lẻ của hàm số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Kiểm tra f(−x)=f(x) hoặc f(−x)=−f(x) để kết luận chẵn/lẻ"
+    },
+    {
+      "id": "TO10-C06-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Khái niệm hàm số bậc hai \\(y=ax^2+bx+c\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết hàm số bậc hai; xác định hệ số a,b,c; phân biệt với hàm số khác"
+    },
+    {
+      "id": "TO10-C06-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Đỉnh và trục đối xứng của parabol",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Xác định tọa độ đỉnh \\(I\\left(-\\dfrac{b}{2a};-\\dfrac{\\Delta}{4a}\\right)\\) và trục đối xứng \\(x=-\\dfrac{b}{2a}\\)"
+    },
+    {
+      "id": "TO10-C06-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Tính chất parabol theo dấu của a",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phát biểu chiều mở, đỉnh cao/thấp của parabol theo dấu của a"
+    },
+    {
+      "id": "TO10-C06-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Vẽ parabol \\(y=ax^2+bx+c\\) theo các bước",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định đỉnh, trục đối xứng, giao với trục rồi vẽ parabol"
+    },
+    {
+      "id": "TO10-C06-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Xác định khoảng đồng biến, nghịch biến của hàm bậc hai",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định khoảng đồng biến và nghịch biến dựa vào đỉnh và dấu của a"
+    },
+    {
+      "id": "TO10-C06-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Vận dụng hàm bậc hai giải bài toán tối ưu",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập hàm bậc hai từ bài toán thực tế; tìm GTLN/GTNN qua đỉnh parabol"
+    },
+    {
+      "id": "TO10-C06-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Lập bảng giá trị và nhận xét tính đối xứng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính f(x) tại các điểm; nhận xét tính đối xứng qua trục từ bảng giá trị"
+    },
+    {
+      "id": "TO10-C06-B08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "B. Hàm số bậc hai",
+      "label": "Xác định hàm số bậc hai từ điều kiện cho trước",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tìm a,b,c của parabol khi biết đỉnh, điểm đi qua hoặc giao với trục"
+    },
+    {
+      "id": "TO10-C06-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Khái niệm tam thức bậc hai",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết tam thức bậc hai \\(f(x)=ax^2+bx+c\\ (a\\neq 0)\\)"
+    },
+    {
+      "id": "TO10-C06-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Định lí về dấu tam thức bậc hai",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu định lí dấu theo ba trường hợp của \\(\\Delta\\)"
+    },
+    {
+      "id": "TO10-C06-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Xét dấu tam thức bậc hai bằng bảng xét dấu",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Lập bảng xét dấu: tính \\(\\Delta\\), tìm nghiệm, xác định dấu từng khoảng"
+    },
+    {
+      "id": "TO10-C06-C04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Giải bất phương trình bậc hai",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Dùng định lí dấu tam thức suy ra tập nghiệm BPT bậc hai"
+    },
+    {
+      "id": "TO10-C06-C05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Vận dụng dấu tam thức bậc hai vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập và giải BPT bậc hai từ bài toán thực tế; biện luận theo ngữ cảnh"
+    },
+    {
+      "id": "TO10-C06-C06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "C. Dấu tam thức bậc hai",
+      "label": "Giải bất phương trình tích, thương chứa tam thức",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Lập bảng xét dấu tích/thương các tam thức để giải bất phương trình"
+    },
+    {
+      "id": "TO10-C06-D01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "D. Phương trình quy về phương trình bậc hai",
+      "label": "Giải PT dạng \\(\\sqrt{f(x)}=\\sqrt{g(x)}\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Đặt điều kiện; bình phương hai vế; giải PT bậc hai; thử lại và kết luận"
+    },
+    {
+      "id": "TO10-C06-D02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "D. Phương trình quy về phương trình bậc hai",
+      "label": "Giải PT dạng \\(\\sqrt{f(x)}=g(x)\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Đặt điều kiện \\(g(x)\\geq 0\\); bình phương; giải; loại nghiệm ngoại lai"
+    },
+    {
+      "id": "TO10-C06-D03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VI. Hàm số, đồ thị và ứng dụng",
+      "cluster": "D. Phương trình quy về phương trình bậc hai",
+      "label": "Điều kiện xác định của phương trình chứa căn",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định điều kiện để biểu thức dưới căn không âm trước khi giải"
+    },
+    {
+      "id": "TO10-C07-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Vectơ pháp tuyến và vectơ chỉ phương",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Định nghĩa vectơ pháp tuyến \\(\\vec{n}(a;b)\\) và chỉ phương \\(\\vec{u}(-b;a)\\); quan hệ vuông góc"
+    },
+    {
+      "id": "TO10-C07-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Phương trình tổng quát đường thẳng ax+by+c=0",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phát biểu phương trình tổng quát; nhận biết vectơ pháp tuyến từ phương trình"
+    },
+    {
+      "id": "TO10-C07-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Lập PTTQ từ một điểm và vectơ pháp tuyến",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết đúng \\(a(x-x_0)+b(y-y_0)=0\\) từ điểm và vectơ pháp tuyến"
+    },
+    {
+      "id": "TO10-C07-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Lập phương trình đường thẳng đi qua hai điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định vectơ chỉ phương \\(\\overrightarrow{AB}\\); viết phương trình đường thẳng qua hai điểm"
+    },
+    {
+      "id": "TO10-C07-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Phương trình tham số của đường thẳng",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Viết hệ \\(x=x_0+at;\\ y=y_0+bt\\) từ điểm và vectơ chỉ phương"
+    },
+    {
+      "id": "TO10-C07-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Chuyển đổi giữa phương trình tổng quát và tham số",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chuyển đổi hai chiều giữa dạng tổng quát và tham số của đường thẳng"
+    },
+    {
+      "id": "TO10-C07-A07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Vận dụng PT đường thẳng mô tả chuyển động",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Lập PT đường thẳng từ bài toán chuyển động; tìm vị trí theo tham số"
+    },
+    {
+      "id": "TO10-C07-A08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Liên hệ PT đường thẳng với đồ thị hàm bậc nhất",
+      "type": "KN",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Chứng minh ax−y+b=0 là phương trình tổng quát của đồ thị y=ax+b"
+    },
+    {
+      "id": "TO10-C07-A09",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Lập PT đường thẳng từ một điểm và vectơ chỉ phương",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết phương trình tham số/tổng quát từ điểm và vectơ chỉ phương"
+    },
+    {
+      "id": "TO10-C07-A10",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "A. Phương trình đường thẳng",
+      "label": "Kiểm tra một điểm có thuộc đường thẳng không",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Thay tọa độ điểm vào phương trình để kiểm tra điểm thuộc đường thẳng"
+    },
+    {
+      "id": "TO10-C07-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Vị trí tương đối hai đường thẳng",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Xét hệ PT tương ứng để kết luận cắt, song song hay trùng"
+    },
+    {
+      "id": "TO10-C07-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Điều kiện song song và vuông góc",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu điều kiện vuông góc \\(a_1a_2+b_1b_2=0\\) và song song"
+    },
+    {
+      "id": "TO10-C07-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Công thức và tính góc giữa hai đường thẳng",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu và áp dụng \\(\\cos\\varphi=\\dfrac{|\\vec{n}_1\\cdot\\vec{n}_2|}{|\\vec{n}_1||\\vec{n}_2|}\\) để tính góc"
+    },
+    {
+      "id": "TO10-C07-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Công thức khoảng cách từ điểm đến đường thẳng",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu \\(d(M;\\Delta)=\\dfrac{|ax_0+by_0+c|}{\\sqrt{a^2+b^2}}\\)"
+    },
+    {
+      "id": "TO10-C07-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Tính khoảng cách từ điểm đến đường thẳng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Áp dụng công thức khoảng cách vào bài toán cụ thể"
+    },
+    {
+      "id": "TO10-C07-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Vận dụng góc, khoảng cách vào bài toán hình học",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Tính diện tích, khoảng cách hai đường song song; giải bài toán thực tế"
+    },
+    {
+      "id": "TO10-C07-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "B. Vị trí, góc, khoảng cách",
+      "label": "Tìm giao điểm của hai đường thẳng",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Giải hệ hai phương trình đường thẳng để tìm tọa độ giao điểm"
+    },
+    {
+      "id": "TO10-C07-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Phương trình đường tròn \\((x-a)^2+(y-b)^2=R^2\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu điều kiện M thuộc đường tròn; nhận biết tâm và bán kính"
+    },
+    {
+      "id": "TO10-C07-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Lập PT đường tròn biết tâm và bán kính",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết trực tiếp \\((x-a)^2+(y-b)^2=R^2\\) từ tâm \\(I(a;b)\\) và \\(R\\)"
+    },
+    {
+      "id": "TO10-C07-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Lập PT đường tròn đi qua ba điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tìm tâm là giao hai đường trung trực; tính bán kính; viết phương trình"
+    },
+    {
+      "id": "TO10-C07-C04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Xác định tâm và bán kính từ PT dạng khai triển",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Đưa về dạng chính tắc bằng hoàn thiện bình phương; đọc tâm và R"
+    },
+    {
+      "id": "TO10-C07-C05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Phương trình tiếp tuyến của đường tròn tại một điểm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Viết tiếp tuyến dùng tính vuông góc với bán kính tại tiếp điểm"
+    },
+    {
+      "id": "TO10-C07-C06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Vận dụng phương trình đường tròn vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Mô hình hóa bài toán bằng đường tròn; tìm bán kính, tâm, giao điểm"
+    },
+    {
+      "id": "TO10-C07-C07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Điều kiện để phương trình bậc hai là phương trình đường tròn",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết điều kiện \\(a^2+b^2-c>0\\) để \\(x^2+y^2-2ax-2by+c=0\\) là đường tròn"
+    },
+    {
+      "id": "TO10-C07-C08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "C. Đường tròn",
+      "label": "Xét vị trí tương đối của đường thẳng và đường tròn",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "So sánh khoảng cách từ tâm đến đường thẳng với bán kính để kết luận vị trí"
+    },
+    {
+      "id": "TO10-C07-D01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Định nghĩa và phương trình chính tắc elip",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa elip qua tổng khoảng cách hai tiêu điểm; PT chính tắc; \\(c^2=a^2-b^2\\)"
+    },
+    {
+      "id": "TO10-C07-D02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Xác định tiêu điểm, tiêu cự của elip",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính \\(c=\\sqrt{a^2-b^2}\\); xác định \\(F_1(-c;0), F_2(c;0)\\); tiêu cự \\(2c\\)"
+    },
+    {
+      "id": "TO10-C07-D03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Định nghĩa và phương trình chính tắc hypebol",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa hypebol qua hiệu khoảng cách; PT chính tắc; \\(c^2=a^2+b^2\\)"
+    },
+    {
+      "id": "TO10-C07-D04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Định nghĩa và phương trình chính tắc parabol conic",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu định nghĩa parabol qua tiêu điểm và đường chuẩn; PT \\(y^2=2px\\)"
+    },
+    {
+      "id": "TO10-C07-D05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Xác định tiêu điểm, đường chuẩn của parabol conic",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định \\(F\\left(\\dfrac{p}{2};0\\right)\\) và đường chuẩn \\(x=-\\dfrac{p}{2}\\) từ phương trình \\(y^2=2px\\)"
+    },
+    {
+      "id": "TO10-C07-D06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Vận dụng ba đường conic vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Nhận dạng và dùng PT conic giải bài toán thiết kế, thiên văn học"
+    },
+    {
+      "id": "TO10-C07-D07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VII. Phương pháp tọa độ trong mặt phẳng",
+      "cluster": "D. Ba đường conic",
+      "label": "Nhận dạng ba đường conic từ phương trình",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Phân biệt elip, hypebol, parabol qua dạng phương trình chính tắc"
+    },
+    {
+      "id": "TO10-C08-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Quy tắc cộng",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu quy tắc cộng \\(n_1+n_2\\) cách; áp dụng khi các phương án loại trừ nhau"
+    },
+    {
+      "id": "TO10-C08-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Quy tắc nhân",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu quy tắc nhân \\(m_1\\cdot m_2\\) cách; áp dụng khi các công đoạn nối tiếp độc lập"
+    },
+    {
+      "id": "TO10-C08-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Sơ đồ hình cây minh hoạ quy tắc đếm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Vẽ và đọc sơ đồ hình cây cho bài toán đếm đơn giản"
+    },
+    {
+      "id": "TO10-C08-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Phân biệt và chọn đúng quy tắc cộng hay nhân",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Nhận biết cấu trúc bài toán để áp dụng quy tắc cộng, nhân hoặc kết hợp"
+    },
+    {
+      "id": "TO10-C08-A05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Vận dụng quy tắc đếm vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Tính số cách tạo mã, chọn tuyến đường, lập thực đơn,... bằng quy tắc đếm"
+    },
+    {
+      "id": "TO10-C08-A06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "A. Quy tắc đếm",
+      "label": "Đếm có điều kiện ràng buộc (vị trí cố định, loại trừ)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xử lí ràng buộc (phần tử đứng cạnh nhau, vị trí cố định) khi đếm"
+    },
+    {
+      "id": "TO10-C08-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Hoán vị Pₙ=n!",
+      "type": "QT",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu khái niệm hoán vị; công thức Pₙ=n!; ý nghĩa sắp xếp có thứ tự"
+    },
+    {
+      "id": "TO10-C08-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Tính và áp dụng hoán vị",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính Pₙ=n!; áp dụng đếm số cách sắp xếp có thứ tự"
+    },
+    {
+      "id": "TO10-C08-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Chỉnh hợp \\(A_n^k\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu chỉnh hợp (chọn có thứ tự); công thức \\(A_n^k\\); phân biệt với hoán vị"
+    },
+    {
+      "id": "TO10-C08-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Tính và áp dụng chỉnh hợp",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính \\(A_n^k\\); nhận dạng bài toán chọn và sắp thứ tự \\(k\\) trong \\(n\\)"
+    },
+    {
+      "id": "TO10-C08-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Tổ hợp \\(C_n^k\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu tổ hợp (chọn không thứ tự); công thức \\(C_n^k\\); phân biệt với chỉnh hợp"
+    },
+    {
+      "id": "TO10-C08-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Tính và áp dụng tổ hợp",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính \\(C_n^k\\); nhận dạng bài toán chọn \\(k\\) trong \\(n\\) không quan tâm thứ tự"
+    },
+    {
+      "id": "TO10-C08-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Dùng MTCT tính \\(P_n, A_n^k, C_n^k\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Bấm phím đúng trên MTCT để tính \\(n!, A_n^k, C_n^k\\)"
+    },
+    {
+      "id": "TO10-C08-B08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Phân biệt và chọn đúng \\(P_n, A_n^k, C_n^k\\) trong thực tế",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Nhận dạng bài toán (có/không thứ tự; chọn toàn bộ/một phần); chọn đúng công thức"
+    },
+    {
+      "id": "TO10-C08-B09",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Tính chất tổ hợp \\(C_n^k=C_n^{n-k}\\) và hằng đẳng thức Pascal",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu và áp dụng \\(C_n^k=C_n^{n-k}\\); \\(C_n^k+C_n^{k+1}=C_{n+1}^{k+1}\\)"
+    },
+    {
+      "id": "TO10-C08-B10",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "B. Hoán vị, chỉnh hợp, tổ hợp",
+      "label": "Giải phương trình chứa \\(P_n, A_n^k, C_n^k\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Lập và giải phương trình/bất phương trình ẩn n với các kí hiệu tổ hợp"
+    },
+    {
+      "id": "TO10-C08-C01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "C. Nhị thức Newton",
+      "label": "Công thức nhị thức Newton",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Phát biểu công thức khai triển \\((a+b)^n\\); nhận biết số hạng tổng quát \\(C_n^k a^{n-k} b^k\\)"
+    },
+    {
+      "id": "TO10-C08-C02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "C. Nhị thức Newton",
+      "label": "Khai triển \\((a+b)^n\\) với \\(n=4, n=5\\)",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Khai triển đúng \\((a+b)^4\\) và \\((a+b)^5\\) dùng công thức tổ hợp"
+    },
+    {
+      "id": "TO10-C08-C03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "C. Nhị thức Newton",
+      "label": "Tính hệ số hoặc số hạng cụ thể trong khai triển",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định số hạng chứa \\(a^m b^n\\); tính hệ số \\(C_n^k\\) tương ứng"
+    },
+    {
+      "id": "TO10-C08-C04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương VIII. Đại số tổ hợp",
+      "cluster": "C. Nhị thức Newton",
+      "label": "Tính tổng hệ số trong khai triển nhị thức",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Tính tổng các hệ số khai triển bằng cách thay giá trị biến phù hợp"
+    },
+    {
+      "id": "TO10-C09-A01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "A. Biến cố và xác suất cổ điển",
+      "label": "Phép thử ngẫu nhiên và không gian mẫu \\(\\Omega\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết phép thử ngẫu nhiên; mô tả và viết không gian mẫu \\(\\Omega\\) đầy đủ"
+    },
+    {
+      "id": "TO10-C09-A02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "A. Biến cố và xác suất cổ điển",
+      "label": "Biến cố và kết quả thuận lợi",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Hiểu biến cố \\(E\\subset\\Omega\\); liệt kê phần tử của \\(E\\); phân biệt biến cố chắc chắn, không thể"
+    },
+    {
+      "id": "TO10-C09-A03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "A. Biến cố và xác suất cổ điển",
+      "label": "Định nghĩa cổ điển của xác suất \\(P(E)=\\dfrac{n(E)}{n(\\Omega)}\\)",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Phát biểu định nghĩa cổ điển; điều kiện đồng khả năng; \\(0\\leq P(E)\\leq 1\\)"
+    },
+    {
+      "id": "TO10-C09-A04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "A. Biến cố và xác suất cổ điển",
+      "label": "Tính xác suất bằng cách liệt kê",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Liệt kê \\(\\Omega\\) và \\(E\\); đếm \\(n(\\Omega), n(E)\\); tính \\(P(E)\\) với bài toán nhỏ"
+    },
+    {
+      "id": "TO10-C09-B01",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Tính \\(n(\\Omega), n(E)\\) dùng công thức tổ hợp",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Xác định \\(\\Omega\\) và \\(E\\) theo cấu trúc bài toán; dùng \\(C_n^k\\) hoặc \\(A_n^k\\) để đếm"
+    },
+    {
+      "id": "TO10-C09-B02",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Tính xác suất bài toán phức tạp bằng quy tắc đếm",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Kết hợp quy tắc nhân để tính \\(n(E)\\); chia cho \\(n(\\Omega)\\) để ra xác suất"
+    },
+    {
+      "id": "TO10-C09-B03",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Dùng sơ đồ hình cây tính xác suất",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Vẽ sơ đồ hình cây; liệt kê \\(\\Omega\\); xác định nhánh thuận lợi cho \\(E\\)"
+    },
+    {
+      "id": "TO10-C09-B04",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Biến cố đối và công thức P(Ē)=1−P(E)",
+      "type": "QT",
+      "bloom_cu_tru": "Understand",
+      "mo_ta": "Hiểu định nghĩa biến cố đối; phát biểu và áp dụng P(Ē)=1−P(E)"
+    },
+    {
+      "id": "TO10-C09-B05",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Chọn chiến lược tính gián tiếp qua biến cố đối",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Nhận biết khi nào nên tính P(Ē) rồi suy ra P(E)=1−P(Ē)"
+    },
+    {
+      "id": "TO10-C09-B06",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Vận dụng tính xác suất vào thực tiễn",
+      "type": "VD",
+      "bloom_cu_tru": "Analyze",
+      "mo_ta": "Giải trọn vẹn bài toán xác suất thực tế: xác định \\(\\Omega, E\\); chọn phương pháp; tính \\(P(E)\\)"
+    },
+    {
+      "id": "TO10-C09-B07",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Mô tả biến cố bằng lời và bằng tập hợp",
+      "type": "KY",
+      "bloom_cu_tru": "Apply",
+      "mo_ta": "Chuyển đổi giữa mô tả biến cố bằng lời và liệt kê tập hợp kết quả thuận lợi"
+    },
+    {
+      "id": "TO10-C09-B08",
+      "subject": "Toan",
+      "grade": 10,
+      "chapter": "Chương IX. Tính xác suất theo định nghĩa cổ điển",
+      "cluster": "B. Thực hành tính xác suất",
+      "label": "Kiểm tra điều kiện đồng khả năng khi dùng định nghĩa cổ điển",
+      "type": "KN",
+      "bloom_cu_tru": "Remember",
+      "mo_ta": "Nhận biết khi nào các kết quả là đồng khả năng để áp dụng đúng định nghĩa cổ điển"
+    }
+  ],
+  "edges": [
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A16",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A15",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A04",
+      "to": "TO10-C01-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A02",
+      "to": "TO10-C01-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A01",
+      "to": "TO10-C01-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A06",
+      "to": "TO10-C01-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A06",
+      "to": "TO10-C01-A08",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A06",
+      "to": "TO10-C01-A10",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A08",
+      "to": "TO10-C01-A10",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A02",
+      "to": "TO10-C01-A10",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C01-A06",
+      "to": "TO10-C01-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A07",
+      "to": "TO10-C01-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A09",
+      "to": "TO10-C01-A17",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A07",
+      "to": "TO10-C01-A18",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A09",
+      "to": "TO10-C01-A18",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A03",
+      "to": "TO10-C01-A11",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A03",
+      "to": "TO10-C01-A12",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-A11",
+      "to": "TO10-C01-A13",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A12",
+      "to": "TO10-C01-A13",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A11",
+      "to": "TO10-C01-A14",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A12",
+      "to": "TO10-C01-A14",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A04",
+      "to": "TO10-C01-A14",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-A11",
+      "to": "TO10-C01-A12",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Lẫn \"với mọi\" (∀) và \"tồn tại\" (∃): dùng ∀ khi chỉ cần một trường hợp và ngược lại · tần suất: cao · gợi ý: ∀=đúng cho MỌI giá trị; ∃=chỉ cần MỘT giá trị. Kiểm bằng ví dụ/phản ví dụ"
+    },
+    {
+      "from": "TO10-C01-A07",
+      "to": "TO10-C01-A08",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm điều kiện cần với điều kiện đủ; nghĩ P⇒Q đúng thì Q⇒P cũng đúng · tần suất: cao · gợi ý: P là đủ cho Q, Q là cần cho P; mệnh đề đảo độc lập đúng/sai với mệnh đề gốc"
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B02",
+      "to": "TO10-C01-B03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B04",
+      "to": "TO10-C01-B08",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B09",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-B09",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-B09",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm quan hệ phần tử (∈) với quan hệ tập con (⊂), viết a⊂A thay vì a∈A · tần suất: cao · gợi ý: ∈ nối phần tử với tập; ⊂ nối tập với tập"
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-C01",
+      "to": "TO10-C01-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-C02",
+      "to": "TO10-C01-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-D01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B01",
+      "to": "TO10-C01-D03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-B05",
+      "to": "TO10-C01-D03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C01-D01",
+      "to": "TO10-C01-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-D02",
+      "to": "TO10-C01-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-D03",
+      "to": "TO10-C01-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-B02",
+      "to": "TO10-C01-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-D01",
+      "to": "TO10-C01-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-D02",
+      "to": "TO10-C01-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-D03",
+      "to": "TO10-C01-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C01-C03",
+      "to": "TO10-C01-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C01-D04",
+      "to": "TO10-C01-D06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C01-D02",
+      "to": "TO10-C01-D06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C01-D01",
+      "to": "TO10-C01-D07",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C01-D02",
+      "to": "TO10-C01-D07",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C01-D01",
+      "to": "TO10-C01-D02",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm giao (∩, phần chung) với hợp (∪, gộp tất cả) · tần suất: cao · gợi ý: ∩ = phần tử thuộc CẢ hai tập; ∪ = phần tử thuộc ÍT NHẤT một tập"
+    },
+    {
+      "from": "TO10-C02-A01",
+      "to": "TO10-C02-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-A01",
+      "to": "TO10-C02-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C02-A02",
+      "to": "TO10-C02-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C02-A03",
+      "to": "TO10-C02-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-A04",
+      "to": "TO10-C02-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-A04",
+      "to": "TO10-C02-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C02-A01",
+      "to": "TO10-C02-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C02-A07",
+      "to": "TO10-C02-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C02-A01",
+      "to": "TO10-C02-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-A04",
+      "to": "TO10-C02-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-B01",
+      "to": "TO10-C02-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C02-B02",
+      "to": "TO10-C02-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-B05",
+      "to": "TO10-C02-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C02-B03",
+      "to": "TO10-C02-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C02-B02",
+      "to": "TO10-C02-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C02-A07",
+      "to": "TO10-C02-B04",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C02-A02",
+      "to": "TO10-C02-A05",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C03-A01",
+      "to": "TO10-C03-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C03-A01",
+      "to": "TO10-C03-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-A01",
+      "to": "TO10-C03-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-A02",
+      "to": "TO10-C03-A03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C03-A03",
+      "to": "TO10-C03-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-A05",
+      "to": "TO10-C03-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-A07",
+      "to": "TO10-C03-A06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C03-A01",
+      "to": "TO10-C03-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B01",
+      "to": "TO10-C03-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B01",
+      "to": "TO10-C03-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-A01",
+      "to": "TO10-C03-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B04",
+      "to": "TO10-C03-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B04",
+      "to": "TO10-C03-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B02",
+      "to": "TO10-C03-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-B05",
+      "to": "TO10-C03-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-B01",
+      "to": "TO10-C03-B07",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B04",
+      "to": "TO10-C03-B07",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-A02",
+      "to": "TO10-C03-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=-1"
+    },
+    {
+      "from": "TO10-C03-C01",
+      "to": "TO10-C03-C02",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C03-C01",
+      "to": "TO10-C03-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-C02",
+      "to": "TO10-C03-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-C06",
+      "to": "TO10-C03-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B07",
+      "to": "TO10-C03-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-B02",
+      "to": "TO10-C03-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-B05",
+      "to": "TO10-C03-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C03-C03",
+      "to": "TO10-C03-C04",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C03-C04",
+      "to": "TO10-C03-C05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-C03",
+      "to": "TO10-C03-C05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C03-B01",
+      "to": "TO10-C03-B04",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm khi nào dùng định lí côsin, khi nào dùng định lí sin · tần suất: cao · gợi ý: Côsin: biết 2 cạnh+góc xen giữa hoặc 3 cạnh; Sin: biết cạnh và góc đối diện"
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A02",
+      "to": "TO10-C04-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A03",
+      "to": "TO10-C04-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A03",
+      "to": "TO10-C04-B01",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-A02",
+      "to": "TO10-C04-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-B02",
+      "to": "TO10-C04-B04",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-B02",
+      "to": "TO10-C04-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-A04",
+      "to": "TO10-C04-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-B02",
+      "to": "TO10-C04-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-B03",
+      "to": "TO10-C04-B06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A02",
+      "to": "TO10-C04-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-C01",
+      "to": "TO10-C04-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-C01",
+      "to": "TO10-C04-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-C02",
+      "to": "TO10-C04-C03",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-D01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-D01",
+      "to": "TO10-C04-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-B01",
+      "to": "TO10-C04-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-C01",
+      "to": "TO10-C04-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-D01",
+      "to": "TO10-C04-D03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-B04",
+      "to": "TO10-C04-D03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C04-D02",
+      "to": "TO10-C04-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=-2"
+    },
+    {
+      "from": "TO10-C04-A02",
+      "to": "TO10-C04-D04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-D02",
+      "to": "TO10-C04-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-D04",
+      "to": "TO10-C04-D05",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-A02",
+      "to": "TO10-C04-E01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-E01",
+      "to": "TO10-C04-E02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-A01",
+      "to": "TO10-C04-E02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C04-E02",
+      "to": "TO10-C04-E03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-D01",
+      "to": "TO10-C04-E03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-E03",
+      "to": "TO10-C04-E04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-E02",
+      "to": "TO10-C04-E04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-E04",
+      "to": "TO10-C04-E05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C04-E02",
+      "to": "TO10-C04-E05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C04-E02",
+      "to": "TO10-C04-E06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C04-E03",
+      "to": "TO10-C04-E06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C05-A01",
+      "to": "TO10-C05-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-A01",
+      "to": "TO10-C05-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-A02",
+      "to": "TO10-C05-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-A02",
+      "to": "TO10-C05-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-A04",
+      "to": "TO10-C05-A05",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C05-A01",
+      "to": "TO10-C05-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B01",
+      "to": "TO10-C05-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B03",
+      "to": "TO10-C05-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-B03",
+      "to": "TO10-C05-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B04",
+      "to": "TO10-C05-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B02",
+      "to": "TO10-C05-B07",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C05-B01",
+      "to": "TO10-C05-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-B03",
+      "to": "TO10-C05-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-B05",
+      "to": "TO10-C05-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-B01",
+      "to": "TO10-C05-B03",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Dùng số trung bình khi dữ liệu có giá trị bất thường (nên dùng trung vị) · tần suất: trung_binh · gợi ý: Trung bình nhạy với giá trị lớn/nhỏ bất thường; trung vị ổn định hơn"
+    },
+    {
+      "from": "TO10-C05-C01",
+      "to": "TO10-C05-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-B04",
+      "to": "TO10-C05-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-C02",
+      "to": "TO10-C05-C05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B01",
+      "to": "TO10-C05-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-C03",
+      "to": "TO10-C05-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C05-B02",
+      "to": "TO10-C05-C04",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C05-C03",
+      "to": "TO10-C05-C07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C05-C02",
+      "to": "TO10-C05-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-C03",
+      "to": "TO10-C05-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C05-C01",
+      "to": "TO10-C05-C02",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm khoảng biến thiên R với khoảng tứ phân vị IQR · tần suất: trung_binh · gợi ý: R=xmax−xmin (toàn bộ); IQR=Q3−Q1 (50% giữa, bỏ đuôi)"
+    },
+    {
+      "from": "TO10-C06-A01",
+      "to": "TO10-C06-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A01",
+      "to": "TO10-C06-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-A01",
+      "to": "TO10-C06-A08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A03",
+      "to": "TO10-C06-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A08",
+      "to": "TO10-C06-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-A03",
+      "to": "TO10-C06-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-A05",
+      "to": "TO10-C06-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A04",
+      "to": "TO10-C06-A06",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C06-A01",
+      "to": "TO10-C06-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C06-A02",
+      "to": "TO10-C06-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-A03",
+      "to": "TO10-C06-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A08",
+      "to": "TO10-C06-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-A01",
+      "to": "TO10-C06-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-B01",
+      "to": "TO10-C06-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B01",
+      "to": "TO10-C06-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-B02",
+      "to": "TO10-C06-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B03",
+      "to": "TO10-C06-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A04",
+      "to": "TO10-C06-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-B02",
+      "to": "TO10-C06-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B03",
+      "to": "TO10-C06-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A05",
+      "to": "TO10-C06-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-B02",
+      "to": "TO10-C06-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-B04",
+      "to": "TO10-C06-B06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B01",
+      "to": "TO10-C06-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-A08",
+      "to": "TO10-C06-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-B02",
+      "to": "TO10-C06-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B01",
+      "to": "TO10-C06-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C06-B01",
+      "to": "TO10-C06-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-C01",
+      "to": "TO10-C06-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-B03",
+      "to": "TO10-C06-C02",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-C02",
+      "to": "TO10-C06-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-C03",
+      "to": "TO10-C06-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-C04",
+      "to": "TO10-C06-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-C03",
+      "to": "TO10-C06-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-C04",
+      "to": "TO10-C06-C05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C06-C04",
+      "to": "TO10-C06-D01",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C06-D03",
+      "to": "TO10-C06-D01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-D03",
+      "to": "TO10-C06-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-D01",
+      "to": "TO10-C06-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C06-C01",
+      "to": "TO10-C06-D01",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A03",
+      "to": "TO10-C07-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-A05",
+      "to": "TO10-C07-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-A09",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A05",
+      "to": "TO10-C07-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-A10",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A09",
+      "to": "TO10-C07-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-A05",
+      "to": "TO10-C07-A07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=3"
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-A08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-A04",
+      "to": "TO10-C07-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-B01",
+      "to": "TO10-C07-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-B01",
+      "to": "TO10-C07-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-A01",
+      "to": "TO10-C07-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-B02",
+      "to": "TO10-C07-B03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C07-A02",
+      "to": "TO10-C07-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-B04",
+      "to": "TO10-C07-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-B03",
+      "to": "TO10-C07-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-B05",
+      "to": "TO10-C07-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-C07",
+      "to": "TO10-C07-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-C07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-C02",
+      "to": "TO10-C07-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-B07",
+      "to": "TO10-C07-C03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-C05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-B04",
+      "to": "TO10-C07-C05",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-B05",
+      "to": "TO10-C07-C08",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-C08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-C02",
+      "to": "TO10-C07-C06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-C04",
+      "to": "TO10-C07-C06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-C01",
+      "to": "TO10-C07-D01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C07-D01",
+      "to": "TO10-C07-D02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-D01",
+      "to": "TO10-C07-D03",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C07-D03",
+      "to": "TO10-C07-D04",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C07-D04",
+      "to": "TO10-C07-D05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-D01",
+      "to": "TO10-C07-D07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-D03",
+      "to": "TO10-C07-D07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-D04",
+      "to": "TO10-C07-D07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C07-D07",
+      "to": "TO10-C07-D06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-D02",
+      "to": "TO10-C07-D06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C07-D01",
+      "to": "TO10-C07-D03",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm định nghĩa elip (TỔNG khoảng cách) với hypebol (HIỆU khoảng cách) · tần suất: cao · gợi ý: Elip: TỔNG 2 khoảng cách đến 2 tiêu điểm không đổi; Hypebol: HIỆU không đổi"
+    },
+    {
+      "from": "TO10-C08-A01",
+      "to": "TO10-C08-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-A02",
+      "to": "TO10-C08-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-A02",
+      "to": "TO10-C08-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-A04",
+      "to": "TO10-C08-A05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-A04",
+      "to": "TO10-C08-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-A02",
+      "to": "TO10-C08-A06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-A01",
+      "to": "TO10-C08-A02",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm dùng quy tắc cộng khi phải dùng quy tắc nhân (và ngược lại) · tần suất: cao · gợi ý: Cộng: các phương án LOẠI TRỪ nhau (hoặc...hoặc); Nhân: các công đoạn NỐI TIẾP (và...và)"
+    },
+    {
+      "from": "TO10-C08-A02",
+      "to": "TO10-C08-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=-1"
+    },
+    {
+      "from": "TO10-C08-B01",
+      "to": "TO10-C08-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C08-B01",
+      "to": "TO10-C08-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-A02",
+      "to": "TO10-C08-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=-1"
+    },
+    {
+      "from": "TO10-C08-B03",
+      "to": "TO10-C08-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C08-B03",
+      "to": "TO10-C08-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B05",
+      "to": "TO10-C08-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C08-B02",
+      "to": "TO10-C08-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B04",
+      "to": "TO10-C08-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B06",
+      "to": "TO10-C08-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B04",
+      "to": "TO10-C08-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-B06",
+      "to": "TO10-C08-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-B02",
+      "to": "TO10-C08-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-B05",
+      "to": "TO10-C08-B09",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-B06",
+      "to": "TO10-C08-B09",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=-1"
+    },
+    {
+      "from": "TO10-C08-B04",
+      "to": "TO10-C08-B10",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B06",
+      "to": "TO10-C08-B10",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-B02",
+      "to": "TO10-C08-B10",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C08-B03",
+      "to": "TO10-C08-B05",
+      "relation": "misconception",
+      "weight": 0.6,
+      "ghi_chu": "QNS: Nhầm chỉnh hợp (CÓ thứ tự) với tổ hợp (KHÔNG thứ tự) · tần suất: cao · gợi ý: Chỉnh hợp A(n,k): chọn k và SẮP thứ tự; Tổ hợp C(n,k): chỉ CHỌN k, không quan tâm thứ tự"
+    },
+    {
+      "from": "TO10-C08-B05",
+      "to": "TO10-C08-C01",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-B09",
+      "to": "TO10-C08-C01",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C08-C01",
+      "to": "TO10-C08-C02",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-C01",
+      "to": "TO10-C08-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-C02",
+      "to": "TO10-C08-C03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C08-C01",
+      "to": "TO10-C08-C04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C08-C02",
+      "to": "TO10-C08-C04",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C09-A01",
+      "to": "TO10-C09-A02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A02",
+      "to": "TO10-C09-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A01",
+      "to": "TO10-C09-A03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A03",
+      "to": "TO10-C09-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C09-A01",
+      "to": "TO10-C09-A04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C09-A02",
+      "to": "TO10-C09-B07",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=2"
+    },
+    {
+      "from": "TO10-C09-A03",
+      "to": "TO10-C09-B08",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A04",
+      "to": "TO10-C09-B01",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-B01",
+      "to": "TO10-C09-B02",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A04",
+      "to": "TO10-C09-B03",
+      "relation": "prerequisite_hard",
+      "weight": 1
+    },
+    {
+      "from": "TO10-C09-A03",
+      "to": "TO10-C09-B04",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C09-B04",
+      "to": "TO10-C09-B05",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C09-B01",
+      "to": "TO10-C09-B05",
+      "relation": "related_soft",
+      "weight": 0.4
+    },
+    {
+      "from": "TO10-C09-B02",
+      "to": "TO10-C09-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C09-B05",
+      "to": "TO10-C09-B06",
+      "relation": "prerequisite_hard",
+      "weight": 1,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C09-B03",
+      "to": "TO10-C09-B06",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=1"
+    },
+    {
+      "from": "TO10-C09-B08",
+      "to": "TO10-C09-A04",
+      "relation": "related_soft",
+      "weight": 0.4,
+      "ghi_chu": "bloomGap=2"
+    }
+  ],
+  "tiers": [],
+  "questions": [],
+  "ladders": [],
+  "resources": []
+}

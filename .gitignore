@@ -30,3 +30,7 @@ npm-debug.log*
 
 # google drive office lock files
 ~$*
+.next-preview/
+.next-build/
+.impeccable/hook.cache.json
+scratchpad/

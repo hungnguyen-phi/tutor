@@ -19,7 +19,20 @@ if (!rawPassword && !url) {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, "..");
-const files = ["kg-core.sql", "rls.sql"];
+// Order matters: kg-core creates the tables, v22 alters them, rls installs the
+// helpers + base policies, rbac-rls locks the RBAC catalog, coaching provisions
+// the 4DX tables, security-hardening tightens the whole surface (needs EVERY
+// sensitive table to already exist), storage provisions the private bucket.
+const files = [
+  "kg-core.sql",
+  "kg-core-v22.sql",
+  "rls.sql",
+  "rbac-rls.sql",
+  "coaching.sql",
+  "xp-stats.sql",
+  "security-hardening.sql",
+  "storage.sql",
+];
 
 // Discrete credentials (raw password, no URL-encoding) when available.
 const sql = rawPassword

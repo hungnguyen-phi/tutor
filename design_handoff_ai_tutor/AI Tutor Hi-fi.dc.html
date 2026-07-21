@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;1,8..60,600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e7ebf2;font-family:"IBM Plex Sans",system-ui,sans-serif;color:#26275d}
+a{color:#2e6db4}a:hover{color:#26275d}
+.ms{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;font-variation-settings:"FILL" 1,"wght" 600,"GRAD" 0,"opsz" 24;-webkit-font-smoothing:antialiased;user-select:none}
+.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-sub{font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.55);margin:0 0 22px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.6)}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Mở rộng hệ <a class="dv-oid" href="#3a">3a</a> — hoàn thành bài, bảng tuần, mục tiêu, hồ sơ, đăng nhập, giáo viên, phụ huynh</span></div>
+  <p class="dv-sub">Cùng ngữ pháp: canvas trời chỉ ở khoảnh khắc "sân trường" (đăng nhập, hoàn thành, lộ trình) · màn công cụ nền sáng phẳng, thẻ trắng · sư tử xuất hiện LỚN đúng 3 chỗ.</p>
+  <div class="dv-opts">
+
+    <!-- ═══════════ 4a COMPLETION ═══════════ -->
+    <div class="dv-opt" id="4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Hoàn thành bài · mobile — quầng nắng gold, không confetti</div>
+      <div data-screen-label="4a Hoàn thành bài" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:linear-gradient(180deg,#bcd9f4 0%,#dcecfa 42%,#f2f8fe 70%);box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:18px 24px 0;position:relative">
+          <div style="position:relative;width:290px;height:290px;display:flex;align-items:center;justify-content:center;margin-top:6px">
+            <div style="position:absolute;width:290px;height:290px;border-radius:999px;background:rgba(249,221,14,.14)"></div>
+            <div style="position:absolute;width:216px;height:216px;border-radius:999px;background:rgba(249,221,14,.24)"></div>
+            <div style="position:absolute;width:150px;height:150px;border-radius:999px;background:rgba(249,221,14,.42)"></div>
+            <img src="brand/lion/pose-celebrate.png" alt="Sư tử ăn mừng" style="position:relative;width:158px;height:auto">
+          </div>
+          <h1 style="margin:18px 0 4px;font:700 28px/1.15 'Source Serif 4',Georgia,serif;color:#26275d;letter-spacing:-.01em;text-align:center">Hoàn thành bài học!</h1>
+          <p style="margin:0;font:500 14px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Đồ thị parabol · bài 3/8</p>
+          <div style="display:flex;gap:10px;margin-top:22px;width:100%">
+            <div style="flex:1;background:#fff;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:0 2px 4px rgba(38,39,93,.05),0 10px 24px rgba(38,39,93,.08)">
+              <span class="ms" style="font-size:20px;color:#d4a900">bolt</span>
+              <div style="font:700 19px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;margin-top:2px">+45</div>
+              <div style="font:600 10.5px 'IBM Plex Sans',sans-serif;letter-spacing:.06em;color:#8296b4">XP</div>
+            </div>
+            <div style="flex:1;background:#fff;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:0 2px 4px rgba(38,39,93,.05),0 10px 24px rgba(38,39,93,.08)">
+              <span class="ms" style="font-size:20px;color:#1e7a4a">check_circle</span>
+              <div style="font:700 19px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;margin-top:2px">7/8</div>
+              <div style="font:600 10.5px 'IBM Plex Sans',sans-serif;letter-spacing:.06em;color:#8296b4">CHÍNH XÁC</div>
+            </div>
+            <div style="flex:1;background:#fff;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:0 2px 4px rgba(38,39,93,.05),0 10px 24px rgba(38,39,93,.08)">
+              <span class="ms" style="font-size:20px;color:#2e6db4">timer</span>
+              <div style="font:700 19px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;margin-top:2px">12:24</div>
+              <div style="font:600 10.5px 'IBM Plex Sans',sans-serif;letter-spacing:.06em;color:#8296b4">PHÚT</div>
+            </div>
+          </div>
+          <div style="width:100%;background:#fff;border-radius:16px;padding:14px 16px;margin-top:12px;box-shadow:0 2px 4px rgba(38,39,93,.05),0 10px 24px rgba(38,39,93,.08)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+              <span style="font:600 13px 'IBM Plex Sans',sans-serif;color:#3d4761">Thành thạo · Đồ thị parabol</span>
+              <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">54 → 62%</span>
+            </div>
+            <div style="height:10px;border-radius:999px;background:#edf2f9;overflow:hidden;position:relative">
+              <div style="width:62%;height:100%;border-radius:999px;background:#f9dd0e;box-shadow:inset 0 -2px 0 rgba(169,143,0,.35)"></div>
+              <div style="position:absolute;left:54%;top:-2px;bottom:-2px;width:2px;background:rgba(38,39,93,.25)"></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 20px 26px;display:flex;flex-direction:column;gap:10px">
+          <button style="background:#f9dd0e;border:0;border-radius:14px;padding:15px;font:700 15px 'IBM Plex Sans',sans-serif;letter-spacing:.05em;color:#26275d;box-shadow:0 4px 0 #c9a900">TIẾP TỤC</button>
+          <button style="background:transparent;border:0;padding:8px;font:600 13.5px 'IBM Plex Sans',sans-serif;color:#2e6db4">Xem lại câu sai (1)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4b LEADERBOARD ═══════════ -->
+    <div class="dv-opt" id="4b">
+      <div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Bảng tuần · mobile — xếp theo nỗ lực, không leagues ảo</div>
+      <div data-screen-label="4b Bảng tuần" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:#f6f9fd;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="padding:14px 20px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h1 style="margin:0;font:700 24px/1.1 'Source Serif 4',Georgia,serif;color:#26275d">Bảng tuần</h1>
+            <span style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:7px 12px;font:600 12px 'IBM Plex Sans',sans-serif;color:#a34d0f;box-shadow:0 1px 2px rgba(38,39,93,.06),0 4px 10px rgba(38,39,93,.08)"><span class="ms" style="font-size:15px;color:#c96e30">hourglass_bottom</span>còn 2 ngày</span>
+          </div>
+          <p style="margin:4px 0 0;font:500 13px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Xếp theo nỗ lực (XP), không theo điểm số</p>
+          <div style="display:flex;background:#e9eef6;border-radius:12px;padding:3px;margin-top:14px">
+            <span style="flex:1;text-align:center;background:#fff;border-radius:10px;padding:8px 0;font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d;box-shadow:0 1px 3px rgba(38,39,93,.10)">Lớp 10A</span>
+            <span style="flex:1;text-align:center;padding:8px 0;font:600 13px 'IBM Plex Sans',sans-serif;color:#7c8ba8">Khối 10</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:14px 20px 0;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#d4a900">1</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#e3eefb;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#2e6db4">M</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Minh</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4">chuỗi 21 ngày</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">820</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#8296b4">2</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#e8f4ec;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#1e7a4a">L</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Lan</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4">chuỗi 9 ngày</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">560</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fdf6c7;border:2px solid #f9dd0e;border-radius:16px;padding:12px 14px;box-shadow:0 2px 4px rgba(169,143,0,.10),0 8px 20px rgba(169,143,0,.14)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">3</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#26275d;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#f9dd0e">A</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">An (bạn)</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#a34d0f">▲ 2 hạng so với tuần trước</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">420</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#8296b4">4</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#f7e4d4;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#a34d0f">H</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Huy</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4">chuỗi 5 ngày</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">380</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#8296b4">5</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#e4e6f4;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#26275d">T</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Thảo</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4">chuỗi 12 ngày</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">350</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="width:20px;font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#8296b4">6</span>
+            <span style="width:38px;height:38px;border-radius:999px;background:#e3eefb;display:flex;align-items:center;justify-content:center;font:700 15px 'IBM Plex Sans',sans-serif;color:#2e6db4">Đ</span>
+            <div style="flex:1"><div style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Đạt</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4">chuỗi 3 ngày</div></div>
+            <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">310</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#eaf2fc;border-radius:14px;padding:11px 14px;margin-top:2px">
+            <img src="brand/lion/head-smile.png" alt="" style="width:34px;height:auto;flex:none">
+            <span style="font:500 12.5px/1.45 'IBM Plex Sans',sans-serif;color:#26275d">Thêm <b>1 buổi học</b> nữa là An vượt Lan lên hạng 2!</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid #e4ebf4;padding:8px 6px 18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">school</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Học</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">history</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Ôn tập</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;border-radius:10px;background:#e4e6f4"><span class="ms" style="font-size:22px;color:#26275d">leaderboard</span></span><span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#26275d;white-space:nowrap">Hạng</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">flag</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Mục tiêu</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">person</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Tôi</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4c GOALS ═══════════ -->
+    <div class="dv-opt" id="4c">
+      <div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>Mục tiêu · mobile — WIG lớn + nhiệm vụ ngày</div>
+      <div data-screen-label="4c Mục tiêu" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:#f6f9fd;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:14px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <h1 style="margin:0;font:700 24px/1.1 'Source Serif 4',Georgia,serif;color:#26275d">Mục tiêu</h1>
+          <div style="background:#26275d;border-radius:20px;padding:18px;box-shadow:0 2px 4px rgba(38,39,93,.10),0 14px 32px rgba(38,39,93,.22);position:relative;overflow:hidden">
+            <div style="position:absolute;right:-22px;top:-22px;width:96px;height:96px;border-radius:999px;background:rgba(249,221,14,.14)"></div>
+            <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#9fa3e0">MỤC TIÊU LỚN · WIG</span>
+            <h2 style="margin:6px 0 2px;font:700 21px/1.25 'Source Serif 4',Georgia,serif;color:#fff">Thành thạo chương<br>Hàm số bậc hai</h2>
+            <div style="display:flex;align-items:center;gap:8px;margin:10px 0 12px">
+              <span class="ms" style="font-size:15px;color:#f9dd0e">event</span>
+              <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#c9cae8">hạn 20/7 · còn 10 ngày</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;height:12px;border-radius:999px;background:#3b3c78;overflow:hidden"><div style="width:68%;height:100%;border-radius:999px;background:#f9dd0e;box-shadow:inset 0 -2px 0 rgba(169,143,0,.4)"></div></div>
+              <span style="font:700 15px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#f9dd0e">68%</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Tuần này · 3/5 buổi</span>
+              <span style="font:600 12px 'IBM Plex Sans',sans-serif;color:#5a6b8c">T2–CN</span>
+            </div>
+            <div style="display:flex;gap:7px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">T2</span><span style="width:32px;height:32px;border-radius:999px;background:#f9dd0e;box-shadow:0 2px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#26275d">check</span></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">T3</span><span style="width:32px;height:32px;border-radius:999px;background:#f9dd0e;box-shadow:0 2px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#26275d">check</span></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">T4</span><span style="width:32px;height:32px;border-radius:999px;background:#f9dd0e;box-shadow:0 2px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#26275d">check</span></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#26275d">T5</span><span style="width:32px;height:32px;border-radius:999px;background:#fff;border:2.5px solid #26275d;display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;border-radius:99px;background:#26275d"></span></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">T6</span><span style="width:32px;height:32px;border-radius:999px;background:#eef2f8"></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">T7</span><span style="width:32px;height:32px;border-radius:999px;background:#eef2f8"></span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font:600 10px 'IBM Plex Sans',sans-serif;color:#8296b4">CN</span><span style="width:32px;height:32px;border-radius:999px;background:#eef2f8"></span></div>
+            </div>
+          </div>
+          <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#2e6db4;margin-top:2px">NHIỆM VỤ HÔM NAY</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+              <span style="width:34px;height:34px;border-radius:10px;background:#fdf6c7;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#d4a900">check</span></span>
+              <div style="flex:1"><div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#8296b4;text-decoration:line-through">Hoàn thành 1 bài Toán</div></div>
+              <span style="font:700 12px 'IBM Plex Sans',sans-serif;color:#8296b4">+10 XP</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+              <span style="width:34px;height:34px;border-radius:10px;background:#e3eefb;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#2e6db4">style</span></span>
+              <div style="flex:1">
+                <div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#26275d">Ôn 5 thẻ từ vựng</div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:5px"><div style="flex:1;height:7px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:60%;height:100%;background:#26275d;border-radius:999px"></div></div><span style="font:700 11px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">3/5</span></div>
+              </div>
+              <span style="font:700 12px 'IBM Plex Sans',sans-serif;color:#a68a00">+15 XP</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+              <span style="width:34px;height:34px;border-radius:10px;background:#e8f4ec;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#1e7a4a">edit_note</span></span>
+              <div style="flex:1">
+                <div style="font:600 13.5px 'IBM Plex Sans',sans-serif;color:#26275d">Viết đoạn văn 50 từ</div>
+                <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#8296b4;margin-top:1px">Tiếng Anh · Present simple</div>
+              </div>
+              <span style="font:700 12px 'IBM Plex Sans',sans-serif;color:#a68a00">+20 XP</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid #e4ebf4;padding:8px 6px 18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">school</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Học</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">history</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Ôn tập</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">leaderboard</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Hạng</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;border-radius:10px;background:#e4e6f4"><span class="ms" style="font-size:22px;color:#26275d">flag</span></span><span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#26275d;white-space:nowrap">Mục tiêu</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">person</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Tôi</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4d PROFILE ═══════════ -->
+    <div class="dv-opt" id="4d">
+      <div class="dv-olabel"><a class="dv-oid" href="#4d">4d</a>Hồ sơ · mobile — thành tích + huy hiệu chương</div>
+      <div data-screen-label="4d Hồ sơ" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:#f6f9fd;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:14px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="width:64px;height:64px;border-radius:999px;background:#26275d;display:flex;align-items:center;justify-content:center;font:700 26px 'Source Serif 4',Georgia,serif;color:#f9dd0e;box-shadow:0 3px 0 #14153b">A</span>
+            <div style="flex:1">
+              <h1 style="margin:0;font:700 22px/1.15 'Source Serif 4',Georgia,serif;color:#26275d">Nguyễn Bảo An</h1>
+              <p style="margin:2px 0 0;font:500 13px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Lớp 10A · Trường Việt Anh</p>
+            </div>
+            <span class="ms" style="font-size:22px;color:#8296b4">settings</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:#fff;border-radius:16px;padding:13px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06);display:flex;align-items:center;gap:10px">
+              <span class="ms" style="font-size:24px;color:#c96e30">local_fire_department</span>
+              <div><div style="font:700 18px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">12</div><div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">ngày liên tiếp</div></div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:13px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06);display:flex;align-items:center;gap:10px">
+              <span class="ms" style="font-size:24px;color:#d4a900">bolt</span>
+              <div><div style="font:700 18px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">4.280</div><div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">tổng XP</div></div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:13px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06);display:flex;align-items:center;gap:10px">
+              <span class="ms" style="font-size:24px;color:#1e7a4a">verified</span>
+              <div><div style="font:700 18px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">23</div><div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">điểm thành thạo</div></div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:13px 14px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06);display:flex;align-items:center;gap:10px">
+              <span class="ms" style="font-size:24px;color:#2e6db4">workspace_premium</span>
+              <div><div style="font:700 18px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">2</div><div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">huy hiệu chương</div></div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07)">
+            <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Huy hiệu chương</span>
+            <div style="display:flex;gap:12px;margin-top:12px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="width:52px;height:52px;border-radius:14px;background:#f9dd0e;box-shadow:0 3px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:26px;color:#26275d">workspace_premium</span></span>
+                <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#3d4761;text-align:center">Mệnh đề<br>tập hợp</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="width:52px;height:52px;border-radius:14px;background:#f9dd0e;box-shadow:0 3px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:26px;color:#26275d">workspace_premium</span></span>
+                <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#3d4761;text-align:center">Unit 1<br>English</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="width:52px;height:52px;border-radius:14px;border:2px dashed #c3cfde;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:#c3cfde">lock</span></span>
+                <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;text-align:center">Hàm số<br>bậc hai</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+                <span style="width:52px;height:52px;border-radius:14px;border:2px dashed #c3cfde;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:#c3cfde">lock</span></span>
+                <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;text-align:center">Unit 2<br>English</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07)">
+            <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Thành thạo theo môn</span>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Toán 10</span><span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">68%</span></div>
+                <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:68%;height:100%;background:#26275d;border-radius:999px"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Tiếng Anh</span><span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">45%</span></div>
+                <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:45%;height:100%;background:#26275d;border-radius:999px"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:13px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="display:flex;align-items:center;gap:10px;font:600 13.5px 'IBM Plex Sans',sans-serif;color:#3d4761"><span class="ms" style="font-size:20px;color:#8296b4">family_restroom</span>Tài khoản phụ huynh đã liên kết</span>
+            <span class="ms" style="font-size:18px;color:#1e7a4a">check_circle</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid #e4ebf4;padding:8px 6px 18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">school</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Học</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">history</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Ôn tập</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">leaderboard</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Hạng</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">flag</span></span><span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Mục tiêu</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;border-radius:10px;background:#e4e6f4"><span class="ms" style="font-size:22px;color:#26275d">person</span></span><span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#26275d;white-space:nowrap">Tôi</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4e LOGIN ═══════════ -->
+    <div class="dv-opt" id="4e">
+      <div class="dv-olabel"><a class="dv-oid" href="#4e">4e</a>Đăng nhập · mobile — sư tử chào giữa sân trường</div>
+      <div data-screen-label="4e Đăng nhập" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:linear-gradient(180deg,#aed2f1 0%,#cde3f7 42%,#e7f2fc 66%);box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column;position:relative">
+        <div style="position:absolute;right:26px;top:64px;width:58px;height:58px;border-radius:999px;background:#f9dd0e;box-shadow:0 0 0 14px rgba(249,221,14,.20),0 0 0 30px rgba(249,221,14,.08)"></div>
+        <div style="position:absolute;left:30px;top:120px;width:96px;height:22px;border-radius:999px;background:rgba(255,255,255,.92)"></div>
+        <div style="position:absolute;right:60px;top:190px;width:70px;height:18px;border-radius:999px;background:rgba(255,255,255,.8)"></div>
+        <div style="position:absolute;left:-35%;width:170%;height:360px;bottom:-140px;background:#9ccb77;border-radius:50%"></div>
+        <div style="position:absolute;left:-45%;width:160%;height:320px;bottom:-170px;background:#7fb95c;border-radius:50%"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d;position:relative">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:28px 28px 0;position:relative">
+          <span style="display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:22px;background:#fff;box-shadow:0 2px 4px rgba(38,39,93,.08),0 10px 24px rgba(38,39,93,.14)"><img src="brand/logo-crest-80.webp" alt="Trường Việt Anh" style="width:52px;height:auto"></span>
+          <h1 style="margin:14px 0 4px;font:700 32px/1.1 'Source Serif 4',Georgia,serif;color:#26275d;letter-spacing:-.01em">AI Tutor</h1>
+          <p style="margin:0;font:600 13px 'IBM Plex Sans',sans-serif;letter-spacing:.14em;color:#4a76ab">TRƯỜNG VIỆT ANH</p>
+          <p style="margin:14px 0 0;font:500 15px/1.55 'IBM Plex Sans',sans-serif;color:#3d4761;text-align:center;max-width:280px">Gia sư luôn đặt câu hỏi để em tự tìm ra lời giải — mỗi ngày 15 phút.</p>
+          <div style="position:relative;flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center">
+            <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:12px;width:180px;height:38px;border-radius:50%;background:#5f9e44"></div>
+            <img src="brand/lion-full.png" alt="Sư tử Việt Anh vẫy chào" style="position:relative;width:196px;height:auto;margin-bottom:6px">
+          </div>
+        </div>
+        <div style="padding:16px 24px 30px;display:flex;flex-direction:column;gap:10px;position:relative">
+          <button style="display:flex;align-items:center;justify-content:center;gap:9px;background:#26275d;border:0;border-radius:14px;padding:15px;font:700 14.5px 'IBM Plex Sans',sans-serif;color:#fff;box-shadow:0 4px 0 #14153b"><span class="ms" style="font-size:19px">badge</span>Đăng nhập bằng tài khoản trường</button>
+          <button style="display:flex;align-items:center;justify-content:center;gap:9px;background:#fff;border:0;border-radius:14px;padding:15px;font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d;box-shadow:0 4px 0 rgba(38,39,93,.18)"><span class="ms" style="font-size:19px;color:#2e6db4">mail</span>Đăng nhập với Google</button>
+          <p style="margin:4px 0 0;font:500 11.5px/1.5 'IBM Plex Sans',sans-serif;color:#33406b;text-align:center">Học sinh dưới 15 tuổi cần phụ huynh đồng ý trước khi bắt đầu. <a href="#4e" style="color:#1d4f86;font-weight:600">Tìm hiểu thêm</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4f TEACHER DESKTOP ═══════════ -->
+    <div class="dv-opt" id="4f">
+      <div class="dv-olabel"><a class="dv-oid" href="#4f">4f</a>Giáo viên · web desktop — theo dõi nỗ lực + duyệt nội dung (human-in-the-loop)</div>
+      <div data-screen-label="4f Giáo viên desktop" style="width:1180px;height:740px;border-radius:20px;overflow:hidden;background:#f1f5fa;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:20px;background:#fff;border-bottom:1px solid #e2eaf4;padding:12px 24px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="brand/logo-crest-80.webp" alt="Việt Anh" style="width:34px;height:auto">
+            <div>
+              <div style="font:700 14px 'IBM Plex Sans',sans-serif;color:#26275d">AI Tutor · Giáo viên</div>
+              <div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">Trường Việt Anh</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;margin-left:16px">
+            <span style="padding:8px 16px;border-radius:999px;background:#26275d;font:700 13px 'IBM Plex Sans',sans-serif;color:#fff">Tổng quan</span>
+            <span style="padding:8px 16px;border-radius:999px;font:600 13px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Duyệt nội dung</span>
+            <span style="padding:8px 16px;border-radius:999px;font:600 13px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Học sinh</span>
+            <span style="padding:8px 16px;border-radius:999px;font:600 13px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Báo cáo</span>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+            <span style="font:600 13px 'IBM Plex Sans',sans-serif;color:#3d4761">Cô Hạnh · Toán 10A</span>
+            <span style="width:34px;height:34px;border-radius:999px;background:#e4e6f4;display:flex;align-items:center;justify-content:center;font:700 14px 'IBM Plex Sans',sans-serif;color:#26275d">H</span>
+          </div>
+        </div>
+        <div style="flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+            <div style="background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.05)">
+              <div style="font:600 12px 'IBM Plex Sans',sans-serif;color:#8296b4">Hoạt động tuần này</div>
+              <div style="font:700 24px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;margin-top:4px">26<span style="font-size:15px;color:#8296b4">/32 HS</span></div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.05)">
+              <div style="font:600 12px 'IBM Plex Sans',sans-serif;color:#8296b4">Buổi học TB / học sinh</div>
+              <div style="font:700 24px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;margin-top:4px">3,1</div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.05)">
+              <div style="font:600 12px 'IBM Plex Sans',sans-serif;color:#a34d0f">Cần chú ý</div>
+              <div style="font:700 24px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#a34d0f;margin-top:4px">4 HS</div>
+            </div>
+            <div style="background:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.05)">
+              <div style="font:600 12px 'IBM Plex Sans',sans-serif;color:#2e6db4">Chờ duyệt</div>
+              <div style="font:700 24px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#2e6db4;margin-top:4px">12 mục</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:14px;flex:1;min-height:0">
+            <div style="background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.06);display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <span style="font:700 15px 'IBM Plex Sans',sans-serif;color:#26275d">Học sinh cần chú ý</span>
+                <a href="#4f" style="font:600 12px 'IBM Plex Sans',sans-serif;color:#2e6db4;text-decoration:none">xem tất cả</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px;background:#fdf1e3">
+                <span style="width:32px;height:32px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'IBM Plex Sans',sans-serif;color:#a34d0f">K</span>
+                <div style="flex:1"><div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Khoa</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#a34d0f">Chạm effort-gate 2 lần liên tiếp · Đồ thị parabol</div></div>
+                <button style="background:#fff;border:1.5px solid #d9c4a8;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#a34d0f">Xem</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px">
+                <span style="width:32px;height:32px;border-radius:999px;background:#e4e6f4;display:flex;align-items:center;justify-content:center;font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">V</span>
+                <div style="flex:1"><div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Vy</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Không hoạt động 5 ngày · chuỗi đã nguội</div></div>
+                <button style="background:#fff;border:1.5px solid #d3ddeb;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Nhắc</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px">
+                <span style="width:32px;height:32px;border-radius:999px;background:#e3eefb;display:flex;align-items:center;justify-content:center;font:700 13px 'IBM Plex Sans',sans-serif;color:#2e6db4">Đ</span>
+                <div style="flex:1"><div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Đạt</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Sai 4/5 câu gần nhất · Dấu tam thức</div></div>
+                <button style="background:#fff;border:1.5px solid #d3ddeb;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Xem</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px">
+                <span style="width:32px;height:32px;border-radius:999px;background:#e8f4ec;display:flex;align-items:center;justify-content:center;font:700 13px 'IBM Plex Sans',sans-serif;color:#1e7a4a">P</span>
+                <div style="flex:1"><div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Phúc</div><div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Node "PT quy về bậc hai" stale 14 ngày</div></div>
+                <button style="background:#fff;border:1.5px solid #d3ddeb;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Giao ôn</button>
+              </div>
+              <div style="margin-top:auto;display:flex;align-items:center;gap:8px;background:#eaf2fc;border-radius:12px;padding:10px 12px">
+                <span class="ms" style="font-size:17px;color:#2e6db4">info</span>
+                <span style="font:500 12px/1.45 'IBM Plex Sans',sans-serif;color:#26275d">Cờ an toàn luôn qua giáo viên xác minh — không bao giờ tự động gửi phụ huynh.</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+              <div style="background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.06)">
+                <span style="font:700 15px 'IBM Plex Sans',sans-serif;color:#26275d">Thành thạo lớp · Chương 2</span>
+                <div style="margin-top:12px;display:flex;flex-direction:column;gap:9px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:118px;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Khái niệm hàm số</span>
+                    <div style="flex:1;height:14px;border-radius:999px;overflow:hidden;display:flex"><span style="width:75%;background:#f9dd0e"></span><span style="width:19%;background:#26275d"></span><span style="width:6%;background:#dce6f2"></span></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:118px;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Đồ thị parabol</span>
+                    <div style="flex:1;height:14px;border-radius:999px;overflow:hidden;display:flex"><span style="width:34%;background:#f9dd0e"></span><span style="width:44%;background:#26275d"></span><span style="width:22%;background:#dce6f2"></span></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:118px;font:600 12px 'IBM Plex Sans',sans-serif;color:#3d4761">Dấu tam thức</span>
+                    <div style="flex:1;height:14px;border-radius:999px;overflow:hidden;display:flex"><span style="width:9%;background:#f9dd0e"></span><span style="width:28%;background:#26275d"></span><span style="width:63%;background:#dce6f2"></span></div>
+                  </div>
+                  <div style="display:flex;gap:14px;margin-top:4px">
+                    <span style="display:flex;align-items:center;gap:5px;font:500 11px 'IBM Plex Sans',sans-serif;color:#5a6b8c"><span style="width:10px;height:10px;border-radius:3px;background:#f9dd0e"></span>Thành thạo</span>
+                    <span style="display:flex;align-items:center;gap:5px;font:500 11px 'IBM Plex Sans',sans-serif;color:#5a6b8c"><span style="width:10px;height:10px;border-radius:3px;background:#26275d"></span>Đang học</span>
+                    <span style="display:flex;align-items:center;gap:5px;font:500 11px 'IBM Plex Sans',sans-serif;color:#5a6b8c"><span style="width:10px;height:10px;border-radius:3px;background:#dce6f2"></span>Chưa bắt đầu</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.06);flex:1;display:flex;flex-direction:column;gap:8px;min-height:0">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font:700 15px 'IBM Plex Sans',sans-serif;color:#26275d">Hàng chờ duyệt</span>
+                  <span style="background:#e3eefb;border-radius:999px;padding:3px 10px;font:700 12px 'IBM Plex Sans',sans-serif;color:#2e6db4">12</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:#f6f9fd">
+                  <span style="background:#e4e6f4;border-radius:7px;padding:3px 8px;font:700 10.5px 'IBM Plex Sans',sans-serif;color:#26275d">TOÁN</span>
+                  <span style="flex:1;font:500 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Câu hỏi #Q214 · Đồ thị parabol · AI sinh</span>
+                  <button style="background:#26275d;border:0;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#fff">Duyệt</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:#f6f9fd">
+                  <span style="background:#e3eefb;border-radius:7px;padding:3px 8px;font:700 10.5px 'IBM Plex Sans',sans-serif;color:#2e6db4">ANH</span>
+                  <span style="flex:1;font:500 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Rubric viết #W58 · Present simple · AI chấm</span>
+                  <button style="background:#26275d;border:0;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#fff">Duyệt</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:#f6f9fd">
+                  <span style="background:#e4e6f4;border-radius:7px;padding:3px 8px;font:700 10.5px 'IBM Plex Sans',sans-serif;color:#26275d">TOÁN</span>
+                  <span style="flex:1;font:500 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Gợi ý Socratic #S91 · Dấu tam thức · AI sinh</span>
+                  <button style="background:#26275d;border:0;border-radius:9px;padding:5px 12px;white-space:nowrap;font:600 12px 'IBM Plex Sans',sans-serif;color:#fff">Duyệt</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4g PARENT ═══════════ -->
+    <div class="dv-opt" id="4g">
+      <div class="dv-olabel"><a class="dv-oid" href="#4g">4g</a>Phụ huynh · mobile — báo cáo tuần, tôn trọng quyền riêng tư</div>
+      <div data-screen-label="4g Phụ huynh" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:#f6f9fd;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:14px 20px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#2e6db4">BÁO CÁO TUẦN</span>
+              <h1 style="margin:3px 0 0;font:700 24px/1.1 'Source Serif 4',Georgia,serif;color:#26275d">Bé An</h1>
+            </div>
+            <span style="display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:8px 13px;font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761;box-shadow:0 1px 2px rgba(38,39,93,.06),0 4px 10px rgba(38,39,93,.08)">7–13/7<span class="ms" style="font-size:16px;color:#8296b4">expand_more</span></span>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07);display:flex">
+            <div style="flex:1;text-align:center;border-right:1px solid #edf2f9">
+              <div style="font:700 22px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">3</div>
+              <div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">buổi học</div>
+            </div>
+            <div style="flex:1;text-align:center;border-right:1px solid #edf2f9">
+              <div style="font:700 22px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">78</div>
+              <div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">phút tập trung</div>
+            </div>
+            <div style="flex:1;text-align:center">
+              <div style="font:700 22px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#a34d0f">12</div>
+              <div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">ngày liên tiếp</div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07)">
+            <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Tiến bộ trong tuần</span>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                  <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Toán 10 · Hàm số bậc hai</span>
+                  <span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#1e7a4a">62 → 68% ▲</span>
+                </div>
+                <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden;position:relative">
+                  <div style="width:68%;height:100%;background:#26275d;border-radius:999px"></div>
+                  <div style="position:absolute;left:62%;top:-1px;bottom:-1px;width:2px;background:rgba(38,39,93,.3)"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                  <span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Tiếng Anh · Present simple</span>
+                  <span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#1e7a4a">42 → 45% ▲</span>
+                </div>
+                <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:45%;height:100%;background:#26275d;border-radius:999px"></div></div>
+              </div>
+            </div>
+            <p style="margin:12px 0 0;font:500 12px/1.5 'IBM Plex Sans',sans-serif;color:#5a6b8c">Phụ huynh xem <b>nỗ lực và tiến bộ</b> — không xem nội dung hội thoại của con.</p>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 8px 20px rgba(38,39,93,.07)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="width:30px;height:30px;border-radius:999px;background:#e4e6f4;display:flex;align-items:center;justify-content:center;font:700 12.5px 'IBM Plex Sans',sans-serif;color:#26275d">H</span>
+              <div>
+                <div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Nhận xét của cô Hạnh</div>
+                <div style="font:500 11px 'IBM Plex Sans',sans-serif;color:#8296b4">GV Toán · thứ Năm</div>
+              </div>
+            </div>
+            <p style="margin:10px 0 0;font:italic 500 13.5px/1.6 'Source Serif 4',Georgia,serif;color:#3d4761">"An kiên trì tự tìm lời giải thay vì hỏi đáp án — đúng tinh thần lớp mình. Tuần tới cô sẽ giao thêm phần bảng biến thiên."</p>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:13px 16px;box-shadow:0 1px 2px rgba(38,39,93,.04),0 6px 16px rgba(38,39,93,.06)">
+            <span style="display:flex;align-items:center;gap:10px;font:600 13px 'IBM Plex Sans',sans-serif;color:#3d4761"><span class="ms" style="font-size:19px;color:#1e7a4a">verified_user</span>Đồng ý PDPL · đang hiệu lực</span>
+            <a href="#4g" style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#2e6db4;text-decoration:none">Quản lý</a>
+          </div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:10px;background:#eaf2fc;border-radius:14px;padding:11px 14px">
+            <img src="brand/lion/head-smile.png" alt="" style="width:34px;height:auto;flex:none">
+            <span style="font:500 12.5px/1.45 'IBM Plex Sans',sans-serif;color:#26275d">Khen con về <b>chuỗi 12 ngày</b> — động lực tốt hơn điểm số!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Thử tiếp: "gộp thành prototype bấm được" · "làm dark mode cho <a class="dv-oid" href="#3a">3a</a>" · "chỉnh màn <a class="dv-oid" href="#4f">4f</a> thêm tab Duyệt nội dung chi tiết"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Hi-fi hướng <a class="dv-oid" href="#2a">2a</a> "Sân trường buổi sáng" — hệ chữ mới nghiêm túc: Source Serif 4 (tiêu đề, cùng họ với wordmark VIỆT ANH) + IBM Plex Sans (UI, số tabular)</span></div>
+  <p class="dv-sub">Navy #26275D + Gold #F9DD0E giữ nguyên hex · xanh trời/cỏ lấy làm nền cảnh · artwork sư tử chính thức. Kéo Tweaks để đổi % chương và trạng thái bài học.</p>
+  <div class="dv-opts">
+
+    <!-- ═══════════ 3a HOME MOBILE ═══════════ -->
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Trang chủ · mobile 393</div>
+      <div data-screen-label="3a Trang chủ mobile" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:linear-gradient(180deg,#aed2f1 0%,#cde3f7 40%,#e7f2fc 68%);box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600;letter-spacing:.02em">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px">
+          <button style="display:flex;align-items:center;gap:6px;background:#fff;border:0;border-radius:999px;padding:9px 14px;font:700 13.5px 'IBM Plex Sans',sans-serif;color:#26275d;box-shadow:0 1px 2px rgba(38,39,93,.08),0 4px 12px rgba(38,39,93,.10)">
+            <span class="ms" style="font-size:17px;color:#2e6db4">calculate</span>Toán 10<span class="ms" style="font-size:16px;color:#8296b4">expand_more</span>
+          </button>
+          <div style="display:flex;gap:8px">
+            <span style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:9px 12px;font:700 13.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#a34d0f;box-shadow:0 1px 2px rgba(38,39,93,.08),0 4px 12px rgba(38,39,93,.10)"><span class="ms" style="font-size:17px;color:#c96e30">local_fire_department</span>12</span>
+            <span style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:9px 12px;font:700 13.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;box-shadow:0 1px 2px rgba(38,39,93,.08),0 4px 12px rgba(38,39,93,.10)"><span class="ms" style="font-size:17px;color:#d4a900">bolt</span>420</span>
+          </div>
+        </div>
+        <div style="margin:10px 16px 0;background:#fff;border-radius:20px;padding:15px 18px 16px;box-shadow:0 2px 4px rgba(38,39,93,.05),0 12px 28px rgba(38,39,93,.10);position:relative;z-index:2">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#2e6db4">CHƯƠNG 2 · BÀI 3/8</span>
+            <span class="ms" style="font-size:18px;color:#b9cee6">menu_book</span>
+          </div>
+          <h2 style="margin:5px 0 12px;font:700 24px/1.15 'Source Serif 4',Georgia,serif;color:#26275d;letter-spacing:-.01em">Hàm số bậc hai</h2>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;height:10px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:{{ progressW }};height:100%;border-radius:999px;background:#f9dd0e;box-shadow:inset 0 -2px 0 rgba(169,143,0,.35)"></div></div>
+            <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">{{ progressLabel }}</span>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;overflow:hidden">
+          <div style="position:absolute;right:-18px;top:22px;width:58px;height:58px;border-radius:999px;background:#f9dd0e;box-shadow:0 0 0 14px rgba(249,221,14,.20),0 0 0 30px rgba(249,221,14,.08)"></div>
+          <div style="position:absolute;left:24px;top:34px;width:96px;height:22px;border-radius:999px;background:rgba(255,255,255,.92)"></div>
+          <div style="position:absolute;left:64px;top:26px;width:54px;height:20px;border-radius:999px;background:rgba(255,255,255,.92)"></div>
+          <div style="position:absolute;right:52px;top:96px;width:72px;height:18px;border-radius:999px;background:rgba(255,255,255,.75)"></div>
+          <div style="position:absolute;left:-35%;width:170%;height:360px;bottom:-150px;background:#9ccb77;border-radius:50%"></div>
+          <div style="position:absolute;left:-45%;width:160%;height:320px;bottom:-180px;background:#7fb95c;border-radius:50%"></div>
+          <div style="position:absolute;left:46px;top:16px;width:68px;height:56px;border-radius:50%;background:#f9dd0e;box-shadow:0 6px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:26px;color:#26275d">check</span></div>
+          <div style="position:absolute;left:156px;top:84px;width:68px;height:56px;border-radius:50%;background:#f9dd0e;box-shadow:0 6px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:26px;color:#26275d">check</span></div>
+          <div style="position:absolute;left:236px;top:132px;background:#f9dd0e;border-radius:10px;padding:5px 12px;font:700 12px 'IBM Plex Sans',sans-serif;letter-spacing:.06em;color:#26275d;box-shadow:0 2px 0 #c9a900">BẮT ĐẦU</div>
+          <div style="position:absolute;left:262px;top:158px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #f9dd0e"></div>
+          <div style="position:absolute;left:230px;top:172px;width:92px;height:78px;border-radius:50%;border:3px solid rgba(249,221,14,.95);display:flex;align-items:center;justify-content:center">
+            <div style="width:76px;height:62px;border-radius:50%;background:#26275d;box-shadow:0 7px 0 #14153b;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:30px;color:#fff">play_arrow</span></div>
+          </div>
+          <div style="position:absolute;left:66px;top:322px;width:132px;height:30px;border-radius:50%;background:#5f9e44"></div>
+          <img src="brand/lion-full.png" alt="Sư tử Việt Anh" style="position:absolute;left:76px;top:198px;width:118px;height:auto">
+          <div style="position:absolute;left:148px;top:352px;width:68px;height:56px;border-radius:50%;background:#fff;border:2.5px solid #bfd8f0;box-shadow:0 6px 0 #c7d9ec;display:flex;align-items:center;justify-content:center;font:700 20px 'IBM Plex Sans',sans-serif;color:#7a9cc6">4</div>
+          <div style="position:absolute;left:56px;top:404px;width:46px;height:40px;border-radius:12px;background:#f9dd0e;box-shadow:0 5px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:22px;color:#26275d">redeem</span></div>
+          <div style="position:absolute;left:240px;top:412px;width:68px;height:56px;border-radius:50%;background:#e9eff7;box-shadow:0 6px 0 #c6d2e1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:#97a8c0">lock</span></div>
+          <div style="position:absolute;left:16px;right:16px;bottom:14px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.94);border-radius:16px;padding:11px 14px;box-shadow:0 2px 4px rgba(38,39,93,.06),0 10px 24px rgba(38,39,93,.12)">
+            <span class="ms" style="font-size:24px;color:#d4a900">workspace_premium</span>
+            <div style="flex:1">
+              <div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Cổng chương</div>
+              <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Kiểm tra 8 câu để mở Chương 3</div>
+            </div>
+            <span class="ms" style="font-size:20px;color:#97a8c0">lock</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid #e4ebf4;padding:8px 6px 18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;border-radius:10px;background:#e4e6f4"><span class="ms" style="font-size:22px;color:#26275d">school</span></span>
+            <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#26275d;white-space:nowrap">Học</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">history</span></span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Ôn tập</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">leaderboard</span></span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Hạng</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">flag</span></span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Mục tiêu</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px"><span class="ms" style="font-size:22px;color:#8296b4">person</span></span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Tôi</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 3b LESSON MOBILE ═══════════ -->
+    <div class="dv-opt" id="3b">
+      <div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Bài học · mobile 393 — tweak "Trạng thái bài học" để xem 2 trạng thái</div>
+      <div data-screen-label="3b Bài học mobile" style="width:393px;height:840px;border-radius:32px;overflow:hidden;background:#f6f9fd;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px 2px;color:#26275d">
+          <span style="font-size:13px;font-weight:600">9:41</span>
+          <span style="display:flex;gap:5px;align-items:center"><span class="ms" style="font-size:15px">signal_cellular_alt</span><span class="ms" style="font-size:15px">wifi</span><span class="ms" style="font-size:16px">battery_full</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px 10px">
+          <span class="ms" style="font-size:24px;color:#8296b4">close</span>
+          <div style="flex:1;height:12px;border-radius:999px;background:#e4ebf4;overflow:hidden"><div style="width:38%;height:100%;border-radius:999px;background:#f9dd0e;box-shadow:inset 0 -2px 0 rgba(169,143,0,.35)"></div></div>
+          <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">3/8</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;padding:10px 20px 0;overflow:hidden">
+          <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#2e6db4">CHỌN ĐÁP ÁN ĐÚNG</span>
+          <div style="background:#fff;border-radius:18px;padding:22px 18px;box-shadow:0 2px 4px rgba(38,39,93,.04),0 10px 24px rgba(38,39,93,.07);text-align:center">
+            <div style="font:italic 600 26px 'Source Serif 4',Georgia,serif;color:#26275d;letter-spacing:.01em">y = x² − 4x + 3</div>
+            <div style="margin-top:10px;font:400 15px/1.5 'IBM Plex Sans',sans-serif;color:#3d4761">Đỉnh của parabol có <b style="color:#26275d">hoành độ</b> bằng bao nhiêu?</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button style="background:#fff;border:2px solid #dce6f2;border-radius:16px;padding:18px 8px;font:600 17px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#3d4761;box-shadow:0 4px 0 #dce6f2">x = −2</button>
+            <button style="background:#eef0fa;border:2px solid #26275d;border-radius:16px;padding:18px 8px;font:700 17px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;box-shadow:0 4px 0 #26275d">x = 2</button>
+            <button style="background:#fff;border:2px solid #dce6f2;border-radius:16px;padding:18px 8px;font:600 17px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#3d4761;box-shadow:0 4px 0 #dce6f2">x = 4</button>
+            <button style="background:#fff;border:2px solid #dce6f2;border-radius:16px;padding:18px 8px;font:600 17px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#3d4761;box-shadow:0 4px 0 #dce6f2">x = −4</button>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px;margin-top:auto;padding-bottom:14px">
+            <img src="brand/lion/head-think.png" alt="Sư tử gợi ý" style="width:52px;height:auto;flex:none">
+            <div style="flex:1;background:#fff;border-radius:16px 16px 16px 4px;padding:12px 14px;font:400 13.5px/1.5 'IBM Plex Sans',sans-serif;color:#3d4761;box-shadow:0 2px 4px rgba(38,39,93,.05),0 8px 20px rgba(38,39,93,.07)">Nhớ lại nhé: hoành độ đỉnh là <b style="font-family:'Source Serif 4',Georgia,serif;font-style:italic;color:#26275d">−b/2a</b>. Trong hàm này, <b style="font-family:'Source Serif 4',Georgia,serif;font-style:italic;color:#26275d">b</b> bằng mấy?</div>
+          </div>
+        </div>
+        <sc-if value="{{ showFeedback }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#e8f4ec;border-top:2px solid #bfe0ca;padding:14px 20px 22px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:999px;background:#1e7a4a"><span class="ms" style="font-size:19px;color:#fff">check</span></span>
+              <span style="flex:1;font:700 17px 'IBM Plex Sans',sans-serif;color:#166339">Chính xác!</span>
+              <span style="background:#f9dd0e;border-radius:999px;padding:5px 12px;font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">+10 XP</span>
+            </div>
+            <button style="background:#f9dd0e;border:0;border-radius:14px;padding:15px;font:700 15px 'IBM Plex Sans',sans-serif;letter-spacing:.05em;color:#26275d;box-shadow:0 4px 0 #c9a900">TIẾP TỤC</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ answering }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border-top:1px solid #e4ebf4;padding:14px 20px 22px">
+            <button style="width:100%;background:#26275d;border:0;border-radius:14px;padding:15px;font:700 15px 'IBM Plex Sans',sans-serif;letter-spacing:.05em;color:#fff;box-shadow:0 4px 0 #14153b">KIỂM TRA</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ═══════════ 3c HOME DESKTOP ═══════════ -->
+    <div class="dv-opt" id="3c">
+      <div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Trang chủ · web desktop 1180</div>
+      <div data-screen-label="3c Trang chủ desktop" style="width:1180px;height:740px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 2px 6px rgba(38,39,93,.14),0 24px 60px rgba(38,39,93,.22);display:flex">
+        <div style="width:92px;background:#fff;border-right:1px solid #e2eaf4;display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:4px;flex:none">
+          <img src="brand/logo-crest-80.webp" alt="Việt Anh" style="width:44px;height:auto;margin-bottom:14px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:68px;padding:9px 0;border-radius:12px;background:#e4e6f4">
+            <span class="ms" style="font-size:23px;color:#26275d">school</span>
+            <span style="font:600 10.5px 'IBM Plex Sans',sans-serif;color:#26275d;white-space:nowrap">Học</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:68px;padding:9px 0;border-radius:12px">
+            <span class="ms" style="font-size:23px;color:#8296b4">history</span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Ôn tập</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:68px;padding:9px 0;border-radius:12px">
+            <span class="ms" style="font-size:23px;color:#8296b4">leaderboard</span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Hạng</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:68px;padding:9px 0;border-radius:12px">
+            <span class="ms" style="font-size:23px;color:#8296b4">flag</span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Mục tiêu</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:68px;padding:9px 0;border-radius:12px">
+            <span class="ms" style="font-size:23px;color:#8296b4">person</span>
+            <span style="font:500 10.5px 'IBM Plex Sans',sans-serif;color:#8296b4;white-space:nowrap">Tôi</span>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;background:linear-gradient(180deg,#aed2f1 0%,#cde3f7 45%,#e7f2fc 72%);display:flex;overflow:hidden">
+          <div style="position:absolute;left:-15%;width:130%;height:400px;bottom:-190px;background:#9ccb77;border-radius:50%"></div>
+          <div style="position:absolute;left:-25%;width:120%;height:340px;bottom:-210px;background:#7fb95c;border-radius:50%"></div>
+          <div style="position:absolute;right:340px;top:-24px;width:64px;height:64px;border-radius:999px;background:#f9dd0e;box-shadow:0 0 0 16px rgba(249,221,14,.20),0 0 0 34px rgba(249,221,14,.08)"></div>
+          <div style="position:absolute;left:120px;top:44px;width:110px;height:24px;border-radius:999px;background:rgba(255,255,255,.92)"></div>
+          <div style="position:absolute;left:400px;top:100px;width:76px;height:19px;border-radius:999px;background:rgba(255,255,255,.8)"></div>
+          <div style="flex:1;position:relative">
+            <div style="position:absolute;left:50%;transform:translateX(-50%);top:22px;width:480px;background:#fff;border-radius:20px;padding:16px 20px;box-shadow:0 2px 4px rgba(38,39,93,.05),0 12px 28px rgba(38,39,93,.10)">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font:700 11px 'IBM Plex Sans',sans-serif;letter-spacing:.1em;color:#2e6db4">CHƯƠNG 2 · BÀI 3/8</span>
+                <span class="ms" style="font-size:18px;color:#b9cee6">menu_book</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px">
+                <h2 style="margin:4px 0 0;font:700 25px/1.1 'Source Serif 4',Georgia,serif;color:#26275d;letter-spacing:-.01em">Hàm số bậc hai</h2>
+                <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">{{ progressLabel }}</span>
+              </div>
+              <div style="margin-top:10px;height:10px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:{{ progressW }};height:100%;border-radius:999px;background:#f9dd0e;box-shadow:inset 0 -2px 0 rgba(169,143,0,.35)"></div></div>
+            </div>
+            <div style="position:absolute;left:206px;top:150px;width:64px;height:52px;border-radius:50%;background:#f9dd0e;box-shadow:0 6px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:#26275d">check</span></div>
+            <div style="position:absolute;left:330px;top:216px;width:64px;height:52px;border-radius:50%;background:#f9dd0e;box-shadow:0 6px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:#26275d">check</span></div>
+            <div style="position:absolute;left:404px;top:288px;background:#f9dd0e;border-radius:10px;padding:5px 12px;font:700 12px 'IBM Plex Sans',sans-serif;letter-spacing:.06em;color:#26275d;box-shadow:0 2px 0 #c9a900">BẮT ĐẦU</div>
+            <div style="position:absolute;left:430px;top:314px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #f9dd0e"></div>
+            <div style="position:absolute;left:398px;top:328px;width:88px;height:74px;border-radius:50%;border:3px solid rgba(249,221,14,.95);display:flex;align-items:center;justify-content:center">
+              <div style="width:72px;height:58px;border-radius:50%;background:#26275d;box-shadow:0 7px 0 #14153b;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:28px;color:#fff">play_arrow</span></div>
+            </div>
+            <div style="position:absolute;left:212px;top:474px;width:150px;height:34px;border-radius:50%;background:#5f9e44"></div>
+            <img src="brand/lion-full.png" alt="Sư tử Việt Anh" style="position:absolute;left:226px;top:326px;width:132px;height:auto">
+            <div style="position:absolute;left:330px;top:508px;width:64px;height:52px;border-radius:50%;background:#fff;border:2.5px solid #bfd8f0;box-shadow:0 6px 0 #c7d9ec;display:flex;align-items:center;justify-content:center;font:700 19px 'IBM Plex Sans',sans-serif;color:#7a9cc6">4</div>
+            <div style="position:absolute;left:214px;top:568px;width:46px;height:40px;border-radius:12px;background:#f9dd0e;box-shadow:0 5px 0 #c9a900;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:22px;color:#26275d">redeem</span></div>
+            <div style="position:absolute;left:404px;top:592px;width:64px;height:52px;border-radius:50%;background:#e9eff7;box-shadow:0 6px 0 #c6d2e1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:23px;color:#97a8c0">lock</span></div>
+            <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:18px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.94);border-radius:16px;padding:11px 16px;box-shadow:0 2px 4px rgba(38,39,93,.06),0 10px 24px rgba(38,39,93,.12);width:420px">
+              <span class="ms" style="font-size:24px;color:#d4a900">workspace_premium</span>
+              <div style="flex:1">
+                <div style="font:700 13px 'IBM Plex Sans',sans-serif;color:#26275d">Cổng chương</div>
+                <div style="font:500 11.5px 'IBM Plex Sans',sans-serif;color:#5a6b8c">Kiểm tra 8 câu để mở Chương 3</div>
+              </div>
+              <span class="ms" style="font-size:20px;color:#97a8c0">lock</span>
+            </div>
+          </div>
+          <div style="width:330px;flex:none;padding:20px 20px 20px 0;display:flex;flex-direction:column;gap:14px;position:relative;z-index:2">
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <span style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:8px 12px;font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#a34d0f;box-shadow:0 1px 2px rgba(38,39,93,.08),0 4px 12px rgba(38,39,93,.10)"><span class="ms" style="font-size:16px;color:#c96e30">local_fire_department</span>12</span>
+              <span style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:8px 12px;font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d;box-shadow:0 1px 2px rgba(38,39,93,.08),0 4px 12px rgba(38,39,93,.10)"><span class="ms" style="font-size:16px;color:#d4a900">bolt</span>420</span>
+            </div>
+            <div style="background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 4px rgba(38,39,93,.05),0 12px 28px rgba(38,39,93,.10)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Bảng tuần · 10A</span>
+                <a href="#3c" style="font:600 12px 'IBM Plex Sans',sans-serif;color:#2e6db4;text-decoration:none">xem tất cả</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 8px">
+                <span style="width:18px;font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">1</span>
+                <span style="width:28px;height:28px;border-radius:999px;background:#e3eefb;display:flex;align-items:center;justify-content:center;font:700 12px 'IBM Plex Sans',sans-serif;color:#2e6db4">M</span>
+                <span style="flex:1;font:600 13.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Minh</span>
+                <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">820</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 8px">
+                <span style="width:18px;font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">2</span>
+                <span style="width:28px;height:28px;border-radius:999px;background:#e8f4ec;display:flex;align-items:center;justify-content:center;font:700 12px 'IBM Plex Sans',sans-serif;color:#1e7a4a">L</span>
+                <span style="flex:1;font:600 13.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Lan</span>
+                <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">560</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:7px 8px;background:#fdf6c7;border-radius:10px">
+                <span style="width:18px;font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">3</span>
+                <span style="width:28px;height:28px;border-radius:999px;background:#26275d;display:flex;align-items:center;justify-content:center;font:700 12px 'IBM Plex Sans',sans-serif;color:#f9dd0e">A</span>
+                <span style="flex:1;font:700 13.5px 'IBM Plex Sans',sans-serif;color:#26275d">An (bạn)</span>
+                <span style="font:700 13px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#26275d">420</span>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 4px rgba(38,39,93,.05),0 12px 28px rgba(38,39,93,.10)">
+              <span style="font:700 14.5px 'IBM Plex Sans',sans-serif;color:#26275d">Nhiệm vụ tuần</span>
+              <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Học 5 buổi</span><span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">3/5</span></div>
+                  <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:60%;height:100%;background:#26275d;border-radius:999px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:#3d4761">Kiếm 500 XP</span><span style="font:700 12.5px 'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;color:#5a6b8c">420/500</span></div>
+                  <div style="height:8px;border-radius:999px;background:#edf2f9;overflow:hidden"><div style="width:84%;height:100%;background:#f9dd0e;border-radius:999px;box-shadow:inset 0 -2px 0 rgba(169,143,0,.35)"></div></div>
+                </div>
+              </div>
+            </div>
+            <div style="background:#eaf2fc;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+              <img src="brand/lion/pose-point.png" alt="Sư tử" style="width:56px;height:auto;flex:none">
+              <span style="font:500 13px/1.5 'IBM Plex Sans',sans-serif;color:#26275d">Hôm nay 15 phút <b>Đồ thị parabol</b> là kịp mục tiêu 20/7 đó!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Thử tiếp: "đậm màu hơn / nhạt hơn" · "xem màn hoàn thành bài + bảng xếp hạng hi-fi" · "đổi serif khác cho tiêu đề"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;chapterProgress&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:38,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;section&quot;:&quot;Lộ trình&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;showFeedback&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;Bài học — ribbon 'Chính xác'&quot;,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = Math.max(0, Math.min(100, this.props.chapterProgress ?? 38));
+    const fb = this.props.showFeedback ?? true;
+    return {
+      progressW: p + "%",
+      progressLabel: p + "%",
+      showFeedback: fb,
+      answering: !fb,
+    };
+  }
+}
+</script>
+</body>
+</html>

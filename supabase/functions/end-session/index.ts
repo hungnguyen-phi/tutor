@@ -5,6 +5,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
+import { awardXp } from "../_shared/xp.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
@@ -23,6 +24,10 @@ Deno.serve(async (req: Request) => {
       .eq("id", sessionId)
       .single();
     if (!s) return json({ error: "session not found" }, 404);
+    // CHỐT tenant: staff có read_scope ở tenant A KHÔNG được đóng phiên tenant B.
+    // Danh tính + phiên đều phải cùng tenant với người gọi (KHÔNG tin body.studentId
+    // — student_id lấy từ chính hàng phiên đã tải).
+    if (s.tenant_id !== ctx.tenantId) return json({ error: "forbidden" }, 403);
     if (s.student_id !== ctx.userId && !can(ctx, "learn:session:read_scope")) {
       return json({ error: "forbidden" }, 403);
     }
@@ -30,6 +35,7 @@ Deno.serve(async (req: Request) => {
     const { data: evidence } = await supa
       .from("mastery_evidence")
       .select("node_id, correct, dok, do_kho, is_target_difficulty, created_at")
+      .eq("tenant_id", s.tenant_id)
       .eq("student_id", s.student_id)
       .eq("kg_version_id", s.kg_version_id);
 
@@ -44,6 +50,19 @@ Deno.serve(async (req: Request) => {
         at: new Date(e.created_at).getTime(),
       });
       byNode.set(e.node_id, arr);
+    }
+
+    // Đóng dấu revision hiện tại của node — nền tảng cơ chế xanh/vàng
+    // (docs/INTEGRATION-STUDIO.md §4): sau này nội dung đổi NGHĨA thì so
+    // revision mà biết, không xoá dấu "đã học". Node không còn trong KG → null.
+    const revByKey = new Map<string, number>();
+    if (byNode.size > 0) {
+      const { data: revs } = await supa
+        .from("kg_nodes")
+        .select("node_key, revision")
+        .eq("kg_version_id", s.kg_version_id)
+        .in("node_key", [...byNode.keys()]);
+      for (const r of revs ?? []) revByKey.set(r.node_key, r.revision);
     }
 
     const now = Date.now();
@@ -63,6 +82,7 @@ Deno.serve(async (req: Request) => {
             kg_version_id: s.kg_version_id,
             mastery_score: v.score,
             mastered: v.mastered,
+            node_revision: revByKey.get(nodeId) ?? null,
             leitner_box: box,
             next_review_at: v.mastered ? nextReviewISO(box, now) : null,
             updated_at: new Date(now).toISOString(),
@@ -77,7 +97,13 @@ Deno.serve(async (req: Request) => {
       .update({ status: "ended", ended_at: new Date(now).toISOString() })
       .eq("id", s.id);
 
-    return json({ sessionId: s.id, nodes: summary });
+    // XP hoàn thành buổi (+20, một lần mỗi phiên — unique index lo dedup nên
+    // idempotent như phần còn lại của function). Lỗi cộng XP không chặn việc đóng phiên.
+    const xp = await awardXp(supa, s.tenant_id, s.student_id, [
+      { kind: "lesson_done", sessionId: s.id },
+    ]);
+
+    return json({ sessionId: s.id, nodes: summary, ...(xp ? { xp } : {}) });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }

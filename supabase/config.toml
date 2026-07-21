@@ -1,8 +1,12 @@
-# Supabase project config. Link with: supabase link --project-ref uksbvlkhcyhnpfamducc
-project_id = "uksbvlkhcyhnpfamducc"
+# Supabase project config. Link with: supabase link --project-ref gxbxsdhvtwtjkfygetzb
+project_id = "gxbxsdhvtwtjkfygetzb"
 
 # M4: JWT required for all functions (gateway-level). Functions additionally derive
 # identity from the token (auth.uid()) and check RBAC permissions + consent.
+#
+# GIA CỐ: mọi function phục vụ NGƯỜI DÙNG ĐÃ ĐĂNG NHẬP đều phải có verify_jwt = true
+# để cổng Edge chặn request thiếu/hỏng JWT TRƯỚC khi vào code. Chỉ 'hello' (health
+# check, không đọc dữ liệu người dùng) được để verify_jwt = false một cách CÓ CHỦ ĐÍCH.
 [functions.hello]
 verify_jwt = false
 
@@ -35,3 +39,52 @@ verify_jwt = true
 
 [functions.teacher-review]
 verify_jwt = true
+
+# GIA CỐ: dashboard + scoreboard đọc dữ liệu tiến độ của người dùng đã đăng nhập
+# (đều gọi authenticate(req)) → bắt buộc verify_jwt = true, không để lọt ở cổng.
+[functions.dashboard]
+verify_jwt = true
+
+[functions.scoreboard]
+verify_jwt = true
+
+[functions.learning-path]
+verify_jwt = true
+
+[functions.resources]
+verify_jwt = true
+
+# GIA CỐ: import-kg nạp bộ tri thức, tự xác thực JWT + chỉ cho vai giáo viên/admin/
+# leadership. Ghim verify_jwt = true để cổng Edge chặn ngay request thiếu token.
+[functions.import-kg]
+verify_jwt = true
+
+[functions.question-stats]
+verify_jwt = true
+
+[functions.import-questions]
+verify_jwt = true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GIA CỐ XÁC THỰC (auth). Chỉ đặt các key config.toml THỰC SỰ hỗ trợ; những mục
+# chỉ bật được trên Dashboard hosted được ghi TODO rõ ràng bên dưới.
+[auth]
+# Rút ngắn tuổi access token JWT còn 1 giờ (mặc định 3600s): nếu token bị lộ thì
+# cửa sổ lạm dụng ngắn lại; client tự làm mới bằng refresh token.
+jwt_expiry = 3600
+
+# Xoay vòng refresh token mỗi lần dùng (revoke token cũ) — chống replay token.
+enable_refresh_token_rotation = true
+
+# Cửa sổ ân hạn (giây) cho phép dùng lại refresh token vừa xoay, đủ để nuốt race
+# do mạng chập chờn. Để nhỏ (10s) nhằm BẬT reuse detection: token cũ tái sử dụng
+# ngoài cửa sổ này bị coi là đánh cắp → thu hồi cả họ token của phiên.
+refresh_token_reuse_interval = 10
+
+# ── TODO (chỉ bật được trên Supabase Dashboard hosted, KHÔNG có key config.toml) ──
+# Vào Dashboard → Authentication, bật thủ công trên project production:
+#   1. Rate limit đăng nhập/OTP  (Auth → Rate Limits): chặn dò mật khẩu/brute-force.
+#   2. CAPTCHA / Turnstile (hCaptcha) (Auth → Attack Protection): chặn bot đăng ký/đăng nhập.
+#   3. Leaked-password protection — HaveIBeenPwned (Auth → Passwords): chặn mật khẩu đã lộ.
+#   4. MFA bắt buộc cho tài khoản STAFF (giáo viên/admin/leadership) (Auth → MFA):
+#      thêm lớp bảo vệ cho tài khoản có quyền đọc dữ liệu học sinh.

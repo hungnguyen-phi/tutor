@@ -1,23 +1,13 @@
 // MIRROR of packages/cas/src/cas.ts (tested there). Edit there, then regenerate.
-// Regenerate: see scripts in README. Uses npm: specifier for Deno edge runtime.
-
-/**
- * CAS answer-equivalence for the Toán pilot (PRD §9.3, Q11).
- * The LLM NEVER decides quantitative correctness — this does, by comparing the
- * student's answer to the stored answer for EQUIVALENCE (not string match):
- *   - coordinate tuples:  "(2; -1)" ≡ "(2,-1)"
- *   - numeric:            "0.5" ≡ "1/2", "-1" ≡ "-1.0"
- *   - symbolic:           "(x-1)(x-3)" ≡ "x^2-4x+3", "1/(x)+1" ≡ "(x+1)/x"
- *     (probabilistic identity test over random sample points)
- *   - roots/sets:         "x=1; x=3" ≡ "{3,1}" (order-independent)
- *
- * Pure & dependency-light (mathjs only) so it runs in both Node (tests) and Deno
- * (Edge Function). No Node/Deno-specific APIs.
- */
-import { create, all, type MathJsInstance, type MathNode } from "npm:mathjs@13";
-
-const math: MathJsInstance = create({ ...all });
-const mathFns = math as unknown as Record<string, unknown>;
+//
+// CAS answer-equivalence for the Toán pilot (PRD §9.3, Q11). The LLM NEVER
+// decides quantitative correctness — this does, comparing the student's answer
+// to the stored answer for EQUIVALENCE (not string match).
+//
+// TỐC ĐỘ: đáp án SỐ/TỌA ĐỘ/TẬP thường gặp được chấm bằng bộ tính số NHẸ TỰ VIẾT
+// (evalNumeric) — KHÔNG nạp mathjs. mathjs (nặng, ~0.5-0.8s nạp lần đầu) chỉ
+// được NẠP ĐỘNG khi thật sự gặp biểu thức có BIẾN (đại số). Nhờ vậy engine
+// "thức dậy" nhanh cho phần lớn câu hỏi. checkAnswer/exprEqual do đó là async.
 
 const TOL = 1e-6;
 const SAMPLES = 12;
@@ -34,11 +24,11 @@ export function applyParams(expr: string, params?: Record<string, number | strin
   return expr.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
 }
 
-export function checkAnswer(
+export async function checkAnswer(
   student: string,
   correct: string,
   params?: Record<string, number | string>,
-): CasResult {
+): Promise<CasResult> {
   const a = applyParams((student ?? "").trim(), params);
   const b = applyParams((correct ?? "").trim(), params);
   if (!a) return { correct: false, method: "text", detail: "empty" };
@@ -48,52 +38,136 @@ export function checkAnswer(
   const tb = splitTuple(b);
   if (ta && tb) {
     if (ta.length !== tb.length) return { correct: false, method: "tuple" };
-    const ok = ta.every((x, i) => exprEqual(x, tb[i]!).correct);
-    return { correct: ok, method: "tuple" };
+    for (let i = 0; i < ta.length; i++) {
+      if (!(await exprEqual(ta[i]!, tb[i]!)).correct) return { correct: false, method: "tuple" };
+    }
+    return { correct: true, method: "tuple" };
   }
 
   // 2) Set / multiple roots (order-independent): "x=1; x=3", "{1,3}".
   const sa = splitSet(a);
   const sb = splitSet(b);
   if (sa && sb && (sa.length > 1 || sb.length > 1)) {
-    const ok =
-      sa.length === sb.length &&
-      sa.every((x) => sb.some((y) => exprEqual(x, y).correct)) &&
-      sb.every((y) => sa.some((x) => exprEqual(x, y).correct));
+    if (sa.length !== sb.length) return { correct: false, method: "set" };
+    const subset = async (xs: string[], ys: string[]): Promise<boolean> => {
+      for (const x of xs) {
+        let found = false;
+        for (const y of ys) {
+          if ((await exprEqual(x, y)).correct) { found = true; break; }
+        }
+        if (!found) return false;
+      }
+      return true;
+    };
+    const ok = (await subset(sa, sb)) && (await subset(sb, sa));
     return { correct: ok, method: "set" };
   }
 
   // 3) Numeric / symbolic equivalence.
-  const e = exprEqual(a, b);
+  const e = await exprEqual(a, b);
   if (e.method !== "error") return e;
 
   // 4) Text fallback (e.g. "parabol").
   return { correct: normText(a) === normText(b), method: "text" };
 }
 
-/** Equivalence of two scalar expressions (numeric or symbolic). */
-export function exprEqual(a: string, b: string): CasResult {
+/** Một distractor đã soạn: phương án nhiễu + quan niệm sai nó bộc lộ. */
+export interface Distractor {
+  phuong_an: string;
+  quan_niem_sai?: string;
+}
+
+/** Kết quả chấm câu khách quan KÈM chẩn đoán distractor. */
+export interface GradedAnswer {
+  result: CasResult;
+  /** Distractor khớp (quan niệm sai) — null nếu đúng hoặc không khớp cái nào. */
+  distractor: { index: number; misconception: string } | null;
+}
+
+/**
+ * Chấm đáp án đúng TRƯỚC; NẾU ĐÃ ĐÚNG thì BỎ QUA việc dò distractor (khỏi tốn
+ * công + tránh nạp mathjs thừa cho những phương án nhiễu có biến). Nếu SAI thì
+ * dò TẤT CẢ distractor SONG SONG (Promise.all) và trả cái khớp đầu tiên — nhanh
+ * hơn vòng lặp await tuần tự khi có nhiều phương án. Chữ ký checkAnswer/exprEqual
+ * GIỮ NGUYÊN; đây chỉ là helper cộng thêm cho caller nào muốn dùng.
+ */
+export async function checkWithDistractors(
+  student: string,
+  correct: string,
+  distractors: Distractor[] | null | undefined,
+  params?: Record<string, number | string>,
+): Promise<GradedAnswer> {
+  const result = await checkAnswer(student, correct, params);
+  // Đã đúng → không cần chẩn đoán quan niệm sai; thoát sớm (đường nhanh).
+  if (result.correct || !distractors || distractors.length === 0) {
+    return { result, distractor: null };
+  }
+
+  // Chấm mọi distractor song song; giữ index để trả về đúng thứ tự đã soạn.
+  const hits = await Promise.all(
+    distractors.map(async (d, index) => ({
+      index,
+      misconception: d.quan_niem_sai ?? "",
+      matched: (await checkAnswer(student, d.phuong_an, params)).correct,
+    })),
+  );
+  const hit = hits.find((h) => h.matched);
+  return {
+    result,
+    distractor: hit ? { index: hit.index, misconception: hit.misconception } : null,
+  };
+}
+
+/** Equivalence of two scalar expressions. Số thuần → bộ tính nhẹ; có biến → mathjs. */
+export async function exprEqual(a: string, b: string): Promise<CasResult> {
   const na = stripRel(a);
   const nb = stripRel(b);
-  let nodeA, nodeB;
+
+  // Đường NHANH: cả hai tính được bằng SỐ (không biến) → so số, KHÔNG cần mathjs.
+  const va = evalNumeric(na);
+  const vb = evalNumeric(nb);
+  if (va !== null && vb !== null) {
+    if (!isFinite(va) || !isFinite(vb)) return { correct: false, method: "numeric" };
+    return { correct: Math.abs(va - vb) <= TOL * (1 + Math.abs(vb)), method: "numeric" };
+  }
+
+  // Có biến / bộ nhẹ không tính được → dùng mathjs (nạp động, chỉ khi cần).
+  return await exprEqualSymbolic(na, nb);
+}
+
+// ── mathjs: NẠP ĐỘNG một lần, chỉ khi gặp biểu thức có biến ────────────────────
+// deno-lint-ignore no-explicit-any
+let _mathPromise: Promise<any> | null = null;
+// deno-lint-ignore no-explicit-any
+function getMath(): Promise<any> {
+  if (!_mathPromise) {
+    _mathPromise = import("npm:mathjs@13").then((m) => m.create({ ...m.all }));
+  }
+  return _mathPromise;
+}
+
+async function exprEqualSymbolic(a: string, b: string): Promise<CasResult> {
+  const math = await getMath();
+  const mathFns = math as Record<string, unknown>;
+  // deno-lint-ignore no-explicit-any
+  let nodeA: any, nodeB: any;
   try {
-    nodeA = math.parse(na);
-    nodeB = math.parse(nb);
+    nodeA = math.parse(a);
+    nodeB = math.parse(b);
   } catch {
     return { correct: false, method: "error", detail: "parse" };
   }
   const vars = new Set<string>();
-  collectSymbols(nodeA, vars);
-  collectSymbols(nodeB, vars);
+  collectSymbols(nodeA, vars, mathFns);
+  collectSymbols(nodeB, vars, mathFns);
 
   try {
     if (vars.size === 0) {
-      const va = Number(math.evaluate(na));
-      const vb = Number(math.evaluate(nb));
+      const va = Number(math.evaluate(a));
+      const vb = Number(math.evaluate(b));
       if (!isFinite(va) || !isFinite(vb)) return { correct: false, method: "numeric" };
       return { correct: Math.abs(va - vb) <= TOL * (1 + Math.abs(vb)), method: "numeric" };
     }
-    // Probabilistic identity test over random points (deterministic seed sequence).
     const fa = nodeA.compile();
     const fb = nodeB.compile();
     const symbols = [...vars];
@@ -107,7 +181,7 @@ export function exprEqual(a: string, b: string): CasResult {
         ya = Number(fa.evaluate(scope));
         yb = Number(fb.evaluate(scope));
       } catch {
-        continue; // skip points outside the domain (e.g. division by zero)
+        continue;
       }
       if (!isFinite(ya) || !isFinite(yb)) continue;
       evaluated++;
@@ -120,12 +194,148 @@ export function exprEqual(a: string, b: string): CasResult {
   }
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── Bộ tính SỐ nhẹ (không mathjs) ─────────────────────────────────────────────
+const CONSTS: Record<string, number> = { pi: Math.PI, e: Math.E };
+const FNS: Record<string, (x: number) => number> = {
+  sqrt: Math.sqrt,
+  abs: Math.abs,
+  sin: Math.sin,
+  cos: Math.cos,
+  tan: Math.tan,
+  ln: Math.log,
+  log: Math.log10,
+  exp: Math.exp,
+};
+
+type NumTok =
+  | { t: "num"; v: number }
+  | { t: "op"; v: string }
+  | { t: "fn"; v: string }
+  | { t: "lp" }
+  | { t: "rp" };
+
+/**
+ * Tính giá trị SỐ của biểu thức số học: số thập phân, + - * / ^, ngoặc, dấu
+ * âm/dương đơn, sqrt/abs/sin/cos/tan/ln/log/exp, pi/e. Gặp BIẾN (chữ lạ) hoặc
+ * cú pháp không chắc chắn → trả `null` để nhánh symbolic (mathjs) lo. Nhờ vậy
+ * đáp án số/tọa độ thường gặp không phải nạp mathjs.
+ */
+export function evalNumeric(expr: string): number | null {
+  const src = (expr ?? "").trim();
+  if (!src) return null;
+  const toks: NumTok[] = [];
+  let i = 0;
+  const prev = () => toks[toks.length - 1];
+  while (i < src.length) {
+    const c = src[i]!;
+    if (c === " " || c === "\t") { i++; continue; }
+    if ((c >= "0" && c <= "9") || c === ".") {
+      let j = i;
+      let dots = 0;
+      while (j < src.length && ((src[j]! >= "0" && src[j]! <= "9") || src[j] === ".")) {
+        if (src[j] === ".") dots++;
+        j++;
+      }
+      if (dots > 1) return null;
+      const num = Number(src.slice(i, j));
+      if (!isFinite(num)) return null;
+      toks.push({ t: "num", v: num });
+      i = j;
+      continue;
+    }
+    if (/[a-zA-Z]/.test(c)) {
+      let j = i;
+      while (j < src.length && /[a-zA-Z]/.test(src[j]!)) j++;
+      const id = src.slice(i, j).toLowerCase();
+      if (id in CONSTS) { toks.push({ t: "num", v: CONSTS[id]! }); i = j; continue; }
+      if (id in FNS) { toks.push({ t: "fn", v: id }); i = j; continue; }
+      return null; // định danh lạ → coi là biến → symbolic
+    }
+    if (c === "(") { toks.push({ t: "lp" }); i++; continue; }
+    if (c === ")") { toks.push({ t: "rp" }); i++; continue; }
+    if (c === "√") { toks.push({ t: "fn", v: "sqrt" }); i++; continue; }
+    if (c === "·" || c === "×" || c === "∗") { toks.push({ t: "op", v: "*" }); i++; continue; }
+    if (c === "+" || c === "-" || c === "*" || c === "/" || c === "^") {
+      const p = prev();
+      const unary = (c === "+" || c === "-") && (!p || p.t === "op" || p.t === "lp" || p.t === "fn");
+      toks.push({ t: "op", v: unary ? "u" + c : c });
+      i++;
+      continue;
+    }
+    return null; // ký tự lạ
+  }
+  if (toks.length === 0) return null;
+
+  // Shunting-yard → RPN. Dấu âm/dương đơn BÉ hơn ^ (để -2^2 = -(2^2) = -4 khớp
+  // mathjs) nhưng LỚN hơn * / (để -2*3 = (-2)*3 = -6).
+  const prec: Record<string, number> = { "^": 5, "u+": 4, "u-": 4, "*": 3, "/": 3, "+": 2, "-": 2 };
+  const rightAssoc = (op: string) => op === "^" || op === "u+" || op === "u-";
+  const out: NumTok[] = [];
+  const ops: NumTok[] = [];
+  for (const tk of toks) {
+    if (tk.t === "num") out.push(tk);
+    else if (tk.t === "fn") ops.push(tk);
+    else if (tk.t === "op") {
+      while (ops.length) {
+        const top = ops[ops.length - 1]!;
+        if (top.t === "fn") { out.push(ops.pop()!); continue; }
+        if (top.t === "op" && (prec[top.v]! > prec[tk.v]! || (prec[top.v] === prec[tk.v] && !rightAssoc(tk.v)))) {
+          out.push(ops.pop()!);
+          continue;
+        }
+        break;
+      }
+      ops.push(tk);
+    } else if (tk.t === "lp") ops.push(tk);
+    else {
+      // rp
+      let found = false;
+      while (ops.length) {
+        const top = ops.pop()!;
+        if (top.t === "lp") { found = true; break; }
+        out.push(top);
+      }
+      if (!found) return null; // ngoặc lệch
+      if (ops.length && ops[ops.length - 1]!.t === "fn") out.push(ops.pop()!);
+    }
+  }
+  while (ops.length) {
+    const top = ops.pop()!;
+    if (top.t === "lp") return null; // ngoặc lệch
+    out.push(top);
+  }
+
+  // Đánh giá RPN.
+  const st: number[] = [];
+  for (const tk of out) {
+    if (tk.t === "num") st.push(tk.v);
+    else if (tk.t === "fn") {
+      const x = st.pop();
+      if (x === undefined) return null;
+      st.push(FNS[tk.v]!(x));
+    } else if (tk.t === "op") {
+      if (tk.v === "u-") { const x = st.pop(); if (x === undefined) return null; st.push(-x); }
+      else if (tk.v === "u+") { const x = st.pop(); if (x === undefined) return null; st.push(x); }
+      else {
+        const b = st.pop();
+        const a = st.pop();
+        if (a === undefined || b === undefined) return null;
+        st.push(
+          tk.v === "+" ? a + b : tk.v === "-" ? a - b : tk.v === "*" ? a * b : tk.v === "/" ? a / b : Math.pow(a, b),
+        );
+      }
+    }
+  }
+  if (st.length !== 1) return null;
+  const r = st[0]!;
+  return isFinite(r) ? r : null;
+}
+
+// ── helpers (sync, không mathjs) ──────────────────────────────────────────────
 
 /** Deterministic pseudo-random sample in a safe range, varied per symbol/iter. */
 function sampleAt(iter: number, sym: string): number {
   const seed = (iter * 2654435761 + hash(sym)) >>> 0;
-  // map to roughly [-3.3, 3.4], avoiding 0 to dodge common domain holes
   const r = ((seed % 1000) / 1000) * 6.7 - 3.3;
   return Math.abs(r) < 0.2 ? r + 0.7 : r;
 }
@@ -177,12 +387,12 @@ function splitTop(s: string, seps: string[]): string[] {
   return out;
 }
 
-function collectSymbols(node: MathNode, into: Set<string>): void {
-  node.forEach(function walk(child) {
+// deno-lint-ignore no-explicit-any
+function collectSymbols(node: any, into: Set<string>, mathFns: Record<string, unknown>): void {
+  // deno-lint-ignore no-explicit-any
+  node.forEach(function walk(child: any) {
     if (child.type === "SymbolNode") {
-      const name = (child as unknown as { name: string }).name;
-      // Exclude constants and any name that resolves to a mathjs function
-      // (e.g. sqrt, sin, log appear as SymbolNodes during traversal).
+      const name = (child as { name: string }).name;
       const isConst = ["e", "pi", "PI", "i", "Inf", "NaN", "true", "false"].includes(name);
       const isFn = typeof mathFns[name] === "function";
       if (!isConst && !isFn) into.add(name);

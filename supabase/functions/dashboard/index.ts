@@ -27,10 +27,11 @@ Deno.serve(async (req: Request) => {
       const { data: links } = await supa
         .from("coaching_links")
         .select("student_id, cadence_days, last_meeting_at, student:student_id(full_name)")
-        .eq("mentor_id", ctx.userId).eq("kind", "homeroom_coach");
+        .eq("tenant_id", t).eq("mentor_id", ctx.userId).eq("kind", "homeroom_coach")
+        .limit(200); // phân trang: một GVCN không phụ trách quá 200 học sinh
       const ids = (links ?? []).map((l) => l.student_id);
       const { data: wigs } = ids.length
-        ? await supa.from("wigs").select("student_id, progress_pct").eq("area", "kien_thuc").in("student_id", ids)
+        ? await supa.from("wigs").select("student_id, progress_pct").eq("tenant_id", t).eq("area", "kien_thuc").in("student_id", ids)
         : { data: [] };
       const wigBy: Record<string, number> = {};
       for (const w of wigs ?? []) wigBy[w.student_id] = Math.round(w.progress_pct);
@@ -48,22 +49,24 @@ Deno.serve(async (req: Request) => {
     // ── PARENT — filtered, aggregated child report (no raw chat / no flags) ───
     if (action === "parent") {
       if (!hasRole(ctx, "parent")) return deny();
-      const { data: gl } = await supa.from("guardian_links").select("student_id, student:student_id(full_name)").eq("guardian_id", ctx.userId).limit(1).maybeSingle();
+      const { data: gl } = await supa.from("guardian_links").select("student_id, student:student_id(full_name)").eq("tenant_id", t).eq("guardian_id", ctx.userId).limit(1).maybeSingle();
       if (!gl) return json({ role: "parent", child: null });
       const childId = gl.student_id;
       const childName = (Array.isArray(gl.student) ? gl.student[0] : gl.student)?.full_name ?? "Con";
-      const [{ data: states }, { data: wigs }, { data: consent }] = await Promise.all([
-        supa.from("student_node_state").select("mastered").eq("student_id", childId),
-        supa.from("wigs").select("area, title, progress_pct, source").eq("student_id", childId).eq("source", "tutor"),
-        supa.from("consent_records").select("status, purpose").eq("student_id", childId),
+      // Đếm mastered/tracked bằng AGGREGATE (head+count) — không kéo cả bảng state.
+      const [{ count: tracked }, { count: masteredCount }, { data: wigs }, { data: consent }] = await Promise.all([
+        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("student_id", childId),
+        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("student_id", childId).eq("mastered", true),
+        supa.from("wigs").select("area, title, progress_pct, source").eq("tenant_id", t).eq("student_id", childId).eq("source", "tutor"),
+        supa.from("consent_records").select("status, purpose").eq("tenant_id", t).eq("student_id", childId),
       ]);
-      const mastered = (states ?? []).filter((s) => s.mastered).length;
+      const mastered = masteredCount ?? 0;
       return json({
         role: "parent",
         child: {
           name: childName,
           masteredNodes: mastered,
-          practicingNodes: Math.max(0, (states?.length ?? 0) - mastered),
+          practicingNodes: Math.max(0, (tracked ?? 0) - mastered),
           wigs: (wigs ?? []).map((w) => ({ subject: w.area === "kien_thuc" ? "Kiến thức (Toán)" : "Tiếng Anh", title: w.title, pct: Math.round(w.progress_pct) })),
           consent: (consent ?? []).map((c) => ({ purpose: c.purpose, status: c.status })),
         },
@@ -73,15 +76,15 @@ Deno.serve(async (req: Request) => {
 
     // ── BUDDY — peer scoreboard of the linked mentee (limited) ───────────────
     if (action === "buddy") {
-      const { data: link } = await supa.from("coaching_links").select("student_id, student:student_id(full_name)").eq("mentor_id", ctx.userId).eq("kind", "buddy").limit(1).maybeSingle();
+      const { data: link } = await supa.from("coaching_links").select("student_id, student:student_id(full_name)").eq("tenant_id", t).eq("mentor_id", ctx.userId).eq("kind", "buddy").limit(1).maybeSingle();
       if (!link) return deny();
       const sid = link.student_id;
       const name = (Array.isArray(link.student) ? link.student[0] : link.student)?.full_name ?? "Buddy";
       const monday = (() => { const x = new Date(); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
       const [{ data: wigs }, { data: leads }, { data: board }] = await Promise.all([
-        supa.from("wigs").select("area, title, progress_pct").eq("student_id", sid).order("sort"),
-        supa.from("lead_measures").select("label, value_text, status").eq("student_id", sid).eq("week_start", monday).order("sort"),
-        supa.from("scoreboard_weeks").select("effort_rank, commitment").eq("student_id", sid).eq("week_start", monday).maybeSingle(),
+        supa.from("wigs").select("area, title, progress_pct").eq("tenant_id", t).eq("student_id", sid).order("sort"),
+        supa.from("lead_measures").select("label, value_text, status").eq("tenant_id", t).eq("student_id", sid).eq("week_start", monday).order("sort"),
+        supa.from("scoreboard_weeks").select("effort_rank, commitment").eq("tenant_id", t).eq("student_id", sid).eq("week_start", monday).maybeSingle(),
       ]);
       return json({
         role: "buddy", buddy: { name },
@@ -94,21 +97,25 @@ Deno.serve(async (req: Request) => {
     // ── LEADERSHIP — tenant aggregates (no raw data) ─────────────────────────
     if (action === "leadership") {
       if (!can(ctx, "report:school:read") && !hasRole(ctx, "leadership", "admin")) return deny();
-      const [{ data: states }, { count: sessions }, { count: students }, { data: tokens }] = await Promise.all([
-        supa.from("student_node_state").select("mastered").eq("tenant_id", t),
+      // Mastery = AGGREGATE (head+count), không kéo cả bảng state về gộp JS.
+      // token_usage CHỐT tenant (trước đây thiếu → lộ tổng token liên tenant).
+      const [{ count: tracked }, { count: masteredCount }, { count: sessions }, { count: students }, { data: tokens }] = await Promise.all([
+        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t),
+        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("mastered", true),
         supa.from("learning_sessions").select("id", { count: "exact", head: true }).eq("tenant_id", t),
         supa.from("profiles").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("role", "student"),
-        supa.from("token_usage").select("tokens"),
+        supa.from("token_usage").select("tokens").eq("tenant_id", t),
       ]);
-      const mastered = (states ?? []).filter((s) => s.mastered).length;
+      const mastered = masteredCount ?? 0;
+      const trackedNodes = tracked ?? 0;
       const totalTokens = (tokens ?? []).reduce((s, r) => s + (r.tokens ?? 0), 0);
       return json({
         role: "leadership",
         metrics: {
           students: students ?? 0,
           sessions: sessions ?? 0,
-          masteryRate: pct(mastered, states?.length ?? 0),
-          trackedNodes: states?.length ?? 0,
+          masteryRate: pct(mastered, trackedNodes),
+          trackedNodes,
           aiTokens: totalTokens,
           aiCostUsd: Number((totalTokens / 1_000_000 * 0.3).toFixed(2)),
         },
@@ -118,11 +125,14 @@ Deno.serve(async (req: Request) => {
     // ── ADMIN — RBAC + usage + ops ───────────────────────────────────────────
     if (action === "admin") {
       if (!can(ctx, "iam:user:manage") && !hasRole(ctx, "admin", "campus_admin")) return deny();
+      // roles / role_permissions là bảng RBAC toàn hệ (không có tenant_id) → để
+      // nguyên; còn profiles / user_roles / token_usage PHẢI chốt tenant (trước
+      // đây thiếu → đếm người dùng & token của MỌI tenant).
       const [{ data: roleRows }, { data: profs }, { data: ur }, { data: tokens }, { data: perms }] = await Promise.all([
         supa.from("roles").select("key, label"),
-        supa.from("profiles").select("role"),
-        supa.from("user_roles").select("role_key"),
-        supa.from("token_usage").select("tokens"),
+        supa.from("profiles").select("role").eq("tenant_id", t),
+        supa.from("user_roles").select("role_key").eq("tenant_id", t),
+        supa.from("token_usage").select("tokens").eq("tenant_id", t),
         supa.from("role_permissions").select("role_key"),
       ]);
       const userCount: Record<string, number> = {};

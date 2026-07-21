@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tự luyện · Hàm số bậc hai</title>
+<style>
+  :root {
+    --navy: #26275d; --gold: #f9dd0e; --ink: #26332b; --muted: #6b7a8e;
+    --line: #e4ebf4; --sky: #2e6db4; --ok: #1e7a4a; --ok-bg: #e8f4ec;
+    --warn: #b45309; --warn-bg: #fdf1e3; --surface: #fff; --bg: #eef3fb;
+  }
+  * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--ink); padding: 18px;
+    display: flex; justify-content: center; min-height: 100vh;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  .head { margin-bottom: 16px; }
+  .head h1 { font-size: 20px; font-weight: 700; color: var(--navy); }
+  .head p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .q { background: var(--surface); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 4px 16px rgb(38 39 93 / 6%); }
+  .q .num { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sky); }
+  .q .stem { font-size: 16px; font-weight: 600; line-height: 1.5; margin: 6px 0 14px; }
+  .opt {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 11px; padding: 12px 14px; margin-bottom: 8px; font-size: 14.5px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--sky); }
+  .opt .key { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: #eef2fb; font-weight: 700; font-size: 13px; color: var(--navy); }
+  .opt[data-state="correct"] { border-color: var(--ok); background: var(--ok-bg); }
+  .opt[data-state="correct"] .key { background: var(--ok); color: #fff; }
+  .opt[data-state="wrong"] { border-color: var(--warn); background: var(--warn-bg); }
+  .opt[data-state="wrong"] .key { background: var(--warn); color: #fff; }
+  .opt:disabled { cursor: default; }
+  .why { font-size: 13px; line-height: 1.5; color: var(--muted); margin-top: 8px; padding: 10px 12px; background: #f6f9fd; border-radius: 9px; }
+  .why.show { display: block; } .why { display: none; }
+  .score { text-align: center; background: var(--navy); color: #fff; border-radius: 16px; padding: 20px; margin-top: 6px; }
+  .score b { font-size: 30px; font-weight: 800; display: block; color: var(--gold); }
+  .score span { font-size: 13.5px; color: #c7cdea; }
+  .foot { font-size: 12px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>Tự luyện: Hàm số bậc hai</h1>
+      <p>Chọn đáp án để nhận phản hồi ngay. Đây là bài tự luyện — không tính vào điểm thành thạo.</p>
+    </div>
+    <div id="quiz"></div>
+    <div class="score" id="score" hidden><b id="scoreNum"></b><span id="scoreMsg"></span></div>
+    <p class="foot">Xưởng Học liệu AI · Trường Việt Anh — bản tự luyện, đáp án nằm ngay trong bài.</p>
+  </div>
+
+<script>
+  var QS = [
+    { stem: "Đồ thị hàm số y = ax² + bx + c (a ≠ 0) là đường gì?",
+      opts: ["Đường thẳng", "Parabol", "Đường tròn", "Hypebol"], correct: 1,
+      why: "Hàm bậc hai luôn có đồ thị là một parabol." },
+    { stem: "Hoành độ đỉnh của parabol y = ax² + bx + c là:",
+      opts: ["x = b/(2a)", "x = −b/(2a)", "x = −b/a", "x = c/a"], correct: 1,
+      why: "Công thức đỉnh: x = −b/(2a). Dấu trừ là chỗ hay nhầm nhất." },
+    { stem: "Với a > 0, đỉnh parabol là điểm mà tại đó hàm số đạt:",
+      opts: ["Giá trị lớn nhất", "Giá trị nhỏ nhất", "Vô cực", "Bằng 0"], correct: 1,
+      why: "a > 0 → bề lõm quay lên → đỉnh là điểm thấp nhất → giá trị nhỏ nhất." },
+    { stem: "Toạ độ đỉnh của y = x² − 4x + 3 là:",
+      opts: ["(−2; 1)", "(2; 1)", "(2; −1)", "(4; 3)"], correct: 2,
+      why: "x = 4/2 = 2; y = 4 − 8 + 3 = −1 → đỉnh (2; −1)." }
+  ];
+  var quiz = document.getElementById("quiz"), answered = 0, right = 0;
+  QS.forEach(function (item, qi) {
+    var card = document.createElement("div"); card.className = "q";
+    var h = '<div class="num">Câu ' + (qi + 1) + '</div><div class="stem">' + item.stem + "</div>";
+    card.innerHTML = h;
+    item.opts.forEach(function (o, oi) {
+      var b = document.createElement("button");
+      b.className = "opt"; b.type = "button";
+      b.innerHTML = '<span class="key">' + String.fromCharCode(65 + oi) + "</span><span>" + o + "</span>";
+      b.onclick = function () {
+        var btns = card.querySelectorAll(".opt");
+        btns.forEach(function (x) { x.disabled = true; });
+        if (oi === item.correct) { b.dataset.state = "correct"; right++; }
+        else { b.dataset.state = "wrong"; btns[item.correct].dataset.state = "correct"; }
+        why.classList.add("show");
+        answered++;
+        if (answered === QS.length) showScore();
+      };
+      card.appendChild(b);
+    });
+    var why = document.createElement("div"); why.className = "why"; why.textContent = "Vì sao: " + item.why;
+    card.appendChild(why);
+    quiz.appendChild(card);
+  });
+  function showScore() {
+    var s = document.getElementById("score");
+    document.getElementById("scoreNum").textContent = right + " / " + QS.length;
+    document.getElementById("scoreMsg").textContent =
+      right === QS.length ? "Tuyệt vời — bạn nắm chắc rồi!" :
+      right >= QS.length / 2 ? "Khá tốt — xem lại phần còn vướng nhé." :
+      "Chưa sao cả — đọc lại phần 'Vì sao' rồi thử bài luyện chính.";
+    s.hidden = false;
+    s.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+</script>
+</body>
+</html>
