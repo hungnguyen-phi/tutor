@@ -77,7 +77,12 @@ Deno.serve(async (req: Request) => {
     // ── BUDDY — peer scoreboard of the linked mentee (limited) ───────────────
     if (action === "buddy") {
       const { data: link } = await supa.from("coaching_links").select("student_id, student:student_id(full_name)").eq("tenant_id", t).eq("mentor_id", ctx.userId).eq("kind", "buddy").limit(1).maybeSingle();
-      if (!link) return deny();
+      if (!link) {
+        // Admin được vào /buddy (RoleShell cho phép) — trả trạng thái rỗng rõ ràng
+        // thay vì 403 "không có quyền" gây hiểu nhầm.
+        if (hasRole(ctx, "admin")) return json({ role: "buddy", buddy: null, wigs: [], leadMeasures: [], effortRank: null, commitment: "", note: "Chưa được gán buddy — admin đang xem thử." });
+        return deny();
+      }
       const sid = link.student_id;
       const name = (Array.isArray(link.student) ? link.student[0] : link.student)?.full_name ?? "Buddy";
       const monday = (() => { const x = new Date(); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();

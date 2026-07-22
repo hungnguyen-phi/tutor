@@ -1144,10 +1144,22 @@ ul {
      server); transition biến cú "world 0 sáng → world chương tối" thành fade
      sáng→tối thấy rõ (giật). Bỏ đi → đổi world là chớp 1 frame, gần như vô hình;
      màn intro (Splash) đã che nhịp nạp, scene-in lo phần lộ ra mượt. */
-  background: var(--scene-sky, var(--sky-grad));
+  /* Nền = TRANH savanna theo chương (public/scenes/world-N.png) phủ kín, kèm lớp
+     scrim tối nhẹ trên+dưới NẰM TRONG background-stack (luôn dưới nội dung, không
+     cần z-index) để tiêu đề + dấu chân VÀNG luôn bật. Không có ảnh → về gradient. */
+  background-color: #14162d;
+  background-image:
+    linear-gradient(180deg, rgba(15, 16, 40, 0.32) 0%, rgba(15, 16, 40, 0) 24%, rgba(15, 16, 40, 0) 50%, rgba(15, 16, 40, 0.38) 100%),
+    var(--scene-img, none),
+    var(--scene-sky, var(--sky-grad));
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
   /* Lộ mượt sau màn intro / khi quay lại tab Học — không "bụp" hiện đột ngột. */
   animation: scene-in 0.5s ease both;
 }
+/* Tranh đã là cảnh hoàn chỉnh → tắt lớp trời/đồi/mặt trời/mây vẽ bằng CSS. */
+.scene-sky { display: none; }
 @keyframes scene-in {
   from { opacity: 0; transform: translateY(10px); }
 }
@@ -1327,6 +1339,18 @@ ul {
   --scene-orb-glow: #f7c98a;
   --scene-cloud: #efdafb;
 }
+
+/* Tranh savanna theo chương (Studio) — cung sáng→tối: sáng nắng → ngày → chiều →
+   hoàng hôn → mưa → đêm trăng. Chỉ tranh của world ĐANG hiển thị mới được tải. */
+.scene[data-world="0"] { --scene-img: url("/scenes/world-0.webp"); }
+.scene[data-world="1"] { --scene-img: url("/scenes/world-1.webp"); }
+.scene[data-world="2"] { --scene-img: url("/scenes/world-2.webp"); }
+.scene[data-world="3"] { --scene-img: url("/scenes/world-3.webp"); }
+.scene[data-world="4"] { --scene-img: url("/scenes/world-4.webp"); }
+.scene[data-world="5"] { --scene-img: url("/scenes/world-5.webp"); }
+.scene[data-world="6"] { --scene-img: url("/scenes/world-6.webp"); }
+.scene[data-world="7"] { --scene-img: url("/scenes/world-7.webp"); }
+.scene[data-world="8"] { --scene-img: url("/scenes/world-8.webp"); }
 
 /* Hoàng hôn/chạng vạng: mây thành dải mù mỏng (haze) */
 .scene[data-world="4"] .scene-cloud {
@@ -2323,6 +2347,36 @@ textarea {
   }
 }
 
+/* Cổng phân quyền: tài khoản sai vai vào khu vực này → thông báo có hồn + lối về */
+.access-denied {
+  max-width: 34rem;
+  margin: 48px auto;
+  padding: 32px 28px;
+  text-align: center;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-row);
+}
+.access-denied > svg {
+  width: 40px;
+  height: 40px;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.access-denied h1 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.access-denied p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
 /* ═══ Khối dọc chung cho các màn vai trò ═══════════════════════════════ */
 .stack {
   display: grid;
@@ -2583,6 +2637,57 @@ textarea {
 /* Số trong bảng: căn chữ số tabular để cột phần trăm/đếm thẳng hàng. */
 .tbl .num {
   font-variant-numeric: tabular-nums;
+}
+
+/* ═══ Roster manager (Pha 3) ═══════════════════════════════════════════ */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kpi[data-warn] > b {
+  color: var(--gold);
+}
+.h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.import-result {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.import-result .err-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 10px 0 4px;
+}
+.import-result .err-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+.import-result ul {
+  padding-left: 18px;
+}
+.spin {
+  width: 18px;
+  height: 18px;
+  animation: rm-spin 0.8s linear infinite;
+}
+@keyframes rm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+html[data-motion="reduce"] .spin {
+  animation: none;
 }
 
 /* ═══ Hàng duyệt nội dung ══════════════════════════════════════════════ */
@@ -5518,6 +5623,250 @@ textarea {
 .ans-tile:disabled {
   cursor: not-allowed;
 }
+/* dung_sai: hai nút Đúng/Sai — lưới 2 cột. */
+.ans-grid.tf {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* ── Dạng tương tác (sap_xep / noi_cot) — kéo–thả + chạm ──────────────────── */
+.iq {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+.iq-intro {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.iq-help {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+/* sap_xep */
+.iq-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.iq-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 12px 10px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: 0 4px 0 var(--line);
+  cursor: grab;
+}
+.iq-card[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.7;
+}
+.iq-rank {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--navy-tint);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.iq-grip {
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  letter-spacing: -2px;
+}
+.iq-text {
+  flex: 1;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.iq-moves {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.iq-move {
+  width: 30px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.iq-move:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+/* noi_cot */
+.iq-match {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.iq-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.iq-lnum {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--navy-tint);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.iq-ltext {
+  flex: 1;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.iq-slot {
+  flex: 0 0 auto;
+  min-width: 52px;
+  height: 44px;
+  padding: 0 12px;
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink-faint);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+}
+.iq-slot.armed {
+  border-color: var(--gold);
+}
+.iq-slot.filled {
+  border-style: solid;
+  border-color: var(--navy);
+  background: var(--navy-tint);
+  color: var(--navy);
+}
+.iq-slot:disabled {
+  cursor: not-allowed;
+}
+.iq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.iq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+  cursor: grab;
+}
+.iq-chip b {
+  color: var(--navy);
+}
+.iq-chip.sel {
+  border-color: var(--navy);
+  background: var(--navy-tint);
+  color: var(--navy);
+}
+.iq-chip.used {
+  opacity: 0.4;
+  cursor: default;
+  text-decoration: line-through;
+}
+.iq-chip:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Đợt B: bảng điểm rubric theo kỹ năng (formative) ─────────────────────── */
+.rubric-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-row);
+}
+.rc-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rc-head b { color: var(--ink); font-size: 1.0625rem; }
+.rc-total { font-size: 1.375rem; font-weight: 800; color: var(--navy); margin-left: auto; }
+.rc-band {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--gold-tint);
+  color: var(--gold-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.rc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.rc-crit { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rc-name { color: var(--ink-2); font-weight: 600; }
+.rc-score { color: var(--navy); font-weight: 700; }
+.rc-bar {
+  height: 8px;
+  margin: 5px 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+.rc-bar i {
+  display: block;
+  height: 100%;
+  width: var(--v);
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width var(--t) var(--ease);
+}
+.rc-note { color: var(--muted); font-size: 0.875rem; line-height: 1.45; }
+.rc-overall { margin-top: 12px; color: var(--ink-2); line-height: 1.5; }
+.rc-coach { margin-top: 8px; color: var(--ink); font-weight: 600; line-height: 1.5; }
+.rc-foot { margin-top: 10px; color: var(--ink-faint); font-size: 0.75rem; }
+
+/* Đợt C: nút Nghe (Web Speech) cho dạng nghe. */
+.listen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--navy);
+  border-radius: var(--r-pill);
+  background: var(--navy-tint);
+  color: var(--navy);
+  font-weight: 700;
+  cursor: pointer;
+}
+.listen-btn svg { width: 18px; height: 18px; }
+.listen-btn[aria-pressed="true"] { background: var(--navy); color: #fff; }
 /* Gợi ý Socratic + cổng nỗ lực: sư tử + bong bóng trắng đuôi lệch trái
    (radius 16/16/16/4 — anatomy hi-fi) */
 .hint-says {
@@ -5596,6 +5945,17 @@ textarea {
 }
 .lfoot[data-verdict="retry"] .lfoot-title {
   color: var(--warn);
+}
+/* FORMATIVE (viết/nói đã gửi): trung tính navy/sky — KHÔNG xanh "đúng", không XP */
+.lfoot[data-verdict="done"] {
+  background: var(--navy-tint);
+  border-top: 2px solid var(--sky);
+}
+.lfoot[data-verdict="done"] .lfoot-row svg {
+  color: var(--sky);
+}
+.lfoot[data-verdict="done"] .lfoot-title {
+  color: var(--navy);
 }
 /* Chip XP trong ribbon: nền gold + chữ navy — đúng luật gold (huy hiệu) */
 .xp-chip {
@@ -6636,6 +6996,75 @@ textarea {
   height: 15px;
 }
 
+/* Nhãn tĩnh khi CHỈ có một bảng thật (không dựng tab giả) */
+.sb-scope-one {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+/* Chú thích thước đo bên phải đầu bảng */
+.sb-caption {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+/* ── Cold-start: chưa ai có XP tuần này → lời mời đầy đặn thay danh sách vắng ── */
+.sb-cold {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 8px 4px 4px;
+}
+.sb-cold-lion {
+  display: block;
+}
+.sb-cold-title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--navy);
+}
+.sb-cold-lead {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 46ch;
+}
+.sb-cold-lead b {
+  font-weight: 800;
+  color: var(--navy);
+}
+.sb-cold-how {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 2px 0 4px;
+  width: 100%;
+}
+.sb-cold-how li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--navy-tint);
+}
+.sb-cold-how svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--sky);
+}
+
 .sb-list {
   display: flex;
   flex-direction: column;
@@ -6686,6 +7115,13 @@ textarea {
 .sb-rank[data-podium="3"] {
   background: var(--mane-tint);
   color: var(--mane-ink);
+}
+/* Chưa có XP tuần này → badge lùi về nền, không trông như một thứ hạng thật */
+.sb-rank[data-unranked] {
+  background: transparent;
+  border: 1px dashed var(--hairline);
+  color: var(--muted);
+  font-weight: 700;
 }
 .sb-ava {
   flex: 0 0 auto;

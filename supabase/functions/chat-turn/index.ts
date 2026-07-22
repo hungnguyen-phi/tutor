@@ -11,10 +11,12 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer } from "../_shared/cas.ts";
+import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
 import { evaluateEffortGate, recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM } from "../_shared/llm.ts";
-import { buildGuideSystem, buildRubricSystem, buildSpeakingSystem } from "../_shared/prompts.ts";
+import { buildGuideSystem, buildScoredRubricSystem } from "../_shared/prompts.ts";
+import { rubricFor, buildRubricResult, parseRubricJson, type RubricResult } from "../_shared/rubrics.ts";
 import { awardXp, type XpEventInput } from "../_shared/xp.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 
@@ -36,6 +38,10 @@ interface QuestionItem {
   kind: string;
   prompt: string;
   options?: string[];
+  /** 1 trong 17 dạng (mcq, dung_sai, sap_xep, noi_cot…) — client dựng UI tương ứng. */
+  dangCauHoi?: string | null;
+  /** Cấu trúc bóc sẵn cho dạng tương tác (sap_xep/noi_cot) — KHÔNG kèm đáp án. */
+  interactive?: InteractiveStruct;
 }
 
 const REMEDIATION_MAX_DEPTH = 4;
@@ -66,6 +72,17 @@ function thinkingContentSignal(text: string): number {
   return Math.max(0, Math.min(1, q));
 }
 
+/** Tóm tắt RubricResult thành text cho bong bóng chat (+ fallback khi client cũ). */
+function rubricSummaryText(r: RubricResult): string {
+  const lines = r.scores.map((s) => `• ${s.tieu_chi}: ${s.diem}/3 — ${s.nhan_xet}`);
+  return [
+    `Điểm ${r.ten}: ${r.tong}/${r.toi_da} (${r.muc})`,
+    ...lines,
+    r.nhan_xet_chung,
+    r.cau_hoi_sua ? `👉 ${r.cau_hoi_sua}` : "",
+  ].filter(Boolean).join("\n");
+}
+
 /** Câu hỏi auto kế tiếp trên một node mà học sinh CHƯA trả lời đúng.
  *  `excludeId`: bỏ qua đúng câu vừa làm (để không phục vụ lại chính nó). */
 async function pickQuestion(
@@ -76,7 +93,7 @@ async function pickQuestion(
 ): Promise<QuestionItem | null> {
   const { data: qs } = await supa
     .from("questions")
-    .select("id, node_key, tier, dok, do_kho, loai_danh_gia, noi_dung, dap_an, distractors, nhom_cham, tham_so_hoa, tham_so")
+    .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, nhom_cham, tham_so_hoa, tham_so")
     .eq("kg_version_id", s.kg_version_id)
     .eq("node_key", nodeKey)
     .eq("trang_thai", "active")
@@ -112,7 +129,10 @@ async function pickQuestion(
     doKho: q.do_kho,
     kind: "objective",
     prompt: fill(q.noi_dung),
+    dangCauHoi: q.dang_cau_hoi ?? null,
   };
+  const inter = parseInteractive(q.dang_cau_hoi, fill(q.noi_dung), String(q.dap_an ?? ""));
+  if (inter) item.interactive = inter;
   if (q.dap_an && Array.isArray(q.distractors) && q.distractors.length > 0) {
     item.options = shuffle([
       fill(String(q.dap_an)),
@@ -260,6 +280,18 @@ Deno.serve(async (req: Request) => {
       return json({ error: "forbidden" }, 403);
     }
 
+    // PDPL — RÚT ĐỒNG Ý THÌ DỪNG: chấm/viết/nói/chat đều là XỬ LÝ dữ liệu học sinh.
+    // Nếu đồng ý 'ai_tutoring' của HS đã bị RÚT → chặn mọi nhánh. (Chưa có bản ghi
+    // = chưa thu thập → cho học tiếp; production siết opt-in khi có luồng thu consent.)
+    {
+      const { data: consent } = await supa
+        .from("consent_records").select("status")
+        .eq("student_id", s.student_id).eq("purpose", "ai_tutoring").maybeSingle();
+      if (consent?.status === "withdrawn") {
+        return json({ error: "consent_withdrawn", message: "Đồng ý xử lý dữ liệu học tập bằng AI đã được rút — liên hệ nhà trường để tiếp tục." }, 403);
+      }
+    }
+
     // Danh tính HS: người gọi chính là HS → dùng thẳng ctx (BỎ query profiles
     // thừa ở đường nóng). Nhân sự xem hộ HS khác mới cần đọc profiles để ẩn danh
     // tên khi chấm rubric.
@@ -316,7 +348,7 @@ Deno.serve(async (req: Request) => {
       // phiên — chặn chấm câu "mượn" từ version/tenant khác.
       const { data: q } = await supa
         .from("questions")
-        .select("id, node_key, dap_an, distractors, dok, do_kho, tier, loai_danh_gia, nhom_cham, noi_dung, loi_giai, tham_so_hoa, tham_so, tinh_mastery, hoi_do_tu_tin")
+        .select("id, node_key, dap_an, distractors, dok, do_kho, tier, loai_danh_gia, dang_cau_hoi, nhom_cham, noi_dung, loi_giai, tham_so_hoa, tham_so, tinh_mastery, hoi_do_tu_tin")
         .eq("id", questionId)
         .eq("kg_version_id", s.kg_version_id)
         .single();
@@ -339,9 +371,12 @@ Deno.serve(async (req: Request) => {
       ]);
       const attemptNo = (prev ?? 0) + 1;
 
-      // CAS chấm bằng params SERVER (câu khuôn) hoặc không tham số (câu tĩnh) —
-      // tuyệt đối bỏ body.params. checkAnswer thay {name} vào dap_an rồi so tương đương.
-      const verdict = await checkAnswer(studentAnswer, String(q.dap_an ?? ""), qParams);
+      // Dạng tương tác (dung_sai/sap_xep/noi_cot) chấm CẤU TRÚC tất định (so dãy /
+      // tập cặp / đúng-sai) — CAS không phủ được. Còn lại (mcq/điền/toán) dùng CAS:
+      // checkAnswer thay {name} vào dap_an rồi so tương đương (KHÔNG nhận body.params).
+      const verdict =
+        gradeInteractive(q.dang_cau_hoi, studentAnswer, String(q.dap_an ?? "")) ??
+        (await checkAnswer(studentAnswer, String(q.dap_an ?? ""), qParams));
       // Chỉ khi SAI mới cần khớp distractor để bắt quan niệm sai; đúng thì bỏ hẳn
       // vòng lặp. Còn cần thì chạy SONG SONG (checkAnswer có thể nạp mathjs).
       let matched: string | null = null;
@@ -605,7 +640,7 @@ Deno.serve(async (req: Request) => {
       }
       const { data: q } = await supa
         .from("questions")
-        .select("id, rubric, bai_mau, noi_dung")
+        .select("id, rubric, bai_mau, noi_dung, dang_cau_hoi")
         .eq("id", body.questionId)
         .eq("kg_version_id", s.kg_version_id)
         .single();
@@ -614,9 +649,10 @@ Deno.serve(async (req: Request) => {
       persist("student", text, undefined, { questionId: q.id, kind: "writing" });
 
       const { text: safe, map } = anonymize(text, names);
-      const system = buildRubricSystem(q.rubric, (q.bai_mau?.[0] as string) ?? "", language);
+      // Đợt B: chấm theo KHUÔN KỸ NĂNG (Viết/Lập luận theo dạng câu) → JSON có điểm.
+      const rubric = rubricFor(q.dang_cau_hoi, q.rubric);
       const res = await callLLM({
-        system,
+        system: buildScoredRubricSystem(rubric, (q.bai_mau?.[0] as string) ?? "", false, language),
         user: `Đề: ${q.noi_dung}\nBài làm của học sinh:\n${safe}`,
         agent: "evaluate-rubric",
         tier: "default",
@@ -624,7 +660,9 @@ Deno.serve(async (req: Request) => {
         tenantId: s.tenant_id,
         supa,
       });
-      const feedback = rehydrate(res.text, map);
+      const parsed = parseRubricJson(rehydrate(res.text, map));
+      const result = parsed ? buildRubricResult(rubric, parsed) : null;
+      const feedback = result ? rubricSummaryText(result) : rehydrate(res.text, map);
       await supa.from("submissions").insert({
         tenant_id: s.tenant_id,
         session_id: s.id,
@@ -632,10 +670,10 @@ Deno.serve(async (req: Request) => {
         question_id: q.id,
         kind: "writing",
         text_content: text,
-        feedback: { formative: feedback },
+        feedback: result ? { rubric: result } : { formative: feedback },
       });
       persist("tutor", feedback, "evaluate-rubric", { formative: true });
-      return json({ kind: "writing", feedback, note: "formative — not an official grade" });
+      return json({ kind: "writing", ...(result ? { rubric: result } : {}), feedback, note: "formative — not an official grade" });
     }
 
     // ── Speaking (English; transcript from in-browser STT) ─────────────────
@@ -647,7 +685,7 @@ Deno.serve(async (req: Request) => {
       }
       const { data: q } = await supa
         .from("questions")
-        .select("id, rubric, noi_dung")
+        .select("id, rubric, noi_dung, dang_cau_hoi")
         .eq("id", body.questionId)
         .eq("kg_version_id", s.kg_version_id)
         .single();
@@ -656,9 +694,10 @@ Deno.serve(async (req: Request) => {
       persist("student", transcript, undefined, { questionId: q.id, kind: "speaking" });
 
       const { text: safe, map } = anonymize(transcript, names);
-      const system = buildSpeakingSystem(q.rubric, language);
+      // Đợt B: khuôn kỹ năng NÓI, chấm từ transcript (bỏ qua phát âm) → JSON có điểm.
+      const rubric = rubricFor(q.dang_cau_hoi ?? "noi", q.rubric);
       const res = await callLLM({
-        system,
+        system: buildScoredRubricSystem(rubric, "", true, language),
         user: `Đề nói: ${q.noi_dung}\nBản ghi (transcript) của học sinh:\n${safe}`,
         agent: "evaluate-speaking",
         tier: "default",
@@ -666,7 +705,9 @@ Deno.serve(async (req: Request) => {
         tenantId: s.tenant_id,
         supa,
       });
-      const feedback = rehydrate(res.text, map);
+      const parsed = parseRubricJson(rehydrate(res.text, map));
+      const result = parsed ? buildRubricResult(rubric, parsed) : null;
+      const feedback = result ? rubricSummaryText(result) : rehydrate(res.text, map);
       await supa.from("submissions").insert({
         tenant_id: s.tenant_id,
         session_id: s.id,
@@ -675,10 +716,10 @@ Deno.serve(async (req: Request) => {
         kind: "speaking",
         text_content: transcript,
         audio_path: body.audioPath ?? null,
-        feedback: { formative: feedback },
+        feedback: result ? { rubric: result } : { formative: feedback },
       });
       persist("tutor", feedback, "evaluate-speaking", { formative: true });
-      return json({ kind: "speaking", feedback, note: "transcript-based; pronunciation scoring deferred to Azure F0" });
+      return json({ kind: "speaking", ...(result ? { rubric: result } : {}), feedback, note: "transcript-based; pronunciation scoring deferred" });
     }
 
     // ── Chat tự do — LLM nếu có khoá; không có thì lái về luyện tập ────────
@@ -716,6 +757,8 @@ Deno.serve(async (req: Request) => {
 
     return json({ error: `unknown action: ${action}` }, 400);
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+    // KHÔNG rò nội bộ (chuỗi lỗi DB/provider) ra client — log server, trả chung chung.
+    console.error("chat-turn error:", e instanceof Error ? (e.stack ?? e.message) : String(e));
+    return json({ error: "internal" }, 500);
   }
 });

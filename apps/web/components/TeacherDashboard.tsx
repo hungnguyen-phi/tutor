@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   LogOut,
   ScanSearch,
+  ShieldAlert,
   Undo2,
   UploadCloud,
   Users,
@@ -24,7 +25,7 @@ import {
   type TeacherStats,
   type RosterStudent,
 } from "../lib/api";
-import { useAuth, signOut } from "../lib/auth";
+import { useAuth, signOut, isAllowed, roleHome } from "../lib/auth";
 import RedirectToLogin from "./RedirectToLogin";
 import StudioIntake from "./StudioIntake";
 import QuestionIntake from "./QuestionIntake";
@@ -111,7 +112,7 @@ const initialOf = (name: string) => (name.split(/\s+/).pop() ?? "?").charAt(0).t
 type Tab = "overview" | "students" | "topics" | "content";
 
 export default function TeacherDashboard() {
-  const { session, profile } = useAuth();
+  const { session, profile, roles, ready } = useAuth();
   const [data, setData] = useState<TeacherStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -164,7 +165,7 @@ export default function TeacherDashboard() {
 
   // Cổng đăng nhập — TeacherDashboard tự dựng top bar theo hi-fi 4f nên không
   // dùng RoleShell nữa, nhưng giữ nguyên 3 trạng thái phiên của nó.
-  if (session === undefined) {
+  if (session === undefined || (session && !ready)) {
     return (
       <div className="tdb">
         <main className="tdb-main">
@@ -178,6 +179,29 @@ export default function TeacherDashboard() {
 
   const name = profile?.full_name?.trim() || "Giáo viên";
   const initial = initialOf(name);
+
+  // Cổng phân quyền: chỉ giáo viên/admin vào console giáo viên (phòng-thủ-chiều-sâu;
+  // teacher-stats phía server cũng đã chặn dữ liệu sai vai).
+  if (!isAllowed(roles, ["teacher"])) {
+    return (
+      <div className="tdb">
+        <TopBar name={name} initial={initial} />
+        <main className="tdb-main">
+          <div className="access-denied">
+            <ShieldAlert aria-hidden strokeWidth={2} />
+            <h1>Console giáo viên không dành cho tài khoản của bạn</h1>
+            <p>
+              Bạn đang đăng nhập với vai <b>{profile?.role ?? "chưa rõ"}</b>. Nếu đây là nhầm lẫn,
+              hãy báo quản trị viên.
+            </p>
+            <a className="btn" href={roleHome(profile?.role)}>
+              Về trang của bạn
+            </a>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (error) {
     return (

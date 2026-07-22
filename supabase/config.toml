@@ -65,6 +65,11 @@ verify_jwt = true
 [functions.import-questions]
 verify_jwt = true
 
+# admin-roster: tạo lớp + tài khoản thật + import danh sách + phân công. Tự
+# authenticate + chỉ admin/campus_admin. Ghim verify_jwt = true (chặn ở cổng).
+[functions.admin-roster]
+verify_jwt = true
+
 # ─────────────────────────────────────────────────────────────────────────────
 # GIA CỐ XÁC THỰC (auth). Chỉ đặt các key config.toml THỰC SỰ hỗ trợ; những mục
 # chỉ bật được trên Dashboard hosted được ghi TODO rõ ràng bên dưới.
@@ -88,3 +93,6 @@ refresh_token_reuse_interval = 10
 #   3. Leaked-password protection — HaveIBeenPwned (Auth → Passwords): chặn mật khẩu đã lộ.
 #   4. MFA bắt buộc cho tài khoản STAFF (giáo viên/admin/leadership) (Auth → MFA):
 #      thêm lớp bảo vệ cho tài khoản có quyền đọc dữ liệu học sinh.
+#   5. Google provider (Auth → Providers → Google) + OAuth consent screen = Internal
+#      (khoá server-side đúng Workspace trường) — xem docs/PRODUCTION-BOOTSTRAP.md §7.
+#   6. Email provider bật cho magic-link phụ huynh (Auth → Providers → Email).

@@ -5,6 +5,7 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can, hasActiveConsent } from "../_shared/auth.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
+import { parseInteractive } from "../_shared/interactive.ts";
 
 // Server-side, KHÔNG nhận từ client: số câu tối đa trả về lượt đầu (chống kéo
 // nguyên ngân hàng câu hỏi) + hạn mức chống lạm dụng (tạo phiên hàng loạt).
@@ -65,7 +66,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: questions } = await supa
       .from("questions")
-      .select("id, node_key, tier, dok, do_kho, loai_danh_gia, noi_dung, dap_an, distractors, rubric, tham_so_hoa, tham_so")
+      .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, rubric, tham_so_hoa, tham_so")
       .eq("kg_version_id", version.id)
       .eq("trang_thai", "active")
       // Câu KHUÔN THAM SỐ giờ ĐƯỢC phục vụ: máy sinh (paramgen) thay {b},{c}…
@@ -101,6 +102,9 @@ Deno.serve(async (req: Request) => {
       const spec = q.tham_so_hoa ? readSpec(q.tham_so) : null;
       const params = spec && ses ? genParams(spec, seedFrom(ses.id, q.id)) : {};
       const fill = (t: string) => (spec ? fillTemplate(t, params) : t);
+      const promptFilled = fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING)\]\s*/i, ""));
+      // Bóc cấu trúc tương tác (sap_xep/noi_cot) — null cho dạng khác. KHÔNG kèm đáp án.
+      const inter = parseInteractive(q.dang_cau_hoi, promptFilled, String(q.dap_an ?? ""));
       const base = {
         id: q.id,
         nodeKey: q.node_key,
@@ -108,7 +112,9 @@ Deno.serve(async (req: Request) => {
         dok: q.dok,
         doKho: q.do_kho,
         kind,
-        prompt: fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING)\]\s*/i, "")),
+        dangCauHoi: q.dang_cau_hoi,
+        prompt: promptFilled,
+        ...(inter ? { interactive: inter } : {}),
       };
       if (q.loai_danh_gia === "objective") {
         // Có phương án nhiễu → MCQ (thay params vào từng phương án); không có

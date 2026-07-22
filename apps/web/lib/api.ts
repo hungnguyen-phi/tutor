@@ -63,6 +63,13 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
 
 export type QKind = "objective" | "rubric" | "writing" | "speaking";
 
+export interface InteractiveItem { key: string; text: string }
+/** Cấu trúc bóc sẵn ở server cho dạng tương tác — KHÔNG kèm thứ tự/cặp đúng. */
+export interface InteractiveStruct {
+  order?: { mode: "label" | "word"; intro: string; items: InteractiveItem[] };
+  match?: { intro: string; left: InteractiveItem[]; right: InteractiveItem[] };
+}
+
 export interface DiagnoseQuestion {
   id: string;
   nodeKey: string;
@@ -73,6 +80,9 @@ export interface DiagnoseQuestion {
   prompt: string;
   options?: string[];
   rubric?: unknown;
+  /** 1 trong 17 dạng Studio (mcq, dung_sai, sap_xep, noi_cot…) — dựng UI tương ứng. */
+  dangCauHoi?: string | null;
+  interactive?: InteractiveStruct;
 }
 
 export interface DiagnoseResult {
@@ -93,6 +103,8 @@ export interface EngineQuestion {
   kind: string;
   prompt: string;
   options?: string[];
+  dangCauHoi?: string | null;
+  interactive?: InteractiveStruct;
 }
 
 /** XP server-authoritative (bảng student_xp) — số THẬT thay cho cache máy. */
@@ -103,8 +115,23 @@ export interface XpState {
   gained: number;
 }
 
+export interface RubricScore { tieu_chi: string; diem: number; nhan_xet: string }
+/** Đợt B: kết quả chấm rubric theo kỹ năng (formative — không phải điểm chính thức). */
+export interface RubricResult {
+  skill: "writing" | "speaking" | "reasoning";
+  ten: string;
+  scores: RubricScore[];
+  tong: number;
+  toi_da: number;
+  muc: string;
+  nhan_xet_chung: string;
+  cau_hoi_sua: string;
+}
+
 export interface TurnResult {
   correct?: boolean;
+  /** Đợt B: chấm rubric có điểm theo tiêu chí (writing/speaking). */
+  rubric?: RubricResult;
   attemptNo?: number;
   gate?: string;
   currentRung?: number;
@@ -236,8 +263,21 @@ export interface Scoreboard {
   sync: { syncedAt: string | null };
   /** XP server của học sinh đang xem: tổng + tuần này + chuỗi ngày. */
   xp?: { total: number; week: number; streak: number; lastDay: string | null };
-  /** BẢNG TUẦN THẬT: bạn cùng khối, XP tuần + chuỗi từ server (self/staff mới có). */
-  board?: { scope: string; rows: Array<{ id: string; name: string; xp: number; streak: number; me: boolean }> } | null;
+  /** BẢNG TUẦN THẬT theo KHỐI: bạn cùng khối, XP tuần + chuỗi (self/staff mới có). */
+  board?: BoardView | null;
+  /** BẢNG TUẦN THẬT theo LỚP: chỉ có khi học sinh thuộc một lớp (classes). */
+  classBoard?: BoardView | null;
+  /** Nhãn khối, vd "Khối 10". */
+  gradeLabel?: string;
+  /** Tên lớp, vd "10A1"; null nếu chưa xếp lớp. */
+  className?: string | null;
+}
+
+export interface BoardView {
+  scope: string;
+  /** Nhãn tab: tên lớp ("10A1") hoặc khối ("Khối 10"). */
+  label?: string;
+  rows: Array<{ id: string; name: string; xp: number; streak: number; me: boolean }>;
 }
 
 export const getScoreboard = (studentId?: string) =>
@@ -305,6 +345,41 @@ export type DashAction = "coach" | "parent" | "buddy" | "leadership" | "admin" |
 // Loosely typed: each role returns its own shape (see supabase/functions/dashboard).
 export const dashboard = <T = Record<string, unknown>>(action: DashAction) =>
   callFn<T>("dashboard", { action });
+
+// ── Roster & Admin (Pha 3) ────────────────────────────────────────────────────
+export interface RosterClass {
+  id: string;
+  grade: string;
+  name: string;
+  schoolYear: string | null;
+  homeroom: string | null;
+  students: number;
+}
+export interface RosterOverview {
+  classes: RosterClass[];
+  totals: { students: number; unassigned: number };
+}
+export interface RosterStudentRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  grade: string | null;
+  classId: string | null;
+}
+export interface ImportResult {
+  ok: boolean;
+  created: number;
+  updated: number;
+  errorCount: number;
+  errors: { email: string; error: string }[];
+  /** Mật khẩu tạm cho tài khoản MỚI (pilot password-login) — admin phát rồi ép đổi. */
+  credentials: { email: string; password: string }[];
+}
+
+/** Cửa quản trị roster (chỉ admin). action: overview | roster | createClass |
+ *  upsertStudent | import | assignHomeroom | assignMentor | linkParent | sync. */
+export const adminRoster = <T = Record<string, unknown>>(action: string, payload: Record<string, unknown> = {}) =>
+  callFn<T>("admin-roster", { action, ...payload });
 
 // ── Nhập liệu từ App sản xuất (Studio) ────────────────────────────────────────
 // Server đưa bundle vào review_queue chờ duyệt — KHÔNG publish thẳng.

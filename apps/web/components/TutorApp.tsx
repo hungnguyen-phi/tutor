@@ -52,7 +52,10 @@ import {
   type TurnResult,
   type EndResult,
   type NodeResource,
+  type RubricResult,
 } from "../lib/api";
+import { OrderQuestion, MatchQuestion } from "./Interactive";
+import { SpeakerButton } from "./SpeakerButton";
 
 /**
  * Lời hiển thị cho lỗi gọi API. Rate-limit (429) → câu dịu kèm số giây chờ nếu
@@ -75,7 +78,7 @@ type Msg =
   | { role: "hint"; text: string }
   | { role: "feedback"; text: string };
 
-type Verdict = "ok" | "retry" | null;
+type Verdict = "ok" | "retry" | "done" | null;
 type Subject = "Toan" | "Van" | "Anh";
 
 // Mỗi môn: nhãn dài (banner) + ngắn (pill/thẻ) + slug file lộ trình tĩnh +
@@ -100,6 +103,10 @@ export default function TutorApp() {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
+  // Đáp án canonical của dạng tương tác (sap_xep/noi_cot): null = chưa hoàn tất.
+  const [interactiveAns, setInteractiveAns] = useState<string | null>(null);
+  // Đợt B: bảng điểm rubric (viết/nói) — formative.
+  const [rubricResult, setRubricResult] = useState<RubricResult | null>(null);
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [attempts, setAttempts] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -413,6 +420,8 @@ export default function TutorApp() {
     setMsgs([]);
     setText("");
     setPicked(null);
+    setInteractiveAns(null);
+    setRubricResult(null);
     setVerdict(null);
     setAttempts(0);
   }
@@ -426,6 +435,13 @@ export default function TutorApp() {
     setBusy(true);
     try {
       const d = await diagnose(subject);
+      // Bài chưa có câu hỏi (đang cắm nội dung) → KHÔNG vào buổi rỗng/kẹt; giữ học
+      // sinh ở lộ trình + báo nhẹ nhàng.
+      if (!d.questions || d.questions.length === 0) {
+        setError("Bài này chưa có câu hỏi — nhà trường đang bổ sung nội dung. Bạn chọn bài khác nhé!");
+        setBusy(false);
+        return;
+      }
       setSes(d);
       setQi(0);
       setEarned(0);
@@ -463,6 +479,8 @@ export default function TutorApp() {
     kind: "objective",
     prompt: eq.prompt,
     options: eq.options,
+    dangCauHoi: eq.dangCauHoi ?? null,
+    interactive: eq.interactive,
   });
 
   // Reset trạng thái câu KHI CHUYỂN sang câu tiêm/leo — GIỮ lại msgs (hành trình
@@ -471,6 +489,8 @@ export default function TutorApp() {
     setVerdict(null);
     setPicked(null);
     setText("");
+    setInteractiveAns(null);
+    setRubricResult(null);
     setAttempts(0);
   }
 
@@ -589,9 +609,12 @@ export default function TutorApp() {
     setLoading(true);
     try {
       const res = await writing(ses.sessionId, q.id, t);
-      setMsgs((m) => [...m, { role: "feedback", text: res.feedback ?? "" }]);
-      setVerdict("ok");
-      grant(G.XP.correct);
+      // Đợt B: có bảng điểm rubric → hiện scorecard; không thì hiện nhận xét text.
+      if (res.rubric) setRubricResult(res.rubric);
+      else setMsgs((m) => [...m, { role: "feedback", text: res.feedback ?? "" }]);
+      // Viết là FORMATIVE: server chấm rubric để bạn tự tiến bộ, KHÔNG phải điểm
+      // chính thức, KHÔNG XP, KHÔNG đụng mastery (mastery chỉ tính câu khách quan).
+      setVerdict("done");
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -607,9 +630,10 @@ export default function TutorApp() {
     setLoading(true);
     try {
       const res = await speaking(ses.sessionId, q.id, transcript);
-      setMsgs((m) => [...m, { role: "feedback", text: res.feedback ?? "" }]);
-      setVerdict("ok");
-      grant(G.XP.correct);
+      if (res.rubric) setRubricResult(res.rubric);
+      else setMsgs((m) => [...m, { role: "feedback", text: res.feedback ?? "" }]);
+      // Nói là FORMATIVE: chấm rubric để tự tiến bộ, KHÔNG XP (xem submitWriting).
+      setVerdict("done");
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -785,7 +809,7 @@ export default function TutorApp() {
             </button>
             {wrongCount > 0 && (
               <a className="finish-review" href="/review">
-                Xem lại câu sai ({wrongCount})
+                Ôn tập các điểm cần củng cố
               </a>
             )}
           </div>
@@ -851,7 +875,7 @@ export default function TutorApp() {
               lại — chuyển tab có nhịp native thay vì nhảy hình 0ms */}
           <div key={view} className="view-in" data-dir={viewDir}>
             {view === "review" && <ReviewView onGoLearn={() => switchView("learn")} />}
-            {view === "scoreboard" && <ScoreboardBody />}
+            {view === "scoreboard" && <ScoreboardBody onGoLearn={() => switchView("learn")} />}
             {view === "quests" && (
               /* Tên chương thật từ learning-path (version_label) → title WIG.
                  Hạn WIG server chưa trả — QuestsView tự hiển thị dòng thay thế. */
@@ -954,7 +978,8 @@ export default function TutorApp() {
                     {(firstName ?? "E").charAt(0).toUpperCase()}
                   </span>
                   <span className="board-name">{firstName ?? "Em"} (bạn)</span>
-                  <span className="board-xp num">{progress.xp}</span>
+                  {/* Tổng XP server-authoritative (student_xp) — cache máy chỉ là dự phòng. */}
+                  <span className="board-xp num">{board.xp?.total ?? progress.xp}</span>
                 </div>
               </section>
             )}
@@ -1017,10 +1042,22 @@ export default function TutorApp() {
   const total = ses.questions.length;
   // Đang vá nền (câu tiêm) thì KHÔNG bao giờ là "hết bài" — còn phải leo về.
   const last = qi + 1 >= total && injectedStack.length === 0;
-  const canCheck = q?.kind === "objective" && (q.options ? picked != null : text.trim().length > 0);
+  // Dạng tương tác: server đã bóc cấu trúc (interactive). Không có → rơi về ô nhập
+  // thường (server vẫn chấm cấu trúc chuỗi gõ tay).
+  const orderParsed = q?.interactive?.order ?? null;
+  const matchParsed = q?.interactive?.match ?? null;
+  const isTrueFalse = q?.dangCauHoi === "dung_sai";
+  const interactiveShown = !!(orderParsed || matchParsed);
+  const canCheck =
+    q?.kind === "objective" &&
+    (interactiveShown
+      ? interactiveAns != null
+      : isTrueFalse || q.options
+        ? picked != null
+        : text.trim().length > 0);
   const check = () => {
     if (!q || q.kind !== "objective") return;
-    const ans = q.options ? picked : text.trim();
+    const ans = interactiveShown ? interactiveAns : isTrueFalse || q.options ? picked : text.trim();
     if (ans) void submitObjective(ans);
   };
 
@@ -1062,15 +1099,26 @@ export default function TutorApp() {
       {q && (
         <>
           <p className="eyebrow lesson-kind">{kindEyebrow(q)}</p>
-          <div className="qcard">
-            {/* Đề có công thức → cả dòng serif italic 26 theo hi-fi; câu chữ
-                thường (tiếng Anh, đọc hiểu) giữ sans 15/1.5. */}
-            {mathy(q.prompt) ? (
-              <div className="qcard-expr math"><MathText>{q.prompt}</MathText></div>
-            ) : (
-              <div className="qcard-text"><MathText>{q.prompt}</MathText></div>
-            )}
-          </div>
+          {/* Dạng tương tác tự dựng đề (câu dẫn + các mục) → ẩn qcard mặc định. */}
+          {!interactiveShown && (
+            <div className="qcard">
+              {/* Đề có công thức → cả dòng serif italic 26 theo hi-fi; câu chữ
+                  thường (tiếng Anh, đọc hiểu) giữ sans 15/1.5. */}
+              {mathy(q.prompt) ? (
+                <div className="qcard-expr math"><MathText>{q.prompt}</MathText></div>
+              ) : (
+                <div className="qcard-text"><MathText>{q.prompt}</MathText></div>
+              )}
+            </div>
+          )}
+          {orderParsed && (
+            <OrderQuestion key={q.id} parsed={orderParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
+          )}
+          {matchParsed && (
+            <MatchQuestion key={q.id} parsed={matchParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
+          )}
+          {/* Đợt C: dạng nghe — đọc to transcript bằng Web Speech (chưa có audio_uri). */}
+          {q.dangCauHoi === "nghe" && <SpeakerButton text={q.prompt} />}
         </>
       )}
 
@@ -1133,7 +1181,24 @@ export default function TutorApp() {
         </div>
       )}
 
-      {q && q.kind === "objective" && !q.options && verdict !== "ok" && (
+      {/* dung_sai: hai nút Đúng / Sai thay vì gõ tay. */}
+      {q && isTrueFalse && verdict !== "ok" && (
+        <div className="ans-grid tf">
+          {["Đúng", "Sai"].map((v) => (
+            <button
+              key={v}
+              className="ans-tile"
+              aria-pressed={picked === v}
+              disabled={busy || verdict != null}
+              onClick={() => setPicked(v)}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" && (
         <input
           type="text"
           placeholder="Nhập đáp án của bạn…"
@@ -1152,7 +1217,7 @@ export default function TutorApp() {
         />
       )}
 
-      {q && q.kind === "writing" && verdict !== "ok" && (
+      {q && q.kind === "writing" && verdict == null && (
         <div>
           <textarea
             rows={4}
@@ -1174,7 +1239,35 @@ export default function TutorApp() {
         </div>
       )}
 
-      {q && q.kind === "speaking" && verdict !== "ok" && <SpeakBox disabled={busy} onTranscript={submitSpeaking} />}
+      {q && q.kind === "speaking" && verdict == null && <SpeakBox disabled={busy} onTranscript={submitSpeaking} />}
+
+      {/* Đợt B: bảng điểm rubric theo kỹ năng — formative, không phải điểm chính thức. */}
+      {rubricResult && (
+        <div className="rubric-card" role="status">
+          <div className="rc-head">
+            <b>Điểm {rubricResult.ten}</b>
+            <span className="rc-total num">{rubricResult.tong}/{rubricResult.toi_da}</span>
+            <span className="rc-band">{rubricResult.muc}</span>
+          </div>
+          <ul className="rc-list">
+            {rubricResult.scores.map((sc) => (
+              <li key={sc.tieu_chi} className="rc-row">
+                <div className="rc-crit">
+                  <span className="rc-name">{sc.tieu_chi}</span>
+                  <span className="rc-score num">{sc.diem}/3</span>
+                </div>
+                <div className="rc-bar" aria-hidden>
+                  <i style={{ "--v": `${(sc.diem / 3) * 100}%` } as React.CSSProperties} />
+                </div>
+                {sc.nhan_xet && <p className="rc-note">{sc.nhan_xet}</p>}
+              </li>
+            ))}
+          </ul>
+          {rubricResult.nhan_xet_chung && <p className="rc-overall">{rubricResult.nhan_xet_chung}</p>}
+          {rubricResult.cau_hoi_sua && <p className="rc-coach">👉 {rubricResult.cau_hoi_sua}</p>}
+          <p className="rc-foot">Góp ý để bạn tự tiến bộ — không phải điểm chính thức.</p>
+        </div>
+      )}
 
 
       {error && (
@@ -1219,6 +1312,21 @@ export default function TutorApp() {
         </div>
       )}
 
+      {/* FORMATIVE (viết/nói): đã gửi, chỉ có nhận xét — KHÔNG "Chính xác!", KHÔNG XP */}
+      {verdict === "done" && (
+        <div className="lfoot" data-verdict="done" role="status">
+          <div className="lfoot-inner">
+            <div className="lfoot-row">
+              <CheckCircle2 aria-hidden strokeWidth={2.25} />
+              <b className="lfoot-title">Đã gửi — xem nhận xét ở trên</b>
+            </div>
+            <button className="btn btn-block" data-loading={busy || undefined} onClick={advance}>
+              {last ? "HOÀN THÀNH" : "TIẾP TỤC"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {verdict === "retry" && (
         <div className="lfoot" data-verdict="retry" role="status">
           <div className="lfoot-inner">
@@ -1251,6 +1359,9 @@ export default function TutorApp() {
 function kindEyebrow(q: DiagnoseQuestion): string {
   if (q.kind === "writing") return "Viết câu trả lời";
   if (q.kind === "speaking") return "Luyện nói tiếng Anh";
+  if (q.dangCauHoi === "dung_sai") return "Đúng hay Sai?";
+  if (q.dangCauHoi === "sap_xep") return "Sắp xếp đúng thứ tự";
+  if (q.dangCauHoi === "noi_cot") return "Nối cột cho đúng";
   if (q.options) return "Chọn đáp án đúng";
   return "Nhập đáp án của bạn";
 }

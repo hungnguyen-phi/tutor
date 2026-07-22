@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
       supa.from("profiles").select("id, full_name, grade").eq("tenant_id", t).eq("role", "student"),
       supa.from("student_node_state").select("student_id, node_id, mastered, mastery_score, next_review_at").eq("tenant_id", t).limit(STATE_LIMIT),
       supa.from("learning_sessions").select("student_id, status, started_at").eq("tenant_id", t).order("started_at", { ascending: false }).limit(SESSION_LIMIT),
-      supa.from("kg_nodes").select("node_key, label").limit(STATE_LIMIT),
+      supa.from("kg_nodes").select("node_key, label").eq("tenant_id", t).limit(STATE_LIMIT),
     ]);
 
     const samp = sample ?? [];

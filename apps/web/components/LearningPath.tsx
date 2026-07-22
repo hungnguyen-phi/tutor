@@ -188,11 +188,10 @@ export default function LearningPath({
 
   // ── VƯỢT ẢI: mỗi CHƯƠNG một "thế giới" nền riêng. Cảnh mang thế giới của
   // chương ĐANG học; đi hết chương → mở cảnh mới.
-  // CHỈ dùng 4 thế giới BAN NGÀY SÁNG (0=thảo nguyên vàng, 1=đồng cỏ xanh,
-  // 2=trời cyan, 3=trời xanh) — đúng chủ đề "Sân trường buổi sáng" của DESIGN.
-  // Các world 4–8 (hoàng hôn/đêm navy) làm màn "tối om", đã bỏ khỏi vòng xoay
-  // theo yêu cầu chủ dự án: học phải sáng, không u tối.
-  const WORLDS = 4;
+  // 9 THẾ GIỚI = 9 tranh savanna (đội Studio vẽ), theo cung sáng→tối qua các
+  // chương: sáng nắng → ngày → chiều → hoàng hôn → mưa → đêm trăng. Tranh có
+  // tiền cảnh đậm nên dấu chân VÀNG vẫn bật (khác gradient phẳng "tối om" cũ).
+  const WORLDS = 9;
   const currentLegIdx = legs.findIndex((l) => l.nodes.some((n) => n.state === "current"));
   const sceneWorld = ((currentLegIdx >= 0 ? currentLegIdx : 0) % WORLDS + WORLDS) % WORLDS;
 

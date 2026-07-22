@@ -1,4 +1,5 @@
 /** Tutor system prompts (PRD §24). The guide agent NEVER reveals the answer. */
+import type { SkillRubric } from "./rubrics.ts";
 
 export interface GuideCtx {
   subject: string;
@@ -52,6 +53,26 @@ Dựa trên các tiêu chí rubric sau: ${JSON.stringify(criteria)}.
 Bài mẫu tham khảo (không đọc cho HS): "${exemplar}".
 NGẮN GỌN: mỗi tiêu chí đúng 1 dòng (1 nhận xét + 1 gợi ý). Kết bằng 1 câu hỏi để bạn ấy tự sửa. Tổng ≤ 6 dòng.
 ${language === "en" ? "Phản hồi bằng tiếng Anh." : "Phản hồi bằng tiếng Việt."}`;
+}
+
+/**
+ * Đợt B — chấm rubric theo KỸ NĂNG, trả VỀ JSON CÓ ĐIỂM (không chỉ nhận xét).
+ * Formative: giúp HS tự thấy điểm mạnh/yếu, KHÔNG phải điểm chính thức, KHÔNG viết
+ * lại hộ. `transcript`=true cho phần nói (chỉ có bản ghi → bỏ qua phát âm).
+ */
+export function buildScoredRubricSystem(
+  rubric: SkillRubric,
+  exemplar: string,
+  transcript: boolean,
+  language: string,
+): string {
+  const crit = rubric.tieu_chi.map((c, i) => `${i + 1}. ${c.tieu_chi} — ${c.mo_ta}`).join("\n");
+  return `Bạn là Coach ${rubric.ten} của Trường Việt Anh — xưng "mình", gọi học sinh là "bạn" (bạn đồng hành, không phải thầy cô). Đây là phản hồi HÌNH THÀNH giúp bạn ấy tự tiến bộ, KHÔNG phải điểm chính thức, KHÔNG viết lại hộ bài (giữ giọng của học sinh).
+Chấm theo ${rubric.tieu_chi.length} tiêu chí, MỖI tiêu chí thang 0–3 (0 = chưa đạt, 1 = yếu, 2 = khá, 3 = tốt):
+${crit}
+${transcript ? "Chỉ có BẢN GHI (transcript) nên đánh giá nội dung/từ vựng/ngữ pháp/mạch lạc; phát âm chỉ gợi ý chung.\n" : ""}${exemplar ? `Bài mẫu tham khảo (KHÔNG chép cho học sinh): "${exemplar}".\n` : ""}CHỈ TRẢ VỀ MỘT JSON HỢP LỆ, KHÔNG kèm chữ nào khác, KHÔNG bọc trong code fence:
+{"scores":[${rubric.tieu_chi.map((c) => `{"tieu_chi":"${c.tieu_chi}","diem":<0-3>,"nhan_xet":"<1 câu: điểm mạnh + 1 điều cần sửa>"}`).join(",")}],"nhan_xet_chung":"<1 câu khích lệ>","cau_hoi_sua":"<1 câu hỏi để bạn tự sửa>"}
+Nhận xét ${language === "en" ? "bằng tiếng Anh" : "bằng tiếng Việt"}, ngắn gọn, ấm áp, tập trung vào cách tiến bộ.`;
 }
 
 /** Speaking — from the transcript (pilot: Web Speech API does STT in-browser). */

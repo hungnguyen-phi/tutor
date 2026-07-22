@@ -43,8 +43,7 @@ export default function ProfileView({
   const uid = session?.user.id;
 
   useEffect(() => {
-    setProgress(G.load());
-    setMasteredCount(G.loadMastered().length);
+    setProgress(G.load()); // cache tức thì; server ghi đè bên dưới khi có
   }, []);
 
   useEffect(() => {
@@ -52,10 +51,23 @@ export default function ProfileView({
     let alive = true;
     getScoreboard()
       .then((d) => {
-        if (alive) setSb(d);
+        if (!alive) return;
+        setSb(d);
+        // XP/chuỗi THẬT từ server (student_xp) — không để cache máy làm nguồn hạng.
+        if (d.xp) setProgress(G.syncFromServer(d.xp));
       })
       .catch(() => {
         /* chưa deploy / không phải học sinh → ẩn thẻ môn */
+      });
+    // Số node đã THÀNH THẠO — SERVER-AUTHORITATIVE (student_node_state, RLS đọc của
+    // mình), KHÔNG đọc localStorage (tránh huy hiệu từ danh sách máy sửa được).
+    supabase
+      .from("student_node_state")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", uid)
+      .eq("mastered", true)
+      .then(({ count, error }) => {
+        if (alive && !error) setMasteredCount(count ?? 0);
       });
     supabase
       .from("guardian_links")

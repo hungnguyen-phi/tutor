@@ -119,12 +119,31 @@ function katexHtml(tex: string): string | null {
   catch { return null; } // parse fail → để nơi gọi rơi về text gốc
 }
 
+/** Text segment → node, GIỮ xuống dòng (\n) bằng <br>. HTML nuốt \n, nên câu hỏi
+ *  MCQ (đề rồi A/B/C/D mỗi đáp án một dòng) hay nội dung nhiều dòng phải chèn <br>
+ *  tường minh. An toàn: segmentMath đã tách CÔNG THỨC ra segment riêng trước, nên
+ *  không đụng \n bên trong $...$/$$...$$. */
+function textSeg(v: string, key: string): React.ReactNode {
+  if (!v.includes("\n")) return <React.Fragment key={key}>{v}</React.Fragment>;
+  const lines = v.split("\n");
+  return (
+    <React.Fragment key={key}>
+      {lines.map((ln, j) => (
+        <React.Fragment key={j}>
+          {j > 0 && <br />}
+          {ln}
+        </React.Fragment>
+      ))}
+    </React.Fragment>
+  );
+}
+
 /** Render 1 chuỗi (đã tách **đậm**) thành các node: text thường + <span> KaTeX. */
 function renderSegs(text: string, keyBase: string): React.ReactNode[] {
   return segmentMath(text).map((seg, i) => {
-    if (seg.t === "text") return <React.Fragment key={keyBase + i}>{seg.v}</React.Fragment>;
+    if (seg.t === "text") return textSeg(seg.v, keyBase + i);
     const html = katexHtml(seg.v);
-    if (html == null) return <React.Fragment key={keyBase + i}>{seg.v}</React.Fragment>;
+    if (html == null) return textSeg(seg.v, keyBase + i);
     return <span key={keyBase + i} dangerouslySetInnerHTML={{ __html: html }} />;
   });
 }

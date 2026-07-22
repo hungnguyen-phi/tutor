@@ -37,6 +37,8 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
   const [progress, setProgress] = useState<G.Progress | null>(null);
   // Bản đồ key/label → chương (từ lộ trình tĩnh) để gom "Ôn theo chương".
   const [pathMap, setPathMap] = useState<Map<string, string>>(new Map());
+  // Bản đồ key → NHÃN (tên bài) để hiện tên người-đọc-được thay vì mã node thô.
+  const [labelMap, setLabelMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     setMastered(G.loadMastered());
@@ -56,9 +58,11 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
     ).then((sets) => {
       if (!alive) return;
       const m = new Map<string, string>();
+      const lm = new Map<string, string>();
       for (const d of sets) {
         if (d && Array.isArray(d.nodes)) {
           for (const n of d.nodes as PathNode[]) {
+            if (n.label) lm.set(n.key, n.label);
             if (n.chapter) {
               m.set(n.key, n.chapter);
               m.set(n.label, n.chapter);
@@ -67,6 +71,7 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
         }
       }
       setPathMap(m);
+      setLabelMap(lm);
     });
     return () => {
       alive = false;
@@ -205,12 +210,12 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
                       <span className="rv-card-ico" aria-hidden>
                         <BookOpenCheck strokeWidth={2.25} />
                       </span>
-                      <span className="rv-card-name">{k}</span>
+                      <span className="rv-card-name">{labelMap.get(k) ?? k}</span>
                       <a
                         className="rv-card-btn"
                         href="/learn/"
                         onClick={goLearn}
-                        aria-label={`Ôn lại ${k}`}
+                        aria-label={`Ôn lại ${labelMap.get(k) ?? k}`}
                       >
                         <RotateCcw aria-hidden strokeWidth={2.25} />
                       </a>

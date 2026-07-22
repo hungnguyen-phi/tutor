@@ -150,7 +150,12 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
     if (!error && data && data.length > 0 && data[0]!.full_name === clean) {
       Prefs.setDisplayName(null); // server là nguồn sự thật — bỏ override máy
       setNameMsg({ ok: true, text: "Đã đổi tên chính thức trên hệ thống trường." });
+    } else if (error) {
+      // Lỗi THẬT (mạng/khác) — KHÔNG ghi override máy (tránh tên máy lệch âm thầm
+      // với server); báo lỗi rõ + để người dùng thử lại.
+      setNameMsg({ ok: false, text: "Không đổi được tên lúc này — kiểm tra kết nối rồi thử lại." });
     } else {
+      // Không lỗi nhưng update 0 dòng = RLS chưa mở quyền đổi tên → tên hiển thị cục bộ.
       Prefs.setDisplayName(clean);
       setNameMsg({
         ok: true,

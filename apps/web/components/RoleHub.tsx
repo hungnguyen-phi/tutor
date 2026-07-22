@@ -53,7 +53,7 @@ export default function RoleHub() {
     { href: "/subject-lead", Icon: BarChart3, label: "Tổ trưởng chuyên môn", desc: "Chất lượng môn · duyệt nội dung", show: admin || r.has("subject_lead"), hue: "sky" },
     { href: "/counselor", Icon: HeartHandshake, label: "Cố vấn tâm lý", desc: "Hàng đợi an toàn", show: admin || r.has("counselor"), hue: "mane" },
     { href: "/leadership", Icon: GraduationCap, label: "Ban giám hiệu", desc: "Dashboard tổng hợp", show: admin || r.has("leadership"), hue: "muted" },
-    { href: "/dpo", Icon: ShieldCheck, label: "Bảo vệ dữ liệu (DPO)", desc: "Consent · DSAR · audit", show: admin || r.has("dpo"), hue: "muted" },
+    { href: "/dpo", Icon: ShieldCheck, label: "Bảo vệ dữ liệu (DPO)", desc: "Consent · audit", show: admin || r.has("dpo"), hue: "muted" },
     { href: "/admin", Icon: Settings, label: "Admin hệ thống", desc: "RBAC · gateway · vận hành", show: admin, hue: "muted" },
     { href: "/parent", Icon: Users, label: "Theo dõi con", desc: "Báo cáo đã lọc", show: r.has("parent"), hue: "mane" },
   ];

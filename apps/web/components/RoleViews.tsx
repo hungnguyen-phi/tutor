@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarDays, Info, Lock, ShieldCheck } from "lucide-react";
 import { dashboard, teacherStats, type DashAction } from "../lib/api";
 import Lion from "./Lion";
+import RosterManager from "./RosterManager";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function useDash(action: DashAction) {
@@ -409,7 +410,6 @@ export function DpoView() {
     <div className="stack">
       <div className="kpis">
         <Kpi label="Bản ghi consent" value={d.counts.consentRows} />
-        <Kpi label="DSAR đang xử lý" value={d.counts.dsarOpen} />
         <Kpi label="Mục đích" value={d.consent.length} />
       </div>
 
@@ -465,6 +465,11 @@ export function AdminView() {
         <Kpi label="Chi phí AI" value={`$${d.gateway.costUsd}`} sub={`ngân sách $${d.gateway.budgetUsd}`} />
       </div>
 
+      <section className="panel" style={{ padding: 0, border: "none", boxShadow: "none", background: "none" }}>
+        <h2 className="h3" style={{ marginBottom: 12 }}>Roster — lớp &amp; học sinh</h2>
+        <RosterManager />
+      </section>
+
       <section className="panel">
         <h2 className="h3">RBAC &amp; phân vai trò</h2>
         <Table head={["Vai trò", "Người dùng", "Số quyền"]}>
@@ -482,6 +487,7 @@ export function AdminView() {
 
       <section className="panel">
         <h2 className="h3">Feature flags</h2>
+        <p className="muted">Trạng thái hệ thống (chỉ đọc) — cấu hình thực tế nằm ở function secrets / env.</p>
         {d.flags.map((f: any) => (
           <div className="lead-row" key={f.key}>
             <span className="lead-label">{f.key}</span>

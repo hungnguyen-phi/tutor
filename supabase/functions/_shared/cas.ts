@@ -33,6 +33,12 @@ export async function checkAnswer(
   const b = applyParams((correct ?? "").trim(), params);
   if (!a) return { correct: false, method: "text", detail: "empty" };
 
+  // 0) KHỚP CHỮ chính xác (đã chuẩn hoá) → ĐÚNG NGAY, KHÔNG đưa qua CAS. Cứu câu
+  //    trắc nghiệm có đáp án là NHÃN chữ cái (A/B/C/D) hay chữ nghĩa: 'A','B','C'
+  //    trùng tên ĐƠN VỊ của mathjs (Ampere/Byte/Coulomb) nên CAS hiểu nhầm thành
+  //    đơn vị → chấm SAI cả đáp án đúng. Khớp chữ thì chắc chắn cùng đáp án.
+  if (normText(a) === normText(b)) return { correct: true, method: "text" };
+
   // 1) Coordinate tuple / point.
   const ta = splitTuple(a);
   const tb = splitTuple(b);
