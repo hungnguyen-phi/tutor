@@ -19,6 +19,7 @@ import { buildGuideSystem, buildScoredRubricSystem } from "../_shared/prompts.ts
 import { rubricFor, buildRubricResult, parseRubricJson, type RubricResult } from "../_shared/rubrics.ts";
 import { awardXp, type XpEventInput } from "../_shared/xp.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
+import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 
 interface Session {
@@ -734,6 +735,19 @@ Deno.serve(async (req: Request) => {
     if (action === "message") {
       const studentMessage = String(body.message ?? "");
       persist("student", studentMessage);
+      // J2 — LƯỚI AN TOÀN: bắt dấu hiệu tổn thương (tự-làm-hại/bắt nạt/khủng
+      // hoảng) → ghi cờ vào hàng đợi counselor (con người xác minh, không tự báo
+      // PH) + đáp ẤM ÁP hướng tới người lớn tin cậy, KHÔNG dạy tiếp như chưa có
+      // gì. Không lưu văn bản thô. Bảo thủ (chỉ cụm rõ) để tránh cờ oan.
+      const signal = detectSafety(studentMessage);
+      if (signal) {
+        await recordSafetyFlag(supa, {
+          tenantId: s.tenant_id, studentId: s.student_id, sessionId: s.id, signal,
+        });
+        const care = supportiveReply(signal.type);
+        persist("tutor", care, "engine", { safety: signal.type });
+        return json({ message: care });
+      }
       if (!Deno.env.get("OPENROUTER_API_KEY")) {
         const msg =
           "Mình ở đây rồi! Bạn bấm vào một bài trên lộ trình để mình cùng luyện nhé — khi bạn làm bài, mình sẽ dẫn dắt từng bước một.";
