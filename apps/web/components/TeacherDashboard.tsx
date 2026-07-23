@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Clock,
   Download,
+  EyeOff,
   Home,
   Inbox,
   Info,
@@ -24,6 +25,7 @@ import {
   teacherStats,
   teacherReview,
   recomputeQuestionStats,
+  createOverride,
   type TeacherStats,
   type RosterStudent,
 } from "../lib/api";
@@ -144,6 +146,22 @@ export default function TeacherDashboard() {
     }
   }
 
+  // H5 — GV ẨN một câu kém (không phục vụ HS nữa), kèm LÝ DO (bắt buộc, lưu nhật
+  // ký). Nội dung gốc không đổi; gỡ ẩn thì câu trở lại. Reason qua prompt gọn.
+  async function hideQuestion(id: string) {
+    const reason = window.prompt("Lý do ẩn câu này (bắt buộc — lưu vào nhật ký):");
+    if (!reason || !reason.trim()) return;
+    setBusy(id);
+    try {
+      await createOverride(id, reason.trim(), "hide");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   // Quét câu kém (question-stats): tính p_value/discrimination toàn ngân hàng,
   // câu quá dễ/khó/không phân biệt tự về hàng chờ duyệt. Đêm có pg_cron chạy
   // hộ — nút này để giáo viên chủ động sau một buổi lớp làm bài.
@@ -254,6 +272,7 @@ export default function TeacherDashboard() {
           setTab={setTab}
           busy={busy}
           setStatus={setStatus}
+          onHide={hideQuestion}
           onScan={scanQuestions}
           scanNote={scanNote}
         />
@@ -269,6 +288,7 @@ function Console({
   setTab,
   busy,
   setStatus,
+  onHide,
   onScan,
   scanNote,
 }: {
@@ -277,6 +297,7 @@ function Console({
   setTab: (t: Tab) => void;
   busy: string | null;
   setStatus: (kind: "question" | "ladder", id: string, status: string) => void;
+  onHide: (id: string) => void;
   onScan: () => void;
   scanNote: string | null;
 }) {
@@ -366,6 +387,7 @@ function Console({
           data={data}
           busy={busy}
           setStatus={setStatus}
+          onHide={onHide}
           pending={pendingReview}
           onScan={onScan}
           scanNote={scanNote}
@@ -738,6 +760,7 @@ function ContentTab({
   data,
   busy,
   setStatus,
+  onHide,
   pending,
   onScan,
   scanNote,
@@ -745,6 +768,7 @@ function ContentTab({
   data: TeacherStats;
   busy: string | null;
   setStatus: (kind: "question" | "ladder", id: string, status: string) => void;
+  onHide: (id: string) => void;
   pending: number;
   onScan: () => void;
   scanNote: string | null;
@@ -829,6 +853,17 @@ function ContentTab({
                 Thu hồi
               </button>
             )}
+            {/* H5: ẩn câu kém khỏi luồng phục vụ (kèm lý do). Nội dung gốc giữ
+                nguyên; khác "Thu hồi" (đổi trạng thái) — đây là lớp phủ cục bộ. */}
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={busy === q.id}
+              onClick={() => onHide(q.id)}
+              title="Ẩn câu này khỏi học sinh (kèm lý do; gỡ được sau)"
+            >
+              <EyeOff aria-hidden strokeWidth={2} />
+              Ẩn
+            </button>
           </div>
         ))}
 

@@ -70,6 +70,11 @@ verify_jwt = true
 [functions.consent]
 verify_jwt = true
 
+# teacher-override: GV ẩn/sửa nội dung + lý do (H5). Tự authenticate + chỉ vai
+# giáo viên/admin/leadership. Ghim verify_jwt = true.
+[functions.teacher-override]
+verify_jwt = true
+
 # admin-roster: tạo lớp + tài khoản thật + import danh sách + phân công. Tự
 # authenticate + chỉ admin/campus_admin. Ghim verify_jwt = true (chặn ở cổng).
 [functions.admin-roster]

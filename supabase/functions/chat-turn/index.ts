@@ -18,6 +18,7 @@ import { anonymize, rehydrate, callLLM } from "../_shared/llm.ts";
 import { buildGuideSystem, buildScoredRubricSystem } from "../_shared/prompts.ts";
 import { rubricFor, buildRubricResult, parseRubricJson, type RubricResult } from "../_shared/rubrics.ts";
 import { awardXp, type XpEventInput } from "../_shared/xp.ts";
+import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 
 interface Session {
@@ -99,7 +100,14 @@ async function pickQuestion(
     .eq("trang_thai", "active")
     .order("tier", { ascending: true })
     .order("dok", { ascending: true });
-  const auto = (qs ?? []).filter((q) => q.nhom_cham === "auto" || q.loai_danh_gia === "objective");
+  // H5 — lớp phủ GV (nạp 1 lần/request, cache trên session): bỏ câu ẨN, ghép SỬA.
+  const cache = s as unknown as { _ovr?: Map<string, QOverride> };
+  if (!cache._ovr) cache._ovr = await loadQuestionOverrides(supa, s.tenant_id);
+  const ovr = cache._ovr;
+  const visible = (qs ?? [])
+    .filter((q) => !isHidden(ovr.get(q.id)))
+    .map((q) => applyQuestionEdit(q, ovr.get(q.id)));
+  const auto = visible.filter((q) => q.nhom_cham === "auto" || q.loai_danh_gia === "objective");
   if (auto.length === 0) return null;
 
   const { data: done } = await supa

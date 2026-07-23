@@ -6,6 +6,7 @@ import { authenticate, can, hasActiveConsent } from "../_shared/auth.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { parseInteractive } from "../_shared/interactive.ts";
+import { loadQuestionOverrides, isHidden, applyQuestionEdit } from "../_shared/overrides.ts";
 
 // Server-side, KHÔNG nhận từ client: số câu tối đa trả về lượt đầu (chống kéo
 // nguyên ngân hàng câu hỏi) + hạn mức chống lạm dụng (tạo phiên hàng loạt).
@@ -77,7 +78,14 @@ Deno.serve(async (req: Request) => {
       // Giới hạn lượt đầu — không kéo cả ngân hàng câu về client.
       .limit(FIRST_LOAD_LIMIT);
 
-    const firstNode = questions?.[0]?.node_key ?? null;
+    // H5 — lớp phủ GV: bỏ câu bị ẨN, ghép SỬA nội dung/lời giải trước khi phục
+    // vụ. Rỗng khi GV chưa chỉnh gì (1 query nhẹ).
+    const overrides = await loadQuestionOverrides(supa, ctx.tenantId);
+    const served = (questions ?? [])
+      .filter((q) => !isHidden(overrides.get(q.id)))
+      .map((q) => applyQuestionEdit(q, overrides.get(q.id)));
+
+    const firstNode = served[0]?.node_key ?? null;
     const { data: ses } = await supa
       .from("learning_sessions")
       .insert({
@@ -91,7 +99,7 @@ Deno.serve(async (req: Request) => {
       .select("id")
       .single();
 
-    const items = (questions ?? []).map((q) => {
+    const items = served.map((q) => {
       const kind = /\[SPEAKING\]/i.test(q.noi_dung)
         ? "speaking"
         : /\[WRITING\]/i.test(q.noi_dung)

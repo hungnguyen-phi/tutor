@@ -243,6 +243,29 @@ export const teacherStats = () => callFn<TeacherStats>("teacher-stats", {});
 export const teacherReview = (kind: "question" | "ladder", id: string, status: string) =>
   callFn<{ ok: boolean }>("teacher-review", { kind, id, status });
 
+// ── Lớp phủ nội dung GV (H5) — ẩn/sửa câu + lý do; áp lúc phục vụ ─────────────
+export interface ContentOverride {
+  id: string;
+  content_id: string;
+  action: "hide" | "edit";
+  patch: Record<string, unknown>;
+  reason: string;
+  created_at: string;
+}
+export const listOverrides = () =>
+  callFn<{ overrides: ContentOverride[] }>("teacher-override", { action: "list" });
+export const createOverride = (
+  contentId: string,
+  reason: string,
+  overrideAction: "hide" | "edit" = "hide",
+  patch?: Record<string, unknown>,
+) =>
+  callFn<{ ok: boolean }>("teacher-override", {
+    action: "create", contentId, reason, overrideAction, ...(patch ? { patch } : {}),
+  });
+export const removeOverride = (contentId: string) =>
+  callFn<{ ok: boolean }>("teacher-override", { action: "remove", contentId });
+
 /** Quét câu kém: tính p_value/discrimination toàn ngân hàng + tự đưa câu quá
  *  dễ/khó/không phân biệt vào hàng duyệt. Chạy đêm bằng pg_cron; nút này là
  *  đường gọi tay. */
