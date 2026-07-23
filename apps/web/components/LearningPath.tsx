@@ -48,72 +48,48 @@ function shortLabel(s: string): string {
 }
 
 /**
- * DÁNG ĐI CỦA SƯ TỬ THẬT — sinh vị trí/khoảng/góc cho từng dấu chân theo chỉ
- * số bước (0-based). KHÔNG random (tất định theo index → không nháy giữa các
- * render, khớp SSR). Ba tầng chồng lên nhau cho ra chuỗi "ngẫu nhiên mà hợp lý":
+ * DÁNG ĐI CỦA SƯ TỬ — sinh vị trí/khoảng/góc từng dấu chân theo chỉ số bước
+ * (0-based). Tất định theo index (không random → không nháy giữa render, khớp
+ * SSR). QUY LUẬT (chủ dự án chốt bằng dãy trái/phải): coi **4 dấu = 1 CỤM**.
+ * Cụm A = **Trái–Phải–Phải–Trái**; cụm KẾ = cụm B = **đảo trái↔phải** = Phải–
+ * Trái–Trái–Phải; rồi A,B,A,B… (chu kỳ 8). Mỗi cụm là một chỗ PHÌNH về một bên:
+ * hai dấu NGOÀI (beat 0,3) thu về gần trục, hai dấu GIỮA (beat 1,2) vươn HẲN ra
+ * — cụm kế phình sang bên kia → dáng uốn lượn mạnh, không "khúc giữa hiền".
  *
- *  1) DÁNG 4 CHÂN (lateral-sequence walk): mỗi CHU KỲ 4 dấu = LH,LF (cụm bên
- *     TRÁI, hai dấu SÁT nhau) rồi RH,RF (cụm bên PHẢI, MỞ ra). Không bao giờ 4
- *     dấu song song/cách đều: trong cụm hai dấu sát, giữa hai cụm giãn hơn.
- *  2) QUỸ ĐẠO THÂN: tổng vài sóng sin lệch tần → thân lượn, rẽ trái/phải, đổi
- *     hướng nhẹ, có đoạn vòng — không phải đường thẳng hay spline đều.
- *  3) NHIỄU BƯỚC: biên độ sải, khoảng cách dọc và góc mỗi bước xê dịch nhẹ.
- *
- * Góc dấu chân xoay theo HƯỚNG THÂN (đạo hàm quỹ đạo) + xòe nhẹ ra ngoài bên
- * đặt chân — nên không phải mọi dấu cùng một hướng.
+ *  · Ngang (--paw-dx): dấu vươn xa = ±96, dấu thu về = ∓? (đối bên, ±26) theo
+ *    dãy T/P; cụm lẻ đảo dấu toàn bộ (mirror).
+ *  · Dọc (--paw-dy): cộng vào gap 44 nền — hai dấu GIỮA (cùng bên) CHỤM lại
+ *    thành một "cặp" (bàn trước+sau con thú); còn lại giãn thường.
+ *  · Xoay (--paw-rot): sóng sin chu kỳ 8 → ngón chân đảo hướng MƯỢT theo tiếp
+ *    tuyến trackway, ≈0 ở đỉnh phình, cực đại ở chỗ bắt chéo qua trục.
  */
 function frac(n: number): number {
   const x = Math.sin(n * 127.1 + 31.7) * 43758.5453;
   return x - Math.floor(x); // 0..1 tất định
 }
-// QUỸ ĐẠO (HƯỚNG THÂN) — đây mới là thứ CHÍNH, nhìn từ trên cao. Sư tử CAM KẾT
-// đi một hướng chéo trong cả một ĐOẠN DÀI (SEGLEN bước, nội suy TUYẾN TÍNH →
-// đường đi thẳng chéo rõ), rồi tới cuối đoạn NGOẶT HẲN sang hướng khác (đích
-// ngang đoạn kế lấy bằng hash → ngẫu nhiên, tất định). Biên độ lớn quét gần hết
-// bề ngang → đọc ra "đi hướng này một lúc rồi rẽ", không phải cột dọc lắc nhẹ.
-const SEGLEN = 4;
-function segTarget(s: number): number {
-  // TRỤC ĐƯỜNG ĐI lượn hai bên: mỗi đoạn đổi bên với biên độ ngẫu nhiên (34..54).
-  // Biên độ VỪA PHẢI (không quét hết màn) để CÒN CHỖ cho ĐỘ MỞ HAI HÀNG chân.
-  const sign = s % 2 === 0 ? -1 : 1;
-  return sign * (22 + frac(s * 3.3 + 2) * 14);
-}
-function centerline(i: number): number {
-  const s = Math.floor(i / SEGLEN);
-  const t = (i - s * SEGLEN) / SEGLEN; // TUYẾN TÍNH → đi chéo đều trong đoạn, ngoặt ở cuối
-  return segTarget(s) + (segTarget(s + 1) - segTarget(s)) * t;
+// Template MỘT CỤM (cụm A), 4 beat theo dãy T–P–P–T. TPLx = x có DẤU: beat0 Trái
+// gần trục (−26), beat1+2 Phải vươn xa (+88,+96 — cặp giữa), beat3 Trái về gần
+// trục (−26). TPLy: khoảng dọc TỚI dấu trước (cộng vào gap 44); cặp giữa CHỤM.
+const TPLx = [-26, 88, 96, -26];
+const TPLy = [6, 8, -22, 8];
+/** Trục ngang một dấu chân (trước nhiễu). Cụm chẵn = A (dãy T–P–P–T); cụm lẻ =
+ *  B = đảo dấu (P–T–T–P). Biên đỉnh ±96 vẫn trong khung mobile hẹp (disc 70 →
+ *  mép ±131 < nửa khung ~144 trên màn 320). */
+function pawX(seq: number): number {
+  const c = Math.floor(seq / 4);
+  const b = ((seq % 4) + 4) % 4;
+  const mir = c & 1 ? -1 : 1;
+  return TPLx[b]! * mir;
 }
 
-/**
- * MỘT BƯỚC CHÂN — theo đúng cơ chế đi của thú 4 chân (lateral-sequence walk).
- * Thứ tự đặt chân một chu kỳ: sau-TRÁI, trước-TRÁI, sau-PHẢI, trước-PHẢI. Nên:
- *  · Chân TRƯỚC & SAU CÙNG BÊN đi thành CẶP: bàn trước đặt SÁT bàn sau → hai dấu
- *    CHỤM lại (gap dọc nhỏ). Xong cặp trái thì thân chuyển sang phải → GIÃN XA
- *    (gap lớn) rồi lại chụm cặp phải. KHÔNG phải nhịp 1,2,1,2 đều như người.
- *  · Hai hàng TRÁI/PHẢI tách rõ (±40px), nghiêng theo khúc cua (bankY vuông góc).
- *  · Cả trackway bám ĐƯỜNG ĐI (centerline) lượn rẽ.
- */
+/** Một dấu chân: vị trí ngang, co/giãn dọc, góc xoay — theo quy luật cụm-mirror. */
 function gaitStep(seq: number): { dx: number; dy: number; rot: number } {
-  const beat = ((seq % 4) + 4) % 4; // 0 sau-trái · 1 trước-trái · 2 sau-phải · 3 trước-phải
-  const side = beat < 2 ? -1 : 1; // cặp TRÁI (0,1) rồi cặp PHẢI (2,3)
-  const front = beat === 1 || beat === 3; // bàn TRƯỚC = dấu CHỤM, đặt sát bàn sau
-
-  const slope = centerline(seq + 1) - centerline(seq - 1); // độ chéo đường đi tại đây
-
-  // Hai hàng tách rõ; bàn trước xòe ra ngoài hàng một chút để phân biệt trước/sau.
-  const straddle = 40 + (frac(seq * 1.3) * 5 - 2.5);
-  const splayX = front ? side * 7 : side * 1;
-  let dx = centerline(seq) + side * straddle + splayX + (frac(seq * 3.1) * 4 - 2);
-  dx = Math.max(-80, Math.min(80, dx)); // trục ±36 + độ mở ±43 vẫn trong khung mobile
-  const bankY = -side * slope * 0.14; // hàng bên trong khúc cua nhích lên (vuông góc hướng đi)
-
-  // CHỤM/XA: bàn TRƯỚC kéo SÁT bàn sau (gap nhỏ = chụm); mở đầu cặp bên kia GIÃN
-  // rộng (gap lớn = xa). Đây là nhịp bước của 4 chân, không đều tăm tắp.
-  let dy = (front ? -18 : 22) + (frac(seq * 5.7) * 8 - 4) + bankY;
-
-  // Bàn chân xoay theo HƯỚNG ĐI (đường chéo) + xòe nhẹ bên đặt chân + nhiễu.
-  let rot = Math.max(-24, Math.min(24, slope * 0.5)) + side * 4 + (frac(seq * 9.3) * 5 - 2.5);
-  rot = Math.max(-28, Math.min(28, rot));
+  const b = ((seq % 4) + 4) % 4;
+  let dx = Math.max(-98, Math.min(98, pawX(seq) + (frac(seq * 3.1) * 4 - 2)));
+  const dy = TPLy[b]! + (frac(seq * 5.7) * 6 - 3);
+  // Sin chu kỳ 8, lệch pha −1.5 → rot≈0 ở tâm cụm, cực đại ±16° ở ranh giới cặp;
+  // liên tục qua ranh giới cụm (không giật như lấy hiệu sai phân cục bộ).
+  const rot = 16 * Math.sin(((seq - 1.5) * Math.PI) / 4) + (frac(seq * 9.3) * 5 - 2.5);
 
   return { dx: Math.round(dx * 10) / 10, dy: Math.round(dy), rot: Math.round(rot * 10) / 10 };
 }

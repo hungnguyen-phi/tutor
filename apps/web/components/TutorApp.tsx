@@ -10,6 +10,7 @@ import {
   Sigma,
   Languages,
   BookText,
+  Scale,
   Zap,
   X,
   CheckCircle2,
@@ -79,7 +80,7 @@ type Msg =
   | { role: "feedback"; text: string };
 
 type Verdict = "ok" | "retry" | "done" | null;
-type Subject = "Toan" | "Van" | "Anh";
+type Subject = "Toan" | "Van" | "Anh" | "GDKTPL";
 
 // Mỗi môn: nhãn dài (banner) + ngắn (pill/thẻ) + slug file lộ trình tĩnh +
 // `live` = đã có ngân hàng câu hỏi trong DB nên LUYỆN được ngay. Môn chưa
@@ -89,7 +90,40 @@ const SUBJECTS: SubjectInfo<Subject>[] = [
   { key: "Toan", short: "Toán", unit: "Toán 10", subtitle: "Hàm số bậc hai · dẫn dắt Socratic, chấm bằng CAS", slug: "toan", live: true, Icon: Sigma },
   { key: "Van", short: "Ngữ văn", unit: "Ngữ văn 10", subtitle: "Thần thoại, truyện kể, thơ · đọc hiểu & viết", slug: "van", live: false, Icon: BookText },
   { key: "Anh", short: "Tiếng Anh", unit: "Tiếng Anh 10", subtitle: "Present simple · trắc nghiệm, viết & nói", slug: "anh", live: true, Icon: Languages },
+  { key: "GDKTPL", short: "KT & Pháp luật", unit: "Kinh tế & Pháp luật 10", subtitle: "Hoạt động kinh tế & pháp luật · trắc nghiệm tự chấm", slug: "gdktpl", live: true, Icon: Scale },
 ];
+
+/** Chiêm nghiệm cuối buổi (G14) — 3 lựa chọn chạm, mỗi lựa chọn trả lời bằng
+ *  câu growth-mindset. Tự chứa trạng thái, KHÔNG gọi API / KHÔNG chấm điểm:
+ *  giá trị nằm ở HÀNH ĐỘNG tự nhìn lại, không phải ở dữ liệu thu về. */
+function SessionReflection() {
+  const [picked, setPicked] = useState<string | null>(null);
+  const opts = [
+    { k: "clear", label: "Em hiểu rõ hơn rồi", msg: "Tuyệt! Tự nhận ra mình tiến bộ là bước quan trọng nhất." },
+    { k: "hard", label: "Vẫn còn hơi khó", msg: "Không sao — thấy khó nghĩa là não em đang lớn lên. Mai mình luyện tiếp nhé!" },
+    { k: "more", label: "Em muốn thử thêm", msg: "Tinh thần đó đáng quý! Cứ giữ đà tò mò này." },
+  ];
+  const hit = opts.find((o) => o.k === picked);
+  return (
+    <div className="reflect-card">
+      <p className="reflect-q">Hôm nay em thấy buổi học thế nào?</p>
+      <div className="reflect-chips">
+        {opts.map((o) => (
+          <button
+            key={o.k}
+            type="button"
+            className="reflect-chip"
+            aria-pressed={picked === o.k}
+            onClick={() => setPicked(o.k)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {hit && <p className="reflect-msg" role="status">{hit.msg}</p>}
+    </div>
+  );
+}
 
 export default function TutorApp() {
   const { session, profile } = useAuth();
@@ -253,6 +287,20 @@ export default function TutorApp() {
   // đáng tin để so kè.
   const startedAtRef = useRef<number | null>(null);
   const [elapsedSec, setElapsedSec] = useState<number | null>(null);
+  // G14 "nhắc nghỉ": buổi học chủ động ~40'. Sau NGƯỠNG (25') gợi ý nghỉ mắt MỘT
+  // lần — không ép, không phạt (học bền vững). Băng-rôn dịu, học sinh tự tắt.
+  const [breakNudge, setBreakNudge] = useState(false);
+  useEffect(() => {
+    if (!ses || finished) return;
+    const BREAK_AT_MS = 25 * 60 * 1000;
+    const id = setInterval(() => {
+      if (startedAtRef.current && Date.now() - startedAtRef.current >= BREAK_AT_MS) {
+        setBreakNudge(true);
+        clearInterval(id);
+      }
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [ses, finished]);
   // Câu đã từng trả lời sai trong buổi → đếm "chính xác x/y" + link ôn lại.
   const wrongRef = useRef<Set<string>>(new Set());
 
@@ -453,6 +501,7 @@ export default function TutorApp() {
       // Mốc đo thật cho màn hoàn thành: thời gian buổi + những câu từng sai.
       startedAtRef.current = Date.now();
       setElapsedSec(null);
+      setBreakNudge(false);
       wrongRef.current = new Set();
 
       const { next, streakGrew } = G.recordStudyDay(G.load());
@@ -803,6 +852,10 @@ export default function TutorApp() {
             );
           })}
 
+          {/* G14 "chiêm nghiệm": metacognition nhẹ cuối buổi — thưởng nỗ lực,
+              KHÔNG chấm điểm; growth mindset (khó = não đang lớn). */}
+          <SessionReflection />
+
           <div className="finish-cta">
             <button className="btn btn-gold btn-block" onClick={backToPath}>
               TIẾP TỤC
@@ -1090,6 +1143,19 @@ export default function TutorApp() {
           <span>
             Mình cùng vá nền: <b>{remediateLabel}</b> — nền chắc rồi mình quay lại bài khó nhé.
           </span>
+        </div>
+      )}
+
+      {/* G14 "nhắc nghỉ": gợi ý nghỉ mắt sau 25' — dịu, tự tắt, không chặn học. */}
+      {breakNudge && (
+        <div className="mend-banner break-banner" role="status">
+          <Timer aria-hidden strokeWidth={2.25} />
+          <span>
+            Em học chăm quá — <b>nghỉ mắt 1–2 phút</b> rồi quay lại nhé, não nhớ tốt hơn khi được nghỉ.
+          </span>
+          <button className="break-x" onClick={() => setBreakNudge(false)} aria-label="Đã hiểu, tiếp tục">
+            <X aria-hidden strokeWidth={2.5} />
+          </button>
         </div>
       )}
 

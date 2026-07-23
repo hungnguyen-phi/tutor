@@ -13,7 +13,7 @@ bắt tay, và cập nhật lại file đó khi trạng thái đổi (deploy web
 Tài liệu chính (đều trong `docs/`):
 - `BAN-GIAO-TrangThai-DuAn.md` — **điểm vào, đọc trước tiên**
 - `PRD-v3.md` — yêu cầu sản phẩm (bám PRD v2, chỉnh khớp app)
-- `Timeline-DuAn.xlsx` — checklist %sống (hiện ~74.4%)
+- `Timeline-DuAn.xlsx` — checklist %sống (hiện ~75.0%, rà 23/07)
 - `ONBOARD-SUBJECT.md`, `PRODUCTION-BOOTSTRAP.md` — runbook
 - `DoiUng-Tutor-*.md` — đối ứng hợp đồng kỹ thuật với đội Studio
 

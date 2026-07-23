@@ -114,6 +114,51 @@ Deno.serve(async (req: Request) => {
       const mastered = masteredCount ?? 0;
       const trackedNodes = tracked ?? 0;
       const totalTokens = (tokens ?? []).reduce((s, r) => s + (r.tokens ?? 0), 0);
+
+      // ── ANALYTICS chuỗi thời gian (O3) — 14 ngày, bucket theo ngày. Kéo cột
+      // tối thiểu + cận thời gian nên nhẹ; gộp trong JS (đủ cho quy mô pilot).
+      const DAYS = 14;
+      const sinceIso = new Date(Date.now() - DAYS * 86400000).toISOString();
+      const [{ data: att }, { data: ses2 }] = await Promise.all([
+        supa.from("attempts").select("student_id, is_correct, created_at").eq("tenant_id", t).gte("created_at", sinceIso).limit(20000),
+        supa.from("learning_sessions").select("student_id, started_at").eq("tenant_id", t).gte("started_at", sinceIso).limit(20000),
+      ]);
+      const dayList: string[] = [];
+      for (let i = DAYS - 1; i >= 0; i--) dayList.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+      const bk: Record<string, { active: Set<string>; sessions: number; attempts: number; correct: number }> = {};
+      for (const d of dayList) bk[d] = { active: new Set(), sessions: 0, attempts: 0, correct: 0 };
+      for (const a of att ?? []) {
+        const k = String(a.created_at).slice(0, 10);
+        const b = bk[k];
+        if (b) { b.attempts++; if (a.is_correct) b.correct++; if (a.student_id) b.active.add(a.student_id); }
+      }
+      for (const s of ses2 ?? []) {
+        const k = String(s.started_at).slice(0, 10);
+        if (bk[k]) bk[k].sessions++;
+      }
+      const daily = dayList.map((d) => ({
+        date: d,
+        active: bk[d].active.size,
+        sessions: bk[d].sessions,
+        attempts: bk[d].attempts,
+        accuracy: bk[d].attempts > 0 ? Math.round((bk[d].correct / bk[d].attempts) * 100) : null,
+      }));
+      // Retention tuần: HS hoạt động 7 ngày qua & cũng hoạt động 7 ngày trước đó.
+      const wkSet = (offset: number) =>
+        new Set(
+          (att ?? [])
+            .filter((a) => {
+              const age = Date.now() - Date.parse(String(a.created_at));
+              return age >= offset * 86400000 && age < (offset + 7) * 86400000;
+            })
+            .map((a) => a.student_id)
+            .filter(Boolean),
+        );
+      const thisWk = wkSet(0);
+      const prevWk = wkSet(7);
+      const returned = [...thisWk].filter((s) => prevWk.has(s)).length;
+      const retention = prevWk.size > 0 ? Math.round((returned / prevWk.size) * 100) : null;
+
       return json({
         role: "leadership",
         metrics: {
@@ -123,7 +168,10 @@ Deno.serve(async (req: Request) => {
           trackedNodes,
           aiTokens: totalTokens,
           aiCostUsd: Number((totalTokens / 1_000_000 * 0.3).toFixed(2)),
+          activeStudents7d: thisWk.size,
         },
+        daily,
+        retention,
       });
     }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CalendarDays, Info, Lock, ShieldCheck } from "lucide-react";
-import { dashboard, teacherStats, type DashAction } from "../lib/api";
+import { AlertTriangle, CalendarDays, Check, Info, Lock, ShieldCheck } from "lucide-react";
+import { dashboard, teacherStats, grantConsent, type DashAction } from "../lib/api";
 import Lion from "./Lion";
 import RosterManager from "./RosterManager";
 
@@ -207,6 +207,7 @@ export function ParentView() {
             </b>
           </div>
         ))}
+        <ParentConsentAction />
       </section>
 
       <div className="pr-tip">
@@ -382,18 +383,92 @@ export function CounselorView() {
 }
 
 // ── BAN GIÁM HIỆU ────────────────────────────────────────────────────────────
+/** Biểu đồ cột 14 ngày (O3) — SVG thuần, không thư viện. Cột = lượt trả lời/ngày;
+ *  nhãn dưới ghi tổng phiên + đỉnh. Rỗng dữ liệu vẫn vẽ trục cho khỏi trống trơn. */
+function DailyChart({ daily }: { daily: Array<{ date: string; active: number; sessions: number; attempts: number; accuracy: number | null }> }) {
+  const max = Math.max(1, ...daily.map((d) => d.attempts));
+  const W = 320;
+  const H = 84;
+  const n = daily.length;
+  const gap = 3;
+  const bw = (W - gap * (n - 1)) / n;
+  const totalAtt = daily.reduce((s, d) => s + d.attempts, 0);
+  const totalSes = daily.reduce((s, d) => s + d.sessions, 0);
+  const peakActive = Math.max(0, ...daily.map((d) => d.active));
+  return (
+    <section className="panel">
+      <h2 className="h3">Hoạt động 14 ngày</h2>
+      <svg viewBox={`0 0 ${W} ${H + 4}`} className="analytics-chart" role="img" aria-label={`Lượt trả lời mỗi ngày, tổng ${totalAtt} lượt trong 14 ngày`}>
+        <line x1="0" y1={H} x2={W} y2={H} className="ac-axis" />
+        {daily.map((d, i) => {
+          const h = Math.round((d.attempts / max) * (H - 4));
+          return <rect key={d.date} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx="2" className="ac-bar" data-empty={d.attempts === 0 || undefined}>
+            <title>{`${d.date}: ${d.attempts} lượt · ${d.active} HS · ${d.sessions} phiên${d.accuracy != null ? ` · ${d.accuracy}% đúng` : ""}`}</title>
+          </rect>;
+        })}
+      </svg>
+      <div className="analytics-legend">
+        <span><b className="num">{totalAtt}</b> lượt trả lời</span>
+        <span><b className="num">{totalSes}</b> phiên</span>
+        <span>Đỉnh HS/ngày: <b className="num">{peakActive}</b></span>
+      </div>
+    </section>
+  );
+}
+
+/** Nút người giám hộ ĐỒNG Ý cho con dùng AI Tutor (K3 — nửa "giám hộ" của đồng
+ *  thuận kép). Idempotent: bấm lại vẫn an toàn (ghi guardian_consent_by=self). */
+function ParentConsentAction() {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "err">("idle");
+  if (state === "done") {
+    return (
+      <p className="pr-consent-ok" role="status">
+        <Check aria-hidden strokeWidth={2.5} /> Đã ghi nhận đồng ý của phụ huynh. Cảm ơn anh/chị!
+      </p>
+    );
+  }
+  return (
+    <div className="pr-consent-action">
+      <button
+        type="button"
+        className="btn btn-gold"
+        disabled={state === "busy"}
+        onClick={async () => {
+          setState("busy");
+          try {
+            await grantConsent();
+            setState("done");
+          } catch {
+            setState("err");
+          }
+        }}
+      >
+        {state === "busy" ? "Đang ghi nhận…" : "Đồng ý cho con dùng AI Tutor"}
+      </button>
+      {state === "err" && <span className="pr-consent-err">Chưa ghi được — thử lại giúp em nhé.</span>}
+      <p className="muted" style={{ fontSize: "0.75rem", margin: "6px 0 0" }}>
+        Con chỉ được học khi có ĐỦ đồng ý của phụ huynh và ưng thuận của chính con (đồng thuận kép — PDPL).
+      </p>
+    </div>
+  );
+}
+
 export function LeadershipView() {
   const { d, err } = useDash("leadership");
   if (!d) return <Loading err={err} />;
   const m = d.metrics;
+  const daily = (d.daily ?? []) as Array<{ date: string; active: number; sessions: number; attempts: number; accuracy: number | null }>;
   return (
     <div className="stack">
       <div className="kpis">
         <Kpi label="Học sinh" value={m.students} />
+        <Kpi label="Hoạt động 7 ngày" value={m.activeStudents7d ?? 0} />
         <Kpi label="Phiên học" value={m.sessions} />
         <Kpi label="Mastery TB" value={`${m.masteryRate}%`} />
+        <Kpi label="Giữ chân tuần" value={d.retention != null ? `${d.retention}%` : "—"} />
         <Kpi label="Chi phí AI" value={`$${m.aiCostUsd}`} sub={`${m.aiTokens.toLocaleString()} tokens`} />
       </div>
+      {daily.length > 0 && <DailyChart daily={daily} />}
       <Boundary>
         Bảng điều khiển chỉ hiển thị số liệu <b>tổng hợp</b> — không truy cập hội thoại hay dữ liệu
         thô của học sinh.

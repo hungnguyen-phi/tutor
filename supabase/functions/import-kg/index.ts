@@ -17,7 +17,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
-const SUBJECTS = new Set(["Toan", "Hoa", "Anh", "Van"]);
+const SUBJECTS = new Set(["Toan", "Hoa", "Anh", "Van", "GDKTPL"]);
 const RELATIONS = new Set(["prerequisite_hard", "related_soft", "misconception", "cross_subject", "part_of"]);
 const CHUNK = 200;
 

@@ -23,9 +23,10 @@ Intelligent Tutoring System dẫn học sinh học chủ động (Socratic, khô
 - **`.env` (D:/tutor/.env):** có `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN` (Management API — dùng để chạy SQL/nạp qua `https://api.supabase.com/v1/projects/<ref>/database/query`). `DB_PASSWORD`/`SERVICE_ROLE` vẫn placeholder.
 - **Git:** nhánh `feat/kg-ingest-v2.2`. Commit gần nhất `f40aa90` (docs PRD v3 + timeline + C09).
 
-## 3. Trạng thái tiến độ: **≈ 74.4%**
+## 3. Trạng thái tiến độ: **≈ 75.0%** *(rà lại 23/07)*
 Bám PRD v3. 100% = **pilot production Việt Anh trọn vẹn** (2 môn đủ nội dung + đủ vai/công cụ + PDPL + gamification + đo A/B + nhà máy nội dung vận hành). IRT/CAT + SSO/OCR/Classroom + Zalo + đa môn = **v-next (ngoài 100%)**. Done = code+test+build xanh.
-- File %sống: **`docs/Timeline-DuAn.xlsx`** — 115 việc, mỗi ≤1.19%, dropdown Xong/Đang/Chưa → %tự tính. Sinh lại bằng `scratchpad/gen_timeline.py` (đóng Excel trước khi chạy).
+- File %sống: **`docs/Timeline-DuAn.xlsx`** — 115 việc (84 Xong / 12 Đang / 19 Chưa), dropdown Xong/Đang/Chưa → %tự tính. Rà 23/07: N3 web build+verify xong → Đang; re-key ghi ở L1; nội dung Anh (E4–E7) làm sắc ghi chú. **Generator `gen_timeline.py` đã mất (scratchpad phiên cũ)** → sửa trực tiếp xlsx bằng openpyxl (đóng Excel trước khi ghi).
+- ⚠️ **Chỗ scope chờ chốt (rà 23/07):** I3 (báo cáo PH) + J2 (cờ an toàn) — memory 20/07 ghi ĐÃ BỎ khỏi pilot nhưng timeline vẫn tính %; E4 (rubric riêng 340) chủ dự án đã chốt = v-next. Nếu đẩy cả 3 sang khu v-next (loại khỏi mẫu số) → % pilot = **77.8%**. Chưa tách vì cần chốt cách biểu diễn "v-next" trong file.
 - PRD: **`docs/PRD-v3.md`** (§0 bảng v2→v3, §14 định nghĩa 100%). PRD v2 gốc = Google Doc `1seyRK7XissTfrbLWIpK27ky8PD5AV3ayyQDWtYn8P6E`.
 
 ## 4. Đã làm (phiên gần đây)
@@ -47,7 +48,7 @@ Bám PRD v3. 100% = **pilot production Việt Anh trọn vẹn** (2 môn đủ n
 
 ## 6. ĐANG CHỜ / VIỆC TIẾP THEO
 1. **Deploy web production** (Cloudflare) — để hình nền + scorecard rubric lên live thật.
-2. **Re-key ID (hợp đồng Studio 2026-07-23):** Studio đổi mã atom → `KC-/Q-/E-/R-/L-`. **Audit Tutor:** engine JOIN agnostic ✅, NHƯNG `learning-path.tiebreak` xếp bài dựa vào `node_key` đệm-0 → **re-key làm XÁO thứ tự bài** (cột `chapter` là nhãn La Mã, so chuỗi sai). **Đã yêu cầu Studio cấp tín hiệu thứ tự tường minh** (khuyến nghị giữ `kc_registry.vi_tri_trong_ct` truy vấn được). Khi Studio chốt: sửa `tiebreak` (~10 dòng) + deploy trong CÙNG cửa sổ bảo trì P3↔P4. Chi tiết: `docs/DoiUng-Tutor-ReKey.md`.
+2. **Re-key ID (Studio 2026-07-23): XONG — ĐÃ NGHIỆM THU.** Studio đổi mã atom → `KC-/Q-/E-/R-/L-`, chạy P3 remap (544 node sống + 2.967 câu + 5 cột dữ liệu HS). Tutor P4 = `learning-path` đổi tiebreak `node_key` → `kc_registry.vi_tri_trong_ct`, **đã deploy (v10) + verify**. Nghiệm thu Tutor (đọc DB prod + gọi API acc demo) **ĐẠT toàn bộ**: 0 key cũ sót/9 cột · đếm dòng khớp Studio (attempts 60…) · tiến độ HS 0 mồ côi, điểm giữ nguyên · **thứ tự lộ trình đúng** (Anh khớp 100% `vi_tri_trong_ct`; Toán đúng, chỗ lệch là cạnh tiên quyết chèn = "mở khoá thông minh", không hồi quy) · sẵn sàng chấm (engine theo `questions.id` UUID bất biến). Chi tiết: `docs/DoiUng-Tutor-ReKey.md` mục I. **Còn chờ Studio giao theo ID mới:** bundle GDKTPL 10 (210 câu), rubric ~340, câu nghe+transcript, thang/rubric Tiếng Anh (socratic_ladders Anh hiện = 0). *(Việc còn lại tuỳ chọn: bấm "chấm thử" 1 câu trong app để xác nhận trực quan — ghi dòng demo nên để người phụ trách tự làm.)*
 3. **Chờ Studio cấp:** rubric riêng từng câu (~340, theo 3 khuôn kỹ năng), câu `nghe` + transcript, bundle GDKTPL 10 (210 câu) — **theo ID mới** sau re-key.
 4. **Tới 100% (PRD v3):** nội dung Anh 10 (rubric/nghe/thang/nghiệm thu), đo A/B, công cụ GV sâu (duyệt AI, GV chỉnh nội dung, heatmap), trang phụ huynh, PDPL đầy đủ (đồng thuận kép), cờ khẩn cấp, export báo cáo, nhân bản GDKTPL.
 5. **`assets-src/`** (ảnh gốc ~14MB toán+tiếng anh): **cố ý CHƯA commit** (webp shipped ở `public/scenes`). User quyết: commit làm nguồn hay `.gitignore`.

@@ -65,6 +65,11 @@ verify_jwt = true
 [functions.import-questions]
 verify_jwt = true
 
+# consent: cấp/rút đồng thuận kép (K3, PDPL). Tự authenticate + gác theo vai
+# (HS tự assent; giám hộ grant cho con đã liên kết). Ghim verify_jwt = true.
+[functions.consent]
+verify_jwt = true
+
 # admin-roster: tạo lớp + tài khoản thật + import danh sách + phân công. Tự
 # authenticate + chỉ admin/campus_admin. Ghim verify_jwt = true (chặn ở cổng).
 [functions.admin-roster]

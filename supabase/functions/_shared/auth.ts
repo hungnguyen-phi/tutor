@@ -100,14 +100,24 @@ export async function authenticate(req: Request): Promise<AuthCtx | null> {
 export const can = (ctx: AuthCtx, perm: string) => ctx.perms.has(perm);
 export const hasRole = (ctx: AuthCtx, ...keys: string[]) => keys.some((k) => ctx.roles.has(k));
 
-/** Active consent check for a purpose (PDPL: withdraw → stop). */
+/**
+ * Active consent check for a purpose (PDPL: withdraw → stop).
+ * ĐỒNG THUẬN KÉP (K3): bản ghi bật `dual_consent` (trẻ ≥7 — PDPL yêu cầu cả trẻ
+ * lẫn người giám hộ) chỉ hợp lệ khi CÓ ĐỦ ưng thuận của trẻ (`student_assent`)
+ * LẪN đồng ý của người giám hộ (`guardian_consent_by`). Bản ghi không bật
+ * dual_consent (vd HS đủ tuổi tự quyết) chỉ cần `status = active`.
+ */
 export async function hasActiveConsent(studentId: string, purpose = "ai_tutoring"): Promise<boolean> {
   const supa = admin();
   const { data } = await supa
     .from("consent_records")
-    .select("status")
+    .select("status, dual_consent, student_assent, guardian_consent_by")
     .eq("student_id", studentId)
     .eq("purpose", purpose)
     .maybeSingle();
-  return data?.status === "active";
+  if (!data || data.status !== "active") return false;
+  if (data.dual_consent) {
+    return data.student_assent === true && data.guardian_consent_by != null;
+  }
+  return true;
 }

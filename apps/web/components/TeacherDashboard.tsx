@@ -7,11 +7,13 @@ import {
   Check,
   ChevronDown,
   Clock,
+  Download,
   Home,
   Inbox,
   Info,
   LayoutGrid,
   LogOut,
+  Printer,
   ScanSearch,
   ShieldAlert,
   Undo2,
@@ -25,6 +27,7 @@ import {
   type TeacherStats,
   type RosterStudent,
 } from "../lib/api";
+import { toCsv, downloadText, dateStamp, printReport } from "../lib/export";
 import { useAuth, signOut, isAllowed, roleHome } from "../lib/auth";
 import RedirectToLogin from "./RedirectToLogin";
 import StudioIntake from "./StudioIntake";
@@ -346,12 +349,17 @@ function Console({
             )}
           </button>
         ))}
+        {/* In / lưu PDF bản báo cáo đang xem — ẩn khỏi bản in bằng @media print */}
+        <button className="tdb-tab tdb-print-btn" onClick={printReport} title="In hoặc lưu trang này thành PDF">
+          <Printer aria-hidden strokeWidth={2} />
+          Lưu PDF
+        </button>
       </div>
 
       {tab === "overview" && (
         <OverviewTab m={m} activity={activity} masteryPct={masteryPct} />
       )}
-      {tab === "students" && <StudentsTab roster={roster} />}
+      {tab === "students" && <StudentsTab roster={roster} studentNodes={data.studentNodes} />}
       {tab === "topics" && <TopicsTab topics={topics} />}
       {tab === "content" && (
         <ContentTab
@@ -465,7 +473,7 @@ function OverviewTab({
 // ── Tab: Học sinh (roster) ────────────────────────────────────────────────────
 type SortKey = "attention" | "name" | "mastered" | "accuracy" | "recent";
 
-function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
+function StudentsTab({ roster, studentNodes }: { roster: TeacherStats["roster"]; studentNodes?: TeacherStats["studentNodes"] }) {
   const [sort, setSort] = useState<SortKey>("attention");
   const students = roster?.students ?? [];
 
@@ -506,6 +514,29 @@ function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
     { key: "name", label: "Tên A–Z" },
   ];
 
+  // Xuất CSV danh sách theo đúng thứ tự đang xem — GV mở bằng Excel để lọc/lưu.
+  const exportCsv = () => {
+    const rows = sorted.map((s) => [
+      s.name,
+      s.grade ? `Khối ${s.grade}` : "",
+      s.mastered,
+      s.tracked,
+      s.attempts > 0 ? `${Math.round(s.accuracy * 100)}%` : "",
+      s.avgEffort ? s.avgEffort.toFixed(1) : "",
+      s.attempts,
+      s.dueReviews,
+      s.lastActiveAt ? new Date(s.lastActiveAt).toLocaleDateString("vi-VN") : "",
+      s.flags.join("; "),
+    ]);
+    downloadText(
+      `hoc-sinh-${dateStamp()}.csv`,
+      toCsv(
+        ["Học sinh", "Khối", "Thành thạo", "Theo dõi", "Chính xác", "Nỗ lực TB", "Lượt trả lời", "Đến hạn ôn", "Hoạt động gần nhất", "Cờ chú ý"],
+        rows,
+      ),
+    );
+  };
+
   return (
     <section className="tdb-card">
       <div className="tdb-card-head">
@@ -521,6 +552,9 @@ function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
               {s.label}
             </button>
           ))}
+          <button className="tdb-sort-btn tdb-export" onClick={exportCsv} title="Tải danh sách ra file CSV (mở bằng Excel)">
+            <Download aria-hidden strokeWidth={2} width={14} height={14} /> CSV
+          </button>
         </div>
       </div>
 
@@ -538,7 +572,7 @@ function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
           </thead>
           <tbody>
             {sorted.map((s) => (
-              <StudentRow key={s.id} s={s} />
+              <StudentRow key={s.id} s={s} nodes={studentNodes?.[s.id] ?? []} />
             ))}
           </tbody>
         </table>
@@ -555,45 +589,84 @@ function StudentsTab({ roster }: { roster: TeacherStats["roster"] }) {
   );
 }
 
-function StudentRow({ s }: { s: RosterStudent }) {
+function StudentRow({ s, nodes }: { s: RosterStudent; nodes: NonNullable<TeacherStats["studentNodes"]>[string] }) {
+  const [open, setOpen] = useState(false);
   const masteredPct = s.tracked ? Math.round((s.mastered / s.tracked) * 100) : 0;
+  const canExpand = nodes.length > 0;
+  const first = s.name.trim().split(/\s+/).pop();
   return (
-    <tr data-attention={s.flags.some((f) => f === "cần kèm") || undefined}>
-      <th scope="row" className="tdb-td-name">
-        <span className="tdb-td-avatar" aria-hidden>
-          {initialOf(s.name)}
-        </span>
-        <span className="tdb-td-nametext">
-          <b>{s.name}</b>
-          {s.grade && <small>Khối {s.grade}</small>}
-        </span>
-      </th>
-      <td>
-        <div className="tdb-cellbar" title={`${s.mastered}/${s.tracked} điểm`}>
-          <div className="tdb-mini-bar" aria-hidden>
-            <i style={{ width: `${masteredPct}%` }} />
+    <>
+      <tr data-attention={s.flags.some((f) => f === "cần kèm") || undefined} data-open={open || undefined}>
+        <th scope="row" className="tdb-td-name">
+          <button
+            type="button"
+            className="tdb-td-expand"
+            onClick={() => canExpand && setOpen((o) => !o)}
+            disabled={!canExpand}
+            aria-expanded={canExpand ? open : undefined}
+            title={canExpand ? "Xem chi tiết theo điểm kiến thức" : "Chưa có dữ liệu chi tiết"}
+          >
+            <span className="tdb-td-avatar" aria-hidden>{initialOf(s.name)}</span>
+            <span className="tdb-td-nametext">
+              <b>{s.name}</b>
+              {s.grade && <small>Khối {s.grade}</small>}
+            </span>
+            {canExpand && <ChevronDown className="tdb-td-chev" aria-hidden strokeWidth={2.5} />}
+          </button>
+        </th>
+        <td>
+          <div className="tdb-cellbar" title={`${s.mastered}/${s.tracked} điểm`}>
+            <div className="tdb-mini-bar" aria-hidden>
+              <i style={{ width: `${masteredPct}%` }} />
+            </div>
+            <span className="num">
+              {s.mastered}/{s.tracked || 0}
+            </span>
           </div>
-          <span className="num">
-            {s.mastered}/{s.tracked || 0}
+        </td>
+        <td className="tdb-num-col">
+          {s.attempts > 0 ? <span className="num">{pct(s.accuracy)}</span> : <span className="muted">—</span>}
+        </td>
+        <td className="tdb-num-col">
+          {s.avgEffort > 0 ? <span className="num">{s.avgEffort}</span> : <span className="muted">—</span>}
+        </td>
+        <td>
+          <span className="tdb-recent">
+            <Clock aria-hidden strokeWidth={2} />
+            {relTime(s.lastActiveAt)}
           </span>
-        </div>
-      </td>
-      <td className="tdb-num-col">
-        {s.attempts > 0 ? <span className="num">{pct(s.accuracy)}</span> : <span className="muted">—</span>}
-      </td>
-      <td className="tdb-num-col">
-        {s.avgEffort > 0 ? <span className="num">{s.avgEffort}</span> : <span className="muted">—</span>}
-      </td>
-      <td>
-        <span className="tdb-recent">
-          <Clock aria-hidden strokeWidth={2} />
-          {relTime(s.lastActiveAt)}
-        </span>
-      </td>
-      <td>
-        <FlagChips flags={s.flags} />
-      </td>
-    </tr>
+        </td>
+        <td>
+          <FlagChips flags={s.flags} />
+        </td>
+      </tr>
+      {open && (
+        <tr className="tdb-drill-row">
+          <td colSpan={6}>
+            <div className="tdb-drill">
+              <span className="tdb-drill-title">Từng điểm kiến thức của {first}</span>
+              <div className="tdb-heat" role="img" aria-label={`Bản đồ thành thạo ${nodes.length} điểm kiến thức của ${s.name}`}>
+                {nodes.map((n) => (
+                  <span
+                    key={n.key}
+                    className="tdb-heat-cell"
+                    data-state={n.mastered ? "m" : n.score >= 0.5 ? "p" : "w"}
+                    data-due={n.due || undefined}
+                    title={`${n.label} — ${n.mastered ? "thành thạo" : `điểm ${Math.round(n.score * 100)}%`}${n.due ? " · đến hạn ôn" : ""}`}
+                  />
+                ))}
+              </div>
+              <div className="tdb-heat-legend" aria-hidden>
+                <span><i data-state="m" /> thành thạo</span>
+                <span><i data-state="p" /> đang luyện</span>
+                <span><i data-state="w" /> còn yếu</span>
+                <span><i data-due="true" /> đến hạn ôn</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -609,13 +682,33 @@ function TopicsTab({ topics }: { topics: NonNullable<TeacherStats["topics"]> }) 
       </section>
     );
   }
+  const exportCsv = () => {
+    const rows = topics.map((t) => [
+      t.label,
+      t.nodeKey,
+      t.mastered,
+      t.tracked,
+      t.tracked ? `${Math.round((t.mastered / t.tracked) * 100)}%` : "",
+      (t.avgScore ?? 0).toFixed(2),
+    ]);
+    downloadText(
+      `chu-de-${dateStamp()}.csv`,
+      toCsv(["Điểm kiến thức", "Mã", "Thành thạo", "Theo dõi", "% thành thạo", "Điểm TB"], rows),
+    );
+  };
+
   return (
     <section className="tdb-card">
       <div className="tdb-card-head">
         <span className="tdb-card-title">Thành thạo theo điểm kiến thức</span>
-        <span className="muted" style={{ fontSize: "0.75rem" }}>
-          Chỗ cả lớp yếu nhất xếp trước
-        </span>
+        <div className="tdb-sort" role="group">
+          <span className="muted" style={{ fontSize: "0.75rem" }}>
+            Chỗ cả lớp yếu nhất xếp trước
+          </span>
+          <button className="tdb-sort-btn tdb-export" onClick={exportCsv} title="Tải bảng chủ đề ra file CSV (mở bằng Excel)">
+            <Download aria-hidden strokeWidth={2} width={14} height={14} /> CSV
+          </button>
+        </div>
       </div>
       <ul className="tdb-topics">
         {topics.map((t) => {

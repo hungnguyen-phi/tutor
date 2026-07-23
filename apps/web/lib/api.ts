@@ -154,7 +154,7 @@ export interface TurnResult {
 
 /** Môn học web hỗ trợ. Toan/Anh đã live (có ngân hàng câu hỏi trong DB);
  *  Van đang XEM TRƯỚC — learning-path trả rỗng/lỗi thì web tự về lộ trình tĩnh. */
-export type Subject = "Toan" | "Van" | "Anh";
+export type Subject = "Toan" | "Van" | "Anh" | "GDKTPL";
 
 export const diagnose = (subject: Subject, nodeKey?: string) =>
   callFn<DiagnoseResult>("diagnose", nodeKey ? { subject, nodeKey } : { subject });
@@ -228,6 +228,8 @@ export interface TeacherStats {
     students: RosterStudent[];
   };
   topics?: Array<{ nodeKey: string; label: string; mastered: number; tracked: number; avgScore: number }>;
+  /** H6 tra sâu: node states theo từng HS (id → danh sách node đã chạm). */
+  studentNodes?: Record<string, Array<{ key: string; label: string; mastered: boolean; score: number; due: boolean }>>;
   activity?: {
     activeSessions: number;
     dueReviewsTotal: number;
@@ -312,6 +314,31 @@ export interface LearningPathResult {
 
 export const learningPath = (subject: Subject) =>
   callFn<LearningPathResult>("learning-path", { subject });
+
+// ── Đồng thuận kép (K3, PDPL) ────────────────────────────────────────────────
+export interface ConsentStatus {
+  record: {
+    status: "active" | "withdrawn";
+    dual_consent: boolean;
+    student_assent: boolean;
+    guardian_consent_by: string | null;
+  } | null;
+  /** Đã đủ đồng thuận để xử lý dữ liệu chưa (gate hasActiveConsent trả cùng ý). */
+  complete: boolean;
+  /** Còn thiếu ưng thuận của HS. */
+  needsAssent: boolean;
+  /** Còn thiếu đồng ý của người giám hộ. */
+  needsGuardian: boolean;
+}
+export const consentStatus = () => callFn<ConsentStatus>("consent", { action: "status" });
+/** HS tự ưng thuận cho bản ghi của chính mình. */
+export const giveAssent = () => callFn<{ ok: boolean }>("consent", { action: "assent" });
+/** Người giám hộ đồng ý cho con (studentId bỏ trống → tự suy nếu chỉ 1 con). */
+export const grantConsent = (studentId?: string) =>
+  callFn<{ ok: boolean }>("consent", { action: "grant", ...(studentId ? { studentId } : {}) });
+/** Rút đồng ý → dừng xử lý ngay (PDPL). */
+export const withdrawConsent = (studentId?: string) =>
+  callFn<{ ok: boolean }>("consent", { action: "withdraw", ...(studentId ? { studentId } : {}) });
 
 // Khớp enum `Resource.format` trong @tutor/shared (kg/types.ts).
 export type ResourceFormat =

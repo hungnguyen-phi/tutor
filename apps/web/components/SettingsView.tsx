@@ -28,6 +28,7 @@ import {
   Moon,
   PencilLine,
   Settings,
+  ShieldCheck,
   Sun,
   Type,
   UserCircle,
@@ -35,6 +36,7 @@ import {
   Wind,
   LogOut,
 } from "lucide-react";
+import { consentStatus, giveAssent, withdrawConsent, type ConsentStatus } from "../lib/api";
 import Lion from "./Lion";
 import Sheet from "./Sheet";
 import { useAuth, signOut } from "../lib/auth";
@@ -488,6 +490,8 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
               </button>
             )}
           </section>
+
+          <StudentConsent />
         </aside>
       </div>
 
@@ -507,6 +511,49 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
         </div>
       </Sheet>
     </div>
+  );
+}
+
+/** Đồng thuận của HS (K3) — HS tự ưng thuận / rút. Đọc trạng thái khi mở; hiện
+ *  nút hợp cảnh. Chưa có bản ghi → không vẽ (tránh control chết). */
+function StudentConsent() {
+  const [st, setSt] = useState<ConsentStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => consentStatus().then(setSt).catch(() => setSt(null));
+  useEffect(() => { load(); }, []);
+  if (!st || !st.record) return null;
+  const act = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try { await fn(); await load(); } finally { setBusy(false); }
+  };
+  return (
+    <section className="ws-panel">
+      <h2 className="ws-panel-title">
+        <ShieldCheck aria-hidden strokeWidth={2.25} />
+        Đồng ý dữ liệu (PDPL)
+      </h2>
+      {st.complete ? (
+        <>
+          <p className="st-msg ok" role="status">
+            <Check aria-hidden strokeWidth={2.5} /> Đã đủ đồng thuận — em học bình thường.
+          </p>
+          <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => act(() => withdrawConsent())}>
+            Rút đồng ý (dừng xử lý dữ liệu)
+          </button>
+        </>
+      ) : st.needsAssent ? (
+        <>
+          <p className="muted">
+            Em cần đồng ý cho AI Tutor giúp em học — bố/mẹ cũng cần đồng ý (đồng thuận kép).
+          </p>
+          <button className="btn btn-gold btn-block" disabled={busy} onClick={() => act(giveAssent)}>
+            Em đồng ý dùng AI Tutor
+          </button>
+        </>
+      ) : (
+        <p className="muted">Đang chờ bố/mẹ đồng ý. Khi đủ hai bên, em sẽ học được ngay.</p>
+      )}
+    </section>
   );
 }
 

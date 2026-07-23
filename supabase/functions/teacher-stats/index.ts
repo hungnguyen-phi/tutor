@@ -189,7 +189,26 @@ Deno.serve(async (req: Request) => {
 
     const dueReviewsTotal = Array.from(stateByStudent.values()).reduce((s, v) => s + v.due, 0);
 
+    // ── Per-student node states (H6 tra sâu) — dùng lại nodeStates + labelOf.
+    // student_node_state thưa (chỉ node HS đã chạm) nên map này gọn. Node yếu
+    // (chưa thành thạo, điểm thấp) xếp trước để giáo viên thấy chỗ cần kèm ngay.
+    const studentNodes: Record<string, Array<{ key: string; label: string; mastered: boolean; score: number; due: boolean }>> = {};
+    for (const ns of nodeStates ?? []) {
+      if (!ns.student_id || !ns.node_id) continue;
+      (studentNodes[ns.student_id] ??= []).push({
+        key: ns.node_id,
+        label: labelOf[ns.node_id] ?? ns.node_id,
+        mastered: !!ns.mastered,
+        score: Number((ns.mastery_score ?? 0).toFixed(2)),
+        due: !!(ns.next_review_at && Date.parse(ns.next_review_at) <= nowMs),
+      });
+    }
+    for (const k of Object.keys(studentNodes)) {
+      studentNodes[k].sort((a, b) => Number(a.mastered) - Number(b.mastered) || a.score - b.score);
+    }
+
     return json({
+      studentNodes,
       metrics: {
         misconceptions,
         effort: { avgAttemptsToCorrect: Number(avgEffort.toFixed(2)), accuracy: Number(accuracy.toFixed(2)), totalAttempts: totalAtt },

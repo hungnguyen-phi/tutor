@@ -15,6 +15,12 @@ interface NodeRow {
   chapter: string | null;
   cluster: string | null;
   revision: number;
+  /** kc_registry.vi_tri_trong_ct — thứ tự bài đệm-0 (môn→lớp→chương→bài).
+   *  node_key sau re-key là KC-####### ngẫu nhiên, KHÔNG còn mã hoá thứ tự;
+   *  tín hiệu thứ tự tường minh này thay nó (hợp đồng docs/DoiUng-Tutor-ReKey.md
+   *  mục B). Fallback về node_key nếu registry chưa có dòng khớp (không nên
+   *  xảy ra — tránh vỡ toàn bộ topo-sort vì thiếu 1 dòng). */
+  seq: string;
 }
 
 interface EdgeRow {
@@ -22,11 +28,11 @@ interface EdgeRow {
   to_key: string; // phụ thuộc
 }
 
-/** Thứ tự ổn định khi tô-pô không quyết định được. Sắp theo node_key vì nó
- *  mã hoá SỐ chương có đệm 0 (TO10-C01…C09, TA10-C01…) → đúng thứ tự chương
- *  I<II<…<IX; nếu so theo NHÃN "Chương IX" thì chuỗi La Mã sắp sai (IX<V). */
+/** Thứ tự ổn định khi tô-pô không quyết định được. Sắp theo `seq` (đệm-0),
+ *  KHÔNG theo node_key (KC-####### ngẫu nhiên từ 2026-07 không còn mang thứ
+ *  tự). So theo NHÃN "Chương IX" cũng sai vì chuỗi La Mã sắp lệch (IX<V). */
 function tiebreak(a: NodeRow, b: NodeRow): number {
-  if (a.node_key !== b.node_key) return a.node_key < b.node_key ? -1 : 1;
+  if (a.seq !== b.seq) return a.seq < b.seq ? -1 : 1;
   return 0;
 }
 
@@ -125,7 +131,16 @@ Deno.serve(async (req: Request) => {
         .eq("tham_so_hoa", false),
     ]);
 
-    const nodes = (nodesRes.data ?? []) as NodeRow[];
+    const rawNodes = nodesRes.data ?? [];
+    // kc_registry chỉ tra được SAU khi biết node_key (không lọc theo
+    // kg_version_id — registry là bảng đối chiếu chung, không theo version).
+    const { data: seqRows } = await supa
+      .from("kc_registry")
+      .select("node_key, vi_tri_trong_ct")
+      .in("node_key", rawNodes.map((n) => n.node_key));
+    const seqOf = new Map((seqRows ?? []).map((r) => [r.node_key, r.vi_tri_trong_ct as string]));
+
+    const nodes = rawNodes.map((n) => ({ ...n, seq: seqOf.get(n.node_key) ?? n.node_key })) as NodeRow[];
     const edges = (edgesRes.data ?? []) as EdgeRow[];
     const byKey = new Map(nodes.map((n) => [n.node_key, n]));
     const hasQuestions = new Set<string>((qRes.data ?? []).map((r) => r.node_key));
