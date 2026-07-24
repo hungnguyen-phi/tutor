@@ -17,6 +17,7 @@
 import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, hasRole } from "../_shared/auth.ts";
+import { questionMathFailCount } from "../_shared/mathcheck.ts";
 
 const SUBJECT_MAP: Record<string, string> = {
   "Toán": "Toan", "Tiếng Anh": "Anh", "Ngữ văn": "Van",
@@ -124,17 +125,22 @@ Deno.serve(async (req: Request) => {
       }));
       await upsertAll(supa, "kg_edges", edgeRows, "kg_version_id,from_key,to_key,relation");
 
-      // 4) QUESTIONS
+      // 4) QUESTIONS — CỔNG KaTeX: câu nào có công thức không render được thì
+      // KHÔNG auto-publish (giữ 'review' cho GV/Studio sửa) dù pub=true. Chặn
+      // ngay cửa: HS không bao giờ thấy công thức rơi về text thô.
       const qs = await studioQuery<Studio>(`select id,atom_id,noi_dung,tier,dok,do_kho,dap_an,loi_giai,tham_so_hoa,nhieu from questions where atom_id in (select id from atoms where ${gWhere})`);
+      let heldByKatex = 0;
       const qRows = qs.map((q) => {
         const distractors = toDistractors(q.nhieu);
+        const ok = questionMathFailCount({ noi_dung: q.noi_dung, dap_an: q.dap_an, loi_giai: q.loi_giai, distractors }) === 0;
+        if (pub && !ok) heldByKatex++;
         return {
           tenant_id: ctx.tenantId, kg_version_id: versionId, question_key: q.id, node_key: q.atom_id,
           tier: q.tier != null ? (parseInt(String(q.tier), 10) || null) : null,
           loai_danh_gia: "objective", nhom_cham: "auto", dang_cau_hoi: distractors.length > 0 ? "mcq" : "dien_dap_an",
           dok: Number(q.dok) || 1, do_kho: q.do_kho ?? "TB", noi_dung: q.noi_dung, dap_an: q.dap_an ?? null,
           loi_giai: q.loi_giai ?? null, distractors, tham_so_hoa: !!q.tham_so_hoa,
-          ...(pub ? { trang_thai: "active" } : {}),
+          ...(pub && ok ? { trang_thai: "active" } : {}),
         };
       });
       await upsertAll(supa, "questions", qRows, "kg_version_id,question_key");
@@ -150,7 +156,7 @@ Deno.serve(async (req: Request) => {
       }));
       await upsertAll(supa, "socratic_ladders", ladRows, "kg_version_id,ladder_key");
 
-      report.push({ subject: subj, grade: g.grade, version: label, nodes: nodeRows.length, edges: edgeRows.length, questions: qRows.length, ladders: ladRows.length });
+      report.push({ subject: subj, grade: g.grade, version: label, nodes: nodeRows.length, edges: edgeRows.length, questions: qRows.length, ladders: ladRows.length, giu_review_katex: heldByKatex });
     }
 
     await supa.from("audit_logs").insert({
