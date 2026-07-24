@@ -34,3 +34,4 @@ npm-debug.log*
 .next-build/
 .impeccable/hook.cache.json
 scratchpad/
+scratchpad-*.json
