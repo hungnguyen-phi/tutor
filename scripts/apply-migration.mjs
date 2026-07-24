@@ -20,7 +20,10 @@ function readEnv() {
 
 const ENV = readEnv();
 const TOKEN = ENV.SUPABASE_ACCESS_TOKEN;
-const PROJ = "gxbxsdhvtwtjkfygetzb";
+// Ref suy từ SUPABASE_URL trong .env (theo project HIỆN TẠI, không hardcode) —
+// đổi nhà là script tự trỏ đúng chỗ. Cho override bằng PROJECT_REF nếu cần.
+const PROJ = ENV.PROJECT_REF ||
+  (ENV.SUPABASE_URL || "").replace(/^https:\/\/([^.]+)\.supabase\.co.*$/, "$1");
 const arg = process.argv[2];
 
 async function main() {

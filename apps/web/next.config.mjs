@@ -4,7 +4,7 @@ const isDev = process.env.NODE_ENV !== "production";
 // Supabase origin the dev proxy forwards to. Same default as lib/config.ts so
 // prod build and dev proxy always agree on the project.
 const SUPABASE_ORIGIN =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gxbxsdhvtwtjkfygetzb.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://oonuzgnfoypibrssvmrt.supabase.co";
 
 const nextConfig = {
   // Static export → deployed to Cloudflare Workers Static Assets (free plan).

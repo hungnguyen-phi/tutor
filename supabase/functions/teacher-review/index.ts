@@ -8,6 +8,15 @@ import { authenticate, can } from "../_shared/auth.ts";
 const QUESTION_STATUSES = ["active", "review", "retired"];
 const LADDER_STATUSES = ["active", "review"];
 
+/** Trạng thái nội dung → trạng thái review_queue tương ứng (đóng vòng lặp —
+ *  trước đây duyệt xong mà không đóng dòng review_queue, khiến hàng đợi kẹt
+ *  "pending" mãi dù nội dung đã active thật; audit 24/07 + migration 0013). */
+function queueStatus(contentStatus: string): "approved" | "rejected" | "pending" {
+  if (contentStatus === "retired") return "rejected";
+  if (contentStatus === "review") return "pending";
+  return "approved";
+}
+
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
@@ -29,6 +38,11 @@ Deno.serve(async (req: Request) => {
         .eq("id", id).eq("tenant_id", ctx.tenantId).select("id");
       if (error) return json({ error: error.message }, 500);
       if (!data || data.length === 0) return json({ error: "not found" }, 404);
+      // Đóng vòng lặp review_queue — best-effort (không có dòng nào là bình
+      // thường cho câu chưa từng qua hàng đợi; không chặn phản hồi duyệt).
+      await supa.from("review_queue")
+        .update({ status: queueStatus(status), reviewed_by: ctx.userId, reviewed_at: new Date().toISOString() })
+        .eq("tenant_id", ctx.tenantId).eq("content_type", "question").eq("content_id", id);
       await supa.from("audit_logs").insert({ action: "content_review", subject_type: "question", subject_id: id, actor_id: ctx.userId, tenant_id: ctx.tenantId, ai_decision: { status } });
       return json({ ok: true, kind, id, status });
     }
@@ -39,6 +53,9 @@ Deno.serve(async (req: Request) => {
         .eq("id", id).eq("tenant_id", ctx.tenantId).select("id");
       if (error) return json({ error: error.message }, 500);
       if (!data || data.length === 0) return json({ error: "not found" }, 404);
+      await supa.from("review_queue")
+        .update({ status: queueStatus(status), reviewed_by: ctx.userId, reviewed_at: new Date().toISOString() })
+        .eq("tenant_id", ctx.tenantId).eq("content_type", "ladder").eq("content_id", id);
       await supa.from("audit_logs").insert({ action: "content_review", subject_type: "ladder", subject_id: id, actor_id: ctx.userId, tenant_id: ctx.tenantId, ai_decision: { status } });
       return json({ ok: true, kind, id, status });
     }

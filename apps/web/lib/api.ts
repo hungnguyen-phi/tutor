@@ -396,6 +396,14 @@ export type DashAction = "coach" | "parent" | "buddy" | "leadership" | "admin" |
 export const dashboard = <T = Record<string, unknown>>(action: DashAction) =>
   callFn<T>("dashboard", { action });
 
+// ── Đồng bộ nội dung từ Studio (content-sync) ─────────────────────────────────
+export interface SyncGroup { subject: string; grade: number; version: string; nodes: number; edges: number; questions: number; ladders: number }
+export interface SyncResult { ok: boolean; synced: SyncGroup[]; message?: string }
+/** Kéo nội dung ĐÃ verified từ DB Studio → Tutor (upsert, nội dung mới vào review).
+ *  Bỏ trống subject/grade = đồng bộ tất cả. autoPublish=true → active thẳng. */
+export const contentSync = (opts: { subject?: string; grade?: number; autoPublish?: boolean } = {}) =>
+  callFn<SyncResult>("content-sync", opts);
+
 // ── Roster & Admin (Pha 3) ────────────────────────────────────────────────────
 export interface RosterClass {
   id: string;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarDays, Check, Info, Lock, ShieldCheck } from "lucide-react";
-import { dashboard, teacherStats, grantConsent, type DashAction } from "../lib/api";
+import { dashboard, teacherStats, grantConsent, contentSync, type DashAction, type SyncGroup } from "../lib/api";
 import Lion from "./Lion";
 import RosterManager from "./RosterManager";
 
@@ -528,6 +528,60 @@ export function DpoView() {
 }
 
 // ── ADMIN ────────────────────────────────────────────────────────────────────
+/** Đồng bộ nội dung từ DB Studio → Tutor (content-sync). Kéo nội dung đã verified,
+ *  nội dung mới vào 'review' (GV duyệt trước khi phục vụ). Idempotent — bấm lại
+ *  chỉ cập nhật. */
+function ContentSyncPanel() {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "err">("idle");
+  const [rows, setRows] = useState<SyncGroup[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const run = async () => {
+    setState("busy"); setMsg(null); setRows([]);
+    try {
+      const r = await contentSync({}); // toàn bộ verified
+      setRows(r.synced ?? []); setMsg(r.message ?? null); setState("done");
+    } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setState("err"); }
+  };
+  const total = rows.reduce((a, g) => ({ n: a.n + g.nodes, q: a.q + g.questions, l: a.l + g.ladders }), { n: 0, q: 0, l: 0 });
+  return (
+    <section className="panel">
+      <h2 className="h3">Đồng bộ nội dung từ Studio</h2>
+      <p className="muted">
+        Kéo điểm tri thức / câu hỏi / thang Socratic <b>đã duyệt (verified)</b> từ kho Studio về.
+        Nội dung mới vào hàng chờ <b>duyệt</b> — giáo viên xác nhận trước khi học sinh thấy. Bấm lại
+        chỉ cập nhật, không nhân bản.
+      </p>
+      <button className="btn btn-gold" disabled={state === "busy"} onClick={run}>
+        {state === "busy" ? "Đang đồng bộ… (có thể vài phút)" : "Đồng bộ toàn bộ từ Studio"}
+      </button>
+      {state === "err" && <p className="st-msg err" role="status">Lỗi: {msg}</p>}
+      {state === "done" && (
+        <div style={{ marginTop: 14 }}>
+          {rows.length === 0 ? (
+            <p className="muted">{msg ?? "Không có nội dung mới."}</p>
+          ) : (
+            <>
+              <p className="st-msg ok" role="status">
+                <Check aria-hidden strokeWidth={2.5} /> Xong: {rows.length} môn·lớp · {total.n} node · {total.q} câu · {total.l} thang (vào hàng chờ duyệt).
+              </p>
+              <Table head={["Môn·Lớp", "Node", "Câu", "Thang"]}>
+                {rows.map((g) => (
+                  <tr key={g.version}>
+                    <td>{g.version}</td>
+                    <td>{g.nodes}</td>
+                    <td>{g.questions}</td>
+                    <td>{g.ladders}</td>
+                  </tr>
+                ))}
+              </Table>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function AdminView() {
   const { d, err } = useDash("admin");
   if (!d) return <Loading err={err} />;
@@ -539,6 +593,8 @@ export function AdminView() {
         <Kpi label="Token AI" value={d.gateway.tokens.toLocaleString()} />
         <Kpi label="Chi phí AI" value={`$${d.gateway.costUsd}`} sub={`ngân sách $${d.gateway.budgetUsd}`} />
       </div>
+
+      <ContentSyncPanel />
 
       <section className="panel" style={{ padding: 0, border: "none", boxShadow: "none", background: "none" }}>
         <h2 className="h3" style={{ marginBottom: 12 }}>Roster — lớp &amp; học sinh</h2>
