@@ -1,6 +1,8 @@
 // Public client config. The anon/publishable key is browser-safe by design.
+// `||` (không `??`): env RỖNG "" (vd build-arg Docker để trống) cũng phải rơi về
+// fallback, nếu không createClient("") ném "supabaseUrl is required" lúc prerender.
 const SUPABASE_ORIGIN =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://oonuzgnfoypibrssvmrt.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://oonuzgnfoypibrssvmrt.supabase.co";
 
 /**
  * URL the Supabase client (auth + edge functions + REST) talks to.
@@ -23,7 +25,7 @@ function resolveSupabaseUrl(): string {
 
 export const SUPABASE_URL = resolveSupabaseUrl();
 export const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "sb_publishable_A98gX2XKPU6IMp384GBvyw_WdlTNPW8";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_A98gX2XKPU6IMp384GBvyw_WdlTNPW8";
 export const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
 
 // ── Cấu hình đăng nhập ────────────────────────────────────────────────────────
