@@ -1,0 +1,12 @@
+# Giữ build context nhẹ + không kéo artefact cũ/máy-local vào image
+**/node_modules
+**/.next
+**/.next-preview
+**/out
+**/.turbo
+.git
+.github
+**/*.log
+apps/web/.env*
+.env
+scratchpad-*.json
