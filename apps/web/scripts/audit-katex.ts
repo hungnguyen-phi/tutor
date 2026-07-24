@@ -68,11 +68,17 @@ async function main() {
     byErr[key] = (byErr[key] ?? 0) + 1;
     bySubject[r.subject ?? "?"] = (bySubject[r.subject ?? "?"] ?? 0) + 1;
   }
-  fs.writeFileSync("../../scratchpad-katex-fails.json", JSON.stringify(q.rows.slice(0, 500), null, 2));
+  // Danh sách sửa cho Studio: 1 dòng / công thức hỏng (id câu, môn, trường, LaTeX, lỗi).
+  const csv = ["question_id,subject,field,latex,error"];
+  for (const r of q.rows) {
+    const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    csv.push([r.id, r.subject ?? "", r.field, r.latex, r.err].map(esc).join(","));
+  }
+  fs.writeFileSync("../../docs/katex-fixlist.csv", csv.join("\n"));
   console.log(`Câu hỏi: ${q.strings} chuỗi kiểm · ${q.rows.length} công thức FAIL (rơi về text thô).`);
   console.log("\n— Top loại lỗi —"); Object.entries(byErr).sort((a, b) => b[1] - a[1]).slice(0, 8).forEach(([e, n]) => console.log(`  ${n}×  ${e}`));
   console.log("\n— Theo môn —"); Object.entries(bySubject).sort((a, b) => b[1] - a[1]).slice(0, 12).forEach(([s, n]) => console.log(`  ${n}×  ${s}`));
   console.log("\n— 8 ví dụ fail —"); q.rows.slice(0, 8).forEach((r) => console.log(`  [${r.subject}] ${r.field}: «${r.latex.slice(0, 55)}» → ${r.err}`));
-  console.log("\n(500 dòng đầu ghi ra scratchpad-katex-fails.json)");
+  console.log(`\n(Danh sách sửa đầy đủ → docs/katex-fixlist.csv — ${q.rows.length} dòng cho Studio)`);
 }
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -29,13 +29,17 @@ const UNI: Record<string, string> = {
   "σ": "\\sigma ", "τ": "\\tau ", "φ": "\\varphi ", "ω": "\\omega ", "Ω": "\\Omega ",
   "≪": "\\ll ", "≫": "\\gg ", "⊥": "\\perp ", "∥": "\\parallel ", "∠": "\\angle ",
   "‖": "\\|", "−": "-", "–": "-", "—": "-",
+  // Tập số blackboard-bold: KHÔNG có trong MATHTOK/STRONG sẽ cắt đứt math-run
+  // (làm "{x ∈" hở ngoặc → KaTeX lỗi) và không đổi. Đưa vào đây + STRONG/MATHTOK.
+  "ℝ": "\\mathbb{R}", "ℕ": "\\mathbb{N}", "ℤ": "\\mathbb{Z}", "ℚ": "\\mathbb{Q}",
+  "ℂ": "\\mathbb{C}", "ℙ": "\\mathbb{P}", "∖": "\\setminus ", "∣": "\\mid ",
 };
 
 // "math-run": gom CỤM LIỀN MẠCH gồm số/biến/toán tử/ngoặc; chỉ coi là TOÁN nếu
 // bên trong có ≥1 "dấu hiệu mạnh" (STRONG). Nhờ vậy "y = x² − 4x + 3" thành MỘT
 // công thức trọn vẹn thay vì vụn ra. Từ ngữ (≥2 chữ / có dấu tiếng Việt) cắt cụm.
-const STRONG = /[=<>≤≥≠±×·÷√^∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥]|\d\s*\/\s*\d|[A-Za-z]\d|\d[A-Za-z]/;
-const MATHTOK = /^[A-Za-z0-9()[\]{}.,;:'"|=<>≤≥≠±×·÷√^_/+\-−–—∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥\\]+$/;
+const STRONG = /[=<>≤≥≠±×·÷√^∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣]|\d\s*\/\s*\d|[A-Za-z]\d|\d[A-Za-z]/;
+const MATHTOK = /^[A-Za-z0-9()[\]{}.,;:'"|=<>≤≥≠±×·÷√^_/+\-−–—∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣\\]+$/;
 const MATHFN = /^(sin|cos|tan|cot|sec|csc|log|ln|lim|max|min|sqrt|arcsin|arccos|arctan|deg|mod)$/i;
 
 // Phân loại token: 'text' (chữ nghĩa) | 'strong' (chắc chắn toán) | 'weak' (số/biến/toán tử).
@@ -55,6 +59,13 @@ function classify(tk: string): "text" | "strong" | "weak" {
 
 function toLatexInner(s: string): string {
   let t = s;
+  // Tập-hợp mô tả: "{ x ∈ ℝ | P(x) }" — ngoặc nhọn TRẦN trong KaTeX là NHÓM vô
+  // hình (mất dấu {}), gạch "|" thành sổ dọc rời. Ngoặc CÓ chứa "|" là tập hợp:
+  // bọc \{ \} hiện đúng và | → \mid. (Ngoặc chỉ số như "x_{12}" không có "|".)
+  t = t.replace(/\{([^{}]*\|[^{}]*)\}/g, (_m, inner: string) => `\\{${inner.replace(/\|/g, " \\mid ")}\\}`);
+  // Chỗ điền khuyết "___" (≥2 gạch dưới liền): KaTeX hiểu "_" là chỉ-số → lỗi
+  // "Expected group after '_'". Đổi thành ô gạch chân trống (hiện đúng dạng điền).
+  t = t.replace(/_{2,}/g, (m) => `\\underline{${"\\ ".repeat(m.length)}}`);
   t = t.replace(/√\s*\(([^()]*)\)/g, "\\sqrt{$1}");
   t = t.replace(/√\s*([A-Za-z0-9]+)/g, "\\sqrt{$1}");
   t = t.replace(/\(([^()]{1,20})\)\s*\/\s*\(([^()]{1,20})\)/g, "\\frac{$1}{$2}");
