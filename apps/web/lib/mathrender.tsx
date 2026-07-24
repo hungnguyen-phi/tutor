@@ -62,6 +62,12 @@ function toLatexInner(s: string): string {
   t = t.replace(/\(([^()]{1,20})\)\s*\/\s*(-?[A-Za-z0-9.]+)/g, "\\frac{$1}{$2}");
   t = t.replace(/(?<![/\w])(-?\d+)\s*\/\s*(\d+)(?![/\w])/g, "\\frac{$1}{$2}");
   for (const [k, v] of Object.entries(UNI)) t = t.split(k).join(v);
+  // GỘP mũ/chỉ số LIỀN nhau: unicode "4¹⁰" → "^{1}^{0}" (KaTeX báo "Double
+  // superscript"). Gộp lại "^{10}". Lặp tới ổn định cho ≥3 chữ số liền.
+  for (let i = 0; i < 4; i++) {
+    t = t.replace(/\^\{([^{}]*)\}\s*\^\{([^{}]*)\}/g, "^{$1$2}")
+      .replace(/_\{([^{}]*)\}\s*_\{([^{}]*)\}/g, "_{$1$2}");
+  }
   t = t.replace(/(?<=[\dA-Za-z)])\s*\*\s*(?=[\dA-Za-z(])/g, " \\cdot ");
   return t.trim();
 }
