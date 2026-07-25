@@ -779,7 +779,9 @@ Deno.serve(async (req: Request) => {
         system,
         user: safe || "(mở đầu buổi học)",
         agent: "guide",
-        tier: "default",
+        // Đối thoại dẫn dắt = "cái dễ dễ" → tier cheap = deepseek-v4-flash: NHANH + RẺ
+        // ($0.094/$0.188 per 1M, rẻ nhất & nhẹ nhất họ deepseek). Chấm rubric/nói giữ default.
+        tier: "cheap",
         studentId: s.student_id,
         tenantId: s.tenant_id,
         supa,
