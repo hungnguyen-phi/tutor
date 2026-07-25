@@ -633,6 +633,9 @@ ul {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  /* Nút đổi nền (.theme-toggle) nổi fixed góc phải (right:12px, rộng 40px) đè lên
+     chip XP hút sát mép phải. Chừa chỗ để 3 badge không chồng nhau. */
+  padding-right: 52px;
 }
 .hud-spacer {
   flex: 1;
