@@ -36,12 +36,14 @@ function runInBackground(p: Promise<unknown>): void {
     .EdgeRuntime?.waitUntil?.(p);
 }
 
+// FULL DEEPSEEK (chủ dự án chốt 2026-07-25): flash cho việc nhẹ (đối thoại), pro cho
+// việc nặng (chấm viết/nói). flash $0.094/$0.188 · pro $0.435/$0.870 per 1M, đều ctx 1M.
 const MODELS: Record<Tier, string> = {
   cheap: "deepseek/deepseek-v4-flash",
-  default: "z-ai/glm-5.2",
-  strong: "qwen/qwen3.7-plus",
+  default: "deepseek/deepseek-v4-pro",
+  strong: "deepseek/deepseek-v4-pro",
 };
-const FALLBACK = ["z-ai/glm-5.2", "deepseek/deepseek-v4-flash", "qwen/qwen3.7-plus"];
+const FALLBACK = ["deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v3.2"];
 
 export interface AnonymizeResult {
   text: string;
