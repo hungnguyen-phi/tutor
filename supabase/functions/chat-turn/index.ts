@@ -95,10 +95,12 @@ async function pickQuestion(
 ): Promise<QuestionItem | null> {
   const { data: qs } = await supa
     .from("questions")
-    .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, nhom_cham, tham_so_hoa, tham_so")
+    // Bỏ `tham_so` (schema chưa có cột) + chỉ câu tĩnh — xem ghi chú ở diagnose.
+    .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, nhom_cham, tham_so_hoa")
     .eq("kg_version_id", s.kg_version_id)
     .eq("node_key", nodeKey)
     .eq("trang_thai", "active")
+    .eq("tham_so_hoa", false)
     .order("tier", { ascending: true })
     .order("dok", { ascending: true });
   // H5 — lớp phủ GV (nạp 1 lần/request, cache trên session): bỏ câu ẨN, ghép SỬA.
@@ -357,7 +359,7 @@ Deno.serve(async (req: Request) => {
       // phiên — chặn chấm câu "mượn" từ version/tenant khác.
       const { data: q } = await supa
         .from("questions")
-        .select("id, node_key, dap_an, distractors, dok, do_kho, tier, loai_danh_gia, dang_cau_hoi, nhom_cham, noi_dung, loi_giai, tham_so_hoa, tham_so, tinh_mastery, hoi_do_tu_tin")
+        .select("id, node_key, dap_an, distractors, dok, do_kho, tier, loai_danh_gia, dang_cau_hoi, nhom_cham, noi_dung, loi_giai, tham_so_hoa, tinh_mastery, hoi_do_tu_tin")
         .eq("id", questionId)
         .eq("kg_version_id", s.kg_version_id)
         .single();

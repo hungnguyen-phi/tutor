@@ -67,12 +67,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: questions } = await supa
       .from("questions")
-      .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, rubric, tham_so_hoa, tham_so")
+      // KHÔNG select `tham_so`: schema hiện KHÔNG có cột đó (chỉ `tham_so_hoa`) →
+      // select nó làm query LỖI → rỗng → "bài chưa có câu hỏi". Câu tham-số-hóa
+      // cũng CHƯA có spec (content-sync không kéo về) nên sẽ hiện {b},{c} thô →
+      // LỌC BỎ (chỉ phục vụ câu tĩnh). Bật lại khi có cột tham_so + spec từ Studio.
+      .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, rubric, tham_so_hoa")
       .eq("kg_version_id", version.id)
       .eq("trang_thai", "active")
-      // Câu KHUÔN THAM SỐ giờ ĐƯỢC phục vụ: máy sinh (paramgen) thay {b},{c}…
-      // bằng số cụ thể tất định theo (session, câu); chấm ở chat-turn dùng cùng
-      // seed nên số y hệt. Không còn placeholder thô lọt tới học sinh.
+      .eq("tham_so_hoa", false)
       .order("tier", { ascending: true })
       .order("dok", { ascending: true })
       // Giới hạn lượt đầu — không kéo cả ngân hàng câu về client.
