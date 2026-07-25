@@ -22,6 +22,16 @@ import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } fr
 import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 
+// Studio ghi độ khó bằng CHỮ ("dễ/trung bình/khó"); cột enum do_kho ở DB là de/TB/kho.
+// questions.do_kho (text) giữ chữ cho hiển thị; CHỈ đổi sang mã enum khi ghi mastery.
+const DO_KHO_ENUM: Record<string, string> = {
+  "dễ": "de", de: "de", "trung bình": "TB", tb: "TB", TB: "TB", "khó": "kho", kho: "kho",
+};
+const toDoKho = (v: unknown): string => {
+  const s = String(v ?? "").trim();
+  return DO_KHO_ENUM[s] ?? DO_KHO_ENUM[s.toLowerCase()] ?? "TB";
+};
+
 interface Session {
   id: string;
   tenant_id: string;
@@ -445,7 +455,7 @@ Deno.serve(async (req: Request) => {
             question_id: q.id,
             correct: verdict.correct,
             dok: q.dok,
-            do_kho: q.do_kho,
+            do_kho: toDoKho(q.do_kho),
             is_target_difficulty: isTarget,
             kg_version_id: s.kg_version_id,
             node_revision: nodeRow?.revision ?? null,
