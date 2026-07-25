@@ -1,6 +1,9 @@
-# Chạy image tĩnh trên VPS. CI đẩy image lên GHCR; VPS chỉ `pull` + `up -d`.
-# Cổng mặc định 8080 (đổi bằng biến WEB_PORT). Đặt reverse proxy (Caddy/Traefik/
-# nginx host) phía trước nếu cần domain + HTTPS — xem ghi chú cuối file.
+# DỰ PHÒNG / chạy tay (VPS chưa cài platform). Theo DEPLOY-PLAYBOOK, cách CHÍNH là
+# Coolify/Dokploy pull image + chạy + domain + TLS, kích hoạt qua API hook trong
+# .github/workflows/deploy.yml — khi đó KHÔNG cần file compose này.
+# Dùng file này nếu muốn tự `docker compose pull && up -d` trên VPS trần:
+# CI đẩy image lên GHCR; cổng mặc định 8080 (đổi bằng WEB_PORT). Reverse proxy
+# (Caddy/Traefik) phía trước nếu cần domain + HTTPS — xem ghi chú cuối file.
 services:
   web:
     image: ghcr.io/duong-edu/tutor:latest
