@@ -41,5 +41,16 @@ if (DRY) {
 
 const upd = await q(`update questions set trang_thai='active' where trang_thai='review' and question_key not in (${inList}) returning 1`);
 console.log(`Đã active: ${upd.length} câu.`);
+
+// NODE + THANG cũng phải active — learning-path lọc kg_nodes .eq(status,'active'),
+// không có node active thì lộ trình RỖNG → "lỗi khi vào bài học". Thang Socratic
+// tương tự (gợi ý dẫn dắt). Đây là bộ đồng bộ verified nên active toàn bộ.
+const nodesUpd = await q("update kg_nodes set status='active' where status='review' returning 1");
+console.log(`Đã active node: ${nodesUpd.length}.`);
+const ladUpd = await q("update socratic_ladders set status='active' where status='review' returning 1");
+console.log(`Đã active thang Socratic: ${ladUpd.length}.`);
+
 const after = await q("select trang_thai, count(*) c from questions group by 1 order by 2 desc");
-console.log("Sau:", after);
+console.log("Sau (câu):", after);
+console.log("Node active:", (await q("select count(*) c from kg_nodes where status='active'"))[0].c);
+console.log("Thang active:", (await q("select count(*) c from socratic_ladders where status='active'"))[0].c);
