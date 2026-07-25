@@ -6,7 +6,7 @@
 # (Caddy/Traefik) phía trước nếu cần domain + HTTPS — xem ghi chú cuối file.
 services:
   web:
-    image: ghcr.io/duong-edu/tutor:latest
+    image: ghcr.io/hungnguyen-phi/tutor:latest
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:80"

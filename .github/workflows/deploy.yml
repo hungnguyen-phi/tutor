@@ -30,7 +30,8 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/duong-edu/tutor
+          # Tự suy từ repo chạy CI → ghcr.io/hungnguyen-phi/tutor (khỏi hardcode nhầm).
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
             type=sha,format=long
