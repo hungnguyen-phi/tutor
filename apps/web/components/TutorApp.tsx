@@ -1101,6 +1101,12 @@ export default function TutorApp() {
   const matchParsed = q?.interactive?.match ?? null;
   const isTrueFalse = q?.dangCauHoi === "dung_sai";
   const interactiveShown = !!(orderParsed || matchParsed);
+  // MCQ có đáp án là CHỮ CÁI (text nằm trong đề) → tách đề riêng + text phương án ra nút.
+  const letterMCQ =
+    q && q.kind === "objective" && q.options && q.options.length > 0 &&
+    q.options.every((o) => /^[A-DĐ]$/.test(o.trim()))
+      ? parseLetterMCQ(q.prompt)
+      : null;
   const canCheck =
     q?.kind === "objective" &&
     (interactiveShown
@@ -1170,7 +1176,9 @@ export default function TutorApp() {
             <div className="qcard">
               {/* Đề có công thức → cả dòng serif italic 26 theo hi-fi; câu chữ
                   thường (tiếng Anh, đọc hiểu) giữ sans 15/1.5. */}
-              {mathy(q.prompt) ? (
+              {letterMCQ ? (
+                <div className="qcard-stem"><MathText>{letterMCQ.stem}</MathText></div>
+              ) : mathy(q.prompt) ? (
                 <div className="qcard-expr math"><MathText>{q.prompt}</MathText></div>
               ) : (
                 <div className="qcard-text"><MathText>{q.prompt}</MathText></div>
@@ -1232,19 +1240,38 @@ export default function TutorApp() {
       {/* Lưới đáp án luôn hiển thị (hi-fi): chọn xong tile giữ trạng thái
           selected dưới ribbon; khoá tương tác khi đang nộp / đã có kết quả. */}
       {q && q.kind === "objective" && q.options && (
-        <div className="ans-grid">
-          {q.options.map((opt) => (
-            <button
-              key={opt}
-              className="ans-tile num"
-              aria-pressed={picked === opt}
-              disabled={busy || verdict != null}
-              onClick={() => setPicked(opt)}
-            >
-              <MathText>{opt}</MathText>
-            </button>
-          ))}
-        </div>
+        letterMCQ ? (
+          /* Đáp án là chữ cái + text trong đề → nút = nhãn A/B/C/D + text, mỗi dòng,
+             giá trị chọn là CHỮ CÁI (khớp dap_an). */
+          <div className="ans-grid lettered">
+            {letterMCQ.opts.map((o) => (
+              <button
+                key={o.letter}
+                className="ans-tile lettered"
+                aria-pressed={picked === o.letter}
+                disabled={busy || verdict != null}
+                onClick={() => setPicked(o.letter)}
+              >
+                <span className="ans-letter">{o.letter}.</span>
+                <span className="ans-otext"><MathText>{o.text}</MathText></span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="ans-grid">
+            {q.options.map((opt) => (
+              <button
+                key={opt}
+                className="ans-tile num"
+                aria-pressed={picked === opt}
+                disabled={busy || verdict != null}
+                onClick={() => setPicked(opt)}
+              >
+                <MathText>{opt}</MathText>
+              </button>
+            ))}
+          </div>
+        )
       )}
 
       {/* dung_sai: hai nút Đúng / Sai thay vì gõ tay. */}
@@ -1434,6 +1461,24 @@ function kindEyebrow(q: DiagnoseQuestion): string {
 
 /** Đề có "chất toán" (công thức, biến, so sánh) → hiển thị serif italic. */
 const mathy = (s: string) => /[=^_\\$±≤≥√²³]/.test(s ?? "");
+
+/** Đề MCQ kiểu "STEM: A. … B. … C. … D. …" với đáp án là CHỮ CÁI (dap_an/distractors
+ *  = "A".."D", text phương án nằm TRONG đề). Tách đề + text từng phương án theo nhãn.
+ *  Mốc phương án LUÔN đứng sau "." hoặc ":" (hết đề / hết phương án trước) → phân biệt
+ *  được với "B." nằm trong chính câu (vd "…đều thuộc B."). Trả null nếu không phải dạng. */
+function parseLetterMCQ(noiDung: string): { stem: string; opts: { letter: string; text: string }[] } | null {
+  const re = /(?<=[.:])\s+([A-DĐ])[.)]\s+/g;
+  const marks: { letter: string; start: number; textStart: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(noiDung))) marks.push({ letter: m[1] ?? "", start: m.index, textStart: re.lastIndex });
+  if (marks.length < 2) return null;
+  const stem = noiDung.slice(0, marks[0]!.start).trim();
+  const opts = marks.map((mk, i) => {
+    const next = marks[i + 1];
+    return { letter: mk.letter, text: noiDung.slice(mk.textStart, next ? next.start : undefined).trim() };
+  });
+  return { stem, opts };
+}
 
 interface SR {
   lang: string;

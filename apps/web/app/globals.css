@@ -5752,6 +5752,37 @@ html[data-motion="reduce"] .spin {
   line-height: 1.5;
   color: var(--ink-2);
 }
+/* Đề MCQ (chữ cái): to hơn đáp án một chút, đậm vừa — đề nổi trên, đáp án nhỏ dưới. */
+.qcard-stem {
+  font-size: 1.1875rem;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--navy);
+  overflow-wrap: break-word;
+}
+/* Đáp án chữ-cái: 1 cột, canh trái, nhãn A/B/C/D đậm, chữ nhỏ hơn đề. */
+.ans-grid.lettered {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.ans-tile.lettered {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  text-align: left;
+  min-height: 0;
+  padding: 12px 14px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.ans-tile.lettered .ans-letter {
+  flex: none;
+  font-weight: 700;
+  color: var(--navy);
+}
+.ans-tile.lettered .ans-otext {
+  flex: 1;
+}
 /* Lưới đáp án: 2×2 khi vừa, tự về 1 cột khi chữ dài (auto-fit minmax) */
 .ans-grid {
   display: grid;
