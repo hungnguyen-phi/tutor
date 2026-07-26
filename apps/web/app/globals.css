@@ -6003,6 +6003,72 @@ html[data-motion="reduce"] .spin {
 .iq-chip:disabled {
   cursor: not-allowed;
 }
+/* checklist — "Đúng/Sai chùm ý": mỗi ý một thẻ, cặp nút bên phải. Chọn = navy-tint
+   giống iq-slot.filled / iq-chip.sel: đây là DẤU ĐÃ CHỌN, không phải báo đúng–sai
+   (kết quả chấm mới được dùng màu ok/err). */
+.iq-check {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.iq-crow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--r);
+}
+.iq-ckey {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--navy-tint);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.iq-ctext {
+  /* min 200px → màn hẹp thì cặp nút tự rớt xuống dòng thay vì bóp chữ */
+  flex: 1 1 200px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.iq-cbtns {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.iq-cbtn {
+  min-width: 60px;
+  height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.iq-cbtn.on {
+  border-color: var(--navy);
+  background: var(--navy-tint);
+  color: var(--navy);
+}
+.iq-cbtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 
 /* ── Đợt B: bảng điểm rubric theo kỹ năng (formative) ─────────────────────── */
 .rubric-card {

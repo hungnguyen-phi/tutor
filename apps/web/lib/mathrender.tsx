@@ -59,10 +59,13 @@ function classify(tk: string): "text" | "strong" | "weak" {
 
 function toLatexInner(s: string): string {
   let t = s;
-  // Tập-hợp mô tả: "{ x ∈ ℝ | P(x) }" — ngoặc nhọn TRẦN trong KaTeX là NHÓM vô
-  // hình (mất dấu {}), gạch "|" thành sổ dọc rời. Ngoặc CÓ chứa "|" là tập hợp:
-  // bọc \{ \} hiện đúng và | → \mid. (Ngoặc chỉ số như "x_{12}" không có "|".)
-  t = t.replace(/\{([^{}]*\|[^{}]*)\}/g, (_m, inner: string) => `\\{${inner.replace(/\|/g, " \\mid ")}\\}`);
+  // Ngoặc nhọn TRẦN trong KaTeX là NHÓM VÔ HÌNH → "{1;2}" hiện ra "1;2", mất sạch
+  // dấu tập hợp (dạy SAI: A = 1;2). Trong nội dung soạn bài, "{…}" LUÔN là TẬP HỢP
+  // — LaTeX thật của người soạn đi qua $…$ / \(…\) và segmentMath tách trước, KHÔNG
+  // vào hàm này — nên bọc \{ \} cho mọi ngoặc. "|" bên trong là "sao cho" → \mid.
+  // Phải chạy TRƯỚC mọi luật sinh ra ngoặc LaTeX (\sqrt{}, \frac{}, ^{2}, \mathbb{})
+  // ở dưới, kẻo bọc nhầm chính ngoặc mình vừa tạo.
+  t = t.replace(/\{([^{}]*)\}/g, (_m, inner: string) => `\\{${inner.replace(/\|/g, " \\mid ")}\\}`);
   // Chỗ điền khuyết "___" (≥2 gạch dưới liền): KaTeX hiểu "_" là chỉ-số → lỗi
   // "Expected group after '_'". Đổi thành ô gạch chân trống (hiện đúng dạng điền).
   t = t.replace(/_{2,}/g, (m) => `\\underline{${"\\ ".repeat(m.length)}}`);

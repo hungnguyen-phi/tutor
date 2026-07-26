@@ -68,6 +68,8 @@ export interface InteractiveItem { key: string; text: string }
 export interface InteractiveStruct {
   order?: { mode: "label" | "word"; intro: string; items: InteractiveItem[] };
   match?: { intro: string; left: InteractiveItem[]; right: InteractiveItem[] };
+  /** "Đúng/Sai chùm ý": nhiều ý con a/b/c/d, mỗi ý tick Đúng hoặc Sai. */
+  checklist?: { intro: string; items: InteractiveItem[] };
 }
 
 export interface DiagnoseQuestion {

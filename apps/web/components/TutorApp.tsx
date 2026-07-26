@@ -55,7 +55,7 @@ import {
   type NodeResource,
   type RubricResult,
 } from "../lib/api";
-import { OrderQuestion, MatchQuestion } from "./Interactive";
+import { OrderQuestion, MatchQuestion, ChecklistQuestion } from "./Interactive";
 import { SpeakerButton } from "./SpeakerButton";
 
 /**
@@ -1099,8 +1099,11 @@ export default function TutorApp() {
   // thường (server vẫn chấm cấu trúc chuỗi gõ tay).
   const orderParsed = q?.interactive?.order ?? null;
   const matchParsed = q?.interactive?.match ?? null;
+  // "Đúng/Sai chùm ý": server phát hiện theo HÌNH DẠNG dap_an (dữ liệu gắn nhãn
+  // dang_cau_hoi="mcq"), nên KHÔNG suy ra được từ dangCauHoi ở client.
+  const checklistParsed = q?.interactive?.checklist ?? null;
   const isTrueFalse = q?.dangCauHoi === "dung_sai";
-  const interactiveShown = !!(orderParsed || matchParsed);
+  const interactiveShown = !!(orderParsed || matchParsed || checklistParsed);
   // MCQ có đáp án là CHỮ CÁI (text nằm trong đề) → tách đề riêng + text phương án ra nút.
   const letterMCQ =
     q && q.kind === "objective" && q.options && q.options.length > 0 &&
@@ -1191,6 +1194,9 @@ export default function TutorApp() {
           {matchParsed && (
             <MatchQuestion key={q.id} parsed={matchParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
           )}
+          {checklistParsed && (
+            <ChecklistQuestion key={q.id} parsed={checklistParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
+          )}
           {/* Đợt C: dạng nghe — đọc to transcript bằng Web Speech (chưa có audio_uri). */}
           {q.dangCauHoi === "nghe" && <SpeakerButton text={q.prompt} />}
         </>
@@ -1239,7 +1245,9 @@ export default function TutorApp() {
 
       {/* Lưới đáp án luôn hiển thị (hi-fi): chọn xong tile giữ trạng thái
           selected dưới ribbon; khoá tương tác khi đang nộp / đã có kết quả. */}
-      {q && q.kind === "objective" && q.options && (
+      {/* Chốt an toàn: dạng tương tác đã tự dựng đề + ô trả lời → KHÔNG bao giờ
+          kèm lưới đáp án (server cũng đã ngừng gửi options cho checklist). */}
+      {q && q.kind === "objective" && q.options && !interactiveShown && (
         letterMCQ ? (
           /* Đáp án là chữ cái + text trong đề → nút = nhãn A/B/C/D + text, mỗi dòng,
              giá trị chọn là CHỮ CÁI (khớp dap_an). */
@@ -1455,6 +1463,9 @@ function kindEyebrow(q: DiagnoseQuestion): string {
   if (q.dangCauHoi === "dung_sai") return "Đúng hay Sai?";
   if (q.dangCauHoi === "sap_xep") return "Sắp xếp đúng thứ tự";
   if (q.dangCauHoi === "noi_cot") return "Nối cột cho đúng";
+  // Checklist nhận diện ở SERVER (dữ liệu gắn nhãn "mcq") → xét interactive, và
+  // phải xét TRƯỚC q.options kẻo rơi nhầm vào nhãn "Chọn đáp án đúng".
+  if (q.interactive?.checklist) return "Đúng hay Sai cho từng ý?";
   if (q.options) return "Chọn đáp án đúng";
   return "Nhập đáp án của bạn";
 }

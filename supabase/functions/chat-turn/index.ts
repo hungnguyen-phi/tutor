@@ -154,7 +154,10 @@ async function pickQuestion(
   };
   const inter = parseInteractive(q.dang_cau_hoi, fill(q.noi_dung), String(q.dap_an ?? ""));
   if (inter) item.interactive = inter;
-  if (q.dap_an && Array.isArray(q.distractors) && q.distractors.length > 0) {
+  // CHECKLIST (đúng/sai chùm ý): distractors chỉ là biến thể lật một ý ("a) chọn
+  // Sai") — vô nghĩa khi hiện thành 4 nút, và chính là nguồn màn hình "loạn" cũ.
+  // KHÔNG gửi options → client dựng UI tick từng ý.
+  if (!inter?.checklist && q.dap_an && Array.isArray(q.distractors) && q.distractors.length > 0) {
     item.options = shuffle([
       fill(String(q.dap_an)),
       ...(q.distractors as Array<{ phuong_an: string }>).map((d) => fill(d.phuong_an)),

@@ -3,6 +3,10 @@
  *   - dung_sai : Đúng/Sai (chuẩn hoá đồng nghĩa vi/en)
  *   - sap_xep  : xếp thứ tự — so khớp DÃY (có thứ tự)
  *   - noi_cot  : nối cột — so khớp TẬP CẶP (không phụ thuộc thứ tự trình bày)
+ *   - checklist: "Đúng/Sai chùm ý" — mcq CÓ dap_an dạng "a) Đ · b) S · c) Đ · d) Đ"
+ *     (nhiều ý con, mỗi ý một nhãn chữ cái) — PHÁT HIỆN theo HÌNH DẠNG của dap_an,
+ *     KHÔNG phụ thuộc dang_cau_hoi (nội dung thật trong DB gắn nhãn "mcq", không
+ *     phải "dung_sai" — xem ghi chú ở checklistMap).
  *
  * Bộ chấm LIBERAL ở khâu phân tích chuỗi (chấp nhận nhiều kiểu ngăn cách người/
  * máy sinh ra) nhưng NGHIÊM ở khâu so khớp: dãy phải đúng thứ tự, cặp phải đủ &
@@ -13,7 +17,7 @@ export type InteractiveDang = "dung_sai" | "sap_xep" | "noi_cot";
 
 export interface InteractiveVerdict {
   correct: boolean;
-  method: "dung_sai" | "sap_xep" | "noi_cot";
+  method: "dung_sai" | "sap_xep" | "noi_cot" | "checklist";
 }
 
 const norm = (s: string): string =>
@@ -58,7 +62,68 @@ function pairs(s: string): Map<string, string> {
   return m;
 }
 
-/** Chấm một dạng tương tác. Trả null nếu `dang` không thuộc nhóm này. */
+// ── checklist ("Đúng/Sai chùm ý"): dap_an kiểu "a) Đ · b) S · c) Đ · d) Đ" hoặc
+// "(a) Đúng, (b) Đúng, (c) Đúng, (d) Sai." → Map{a:true, b:true, c:true, d:false}.
+// Nội dung thật gắn nhãn dang_cau_hoi="mcq" (không phải "dung_sai") nên PHẢI phát
+// hiện từ HÌNH DẠNG dap_an, không từ dang — xem checklistCandidateKeys() ở dưới.
+function splitTop(s: string, seps: string[]): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of s) {
+    if (ch === "(" || ch === "[" || ch === "{") depth++;
+    else if ((ch === ")" || ch === "]" || ch === "}") && depth > 0) depth--;
+    if (depth === 0 && seps.includes(ch)) {
+      out.push(cur.trim());
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+/** Phân tích dap_an thành Map<nhãn, đúng/sai>. Trả null nếu không đúng hình dạng
+ *  "checklist" (≥2 nhãn chữ cái a-d, mỗi nhãn map RÕ RÀNG về đúng/sai, không lặp
+ *  nhãn). Thử lần lượt 3 kiểu ngăn cách (; · ,) — dap_an thật chỉ dùng MỘT kiểu
+ *  nhất quán trong toàn chuỗi nên thử-rồi-bỏ không sợ lẫn. */
+function checklistMap(s: string): Map<string, boolean> | null {
+  const src = s ?? "";
+  for (const seps of [[";"], ["·"], [","]]) {
+    const parts = splitTop(src, seps);
+    if (parts.length < 2) continue;
+    const map = new Map<string, boolean>();
+    let ok = true;
+    for (const p of parts) {
+      const m = p.trim().match(/^\(?([a-dA-D])\)?\s*[).:]?\s*(.+)$/);
+      if (!m) { ok = false; break; }
+      const v = truthy(m[2]!);
+      if (v === null) { ok = false; break; }
+      const k = m[1]!.toLowerCase();
+      if (map.has(k)) { ok = false; break; } // nhãn lặp lại → không phải checklist sạch
+      map.set(k, v);
+    }
+    if (ok && map.size >= 2) return map;
+  }
+  return null;
+}
+
+/** Đáp án học sinh cho checklist — client gửi canonical "a:dung,b:sai,c:dung,d:dung"
+ *  (xem ChecklistQuestion ở Interactive.tsx). Khoan dung từ đồng nghĩa qua truthy(). */
+function checklistAnswerMap(s: string): Map<string, boolean> | null {
+  const map = new Map<string, boolean>();
+  for (const raw of (s ?? "").split(",")) {
+    const part = raw.trim();
+    if (!part) continue;
+    const i = part.indexOf(":");
+    if (i < 0) continue;
+    const key = part.slice(0, i).trim().toLowerCase();
+    const val = truthy(part.slice(i + 1));
+    if (key && val !== null) map.set(key, val);
+  }
+  return map.size > 0 ? map : null;
+}
+
+/** Chấm một dạng tương tác. Trả null nếu `dang`/`correct` không thuộc nhóm này. */
 export function gradeInteractive(
   dang: string | null | undefined,
   student: string,
@@ -90,6 +155,20 @@ export function gradeInteractive(
     if (ok) for (const [k, v] of b) if (a.get(k) !== v) { ok = false; break; }
     return { correct: ok, method: "noi_cot" };
   }
+  // checklist: KHÔNG gate theo `dang` — nội dung thật gắn nhãn "mcq". Phát hiện
+  // từ HÌNH DẠNG dap_an (checklistMap trả null nếu không khớp) → an toàn cho mọi
+  // câu mcq/dien_dap_an khác (không đổi hành vi chấm của chúng).
+  const cb = checklistMap(correct);
+  if (cb) {
+    const ca = checklistAnswerMap(student);
+    // Học sinh KHÔNG gửi dạng canonical "a:dung,b:sai,…" (UI checklist không dựng
+    // được → rơi về nút chọn / ô nhập) → TRẢ NULL để CAS chấm y như trước, tuyệt
+    // đối không chấm sai oan chỉ vì dap_an trông giống checklist.
+    if (!ca) return null;
+    let ok = ca.size === cb.size;
+    if (ok) for (const [k, v] of cb) if (ca.get(k) !== v) { ok = false; break; }
+    return { correct: ok, method: "checklist" };
+  }
   return null;
 }
 
@@ -103,6 +182,7 @@ export interface OrderItem { key: string; text: string }
 export interface InteractiveStruct {
   order?: { mode: "label" | "word"; intro: string; items: OrderItem[] };
   match?: { intro: string; left: OrderItem[]; right: OrderItem[] };
+  checklist?: { intro: string; items: OrderItem[] };
 }
 
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -140,7 +220,14 @@ function extractByKeys(
   while ((m = re.exec(text)) !== null) {
     const raw = m[1]!.replace(/^[A-Za-z]-/, ""); // bỏ tiền tố cột "B-"
     const key = canon.get(ci ? raw.toLowerCase() : raw);
-    if (key) hits.push({ key, content: re.lastIndex, start: m.index });
+    if (key) {
+      // "(" mở nhãn kiểu "(a)" chỉ dùng làm lookbehind (zero-width) → KHÔNG bị
+      // regex "nuốt". Lùi start qua nó để intro/nội dung mục trước không dính
+      // dấu "(" thừa (nếu không "(a) X (b) Y" → mục a có text kết thúc bằng "(").
+      let start = m.index;
+      if (start > 0 && text[start - 1] === "(") start--;
+      hits.push({ key, content: re.lastIndex, start });
+    }
   }
   const out: Array<{ key: string; text: string; at: number }> = [];
   const seen = new Set<string>();
@@ -195,6 +282,18 @@ export function parseInteractive(
         right: rf.map((x) => ({ key: x.key, text: x.text })),
       },
     };
+  }
+  // CHECKLIST: đúng/sai chùm ý — phát hiện từ HÌNH DẠNG dap_an, KHÔNG phụ thuộc
+  // dang_cau_hoi (dữ liệu thật đang gắn nhãn "mcq" cho dạng này, không phải
+  // "dung_sai"). dap_an dạng "a) Đ · b) S · c) Đ · d) Đ" → checklistMap.
+  const cb = checklistMap(dapAn);
+  if (cb) {
+    const keys = [...cb.keys()];
+    const found = extractByKeys(prompt, keys, true, false);
+    if (found.length < keys.length) return null;
+    const first = Math.min(...found.map((f) => f.at));
+    const items = found.map((f) => ({ key: f.key, text: f.text }));
+    return { checklist: { intro: prompt.slice(0, first).trim(), items } };
   }
   return null;
 }

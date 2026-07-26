@@ -1,9 +1,10 @@
 "use client";
 
-// UI tương tác cho 3 dạng objective Studio đã đẩy: sap_xep (xếp thứ tự) và
-// noi_cot (nối cột) — kéo–thả trên desktop + chạm trên mobile, cùng một canonical
-// answer để server chấm CẤU TRÚC. Bộ phân tích PHÒNG THỦ: đề không tách được
-// mục thì trả null → TutorApp rơi về ô nhập thường (không vỡ gì).
+// UI tương tác cho các dạng objective Studio đã đẩy: sap_xep (xếp thứ tự),
+// noi_cot (nối cột) — kéo–thả trên desktop + chạm trên mobile — và checklist
+// ("Đúng/Sai chùm ý"), cùng một canonical answer để server chấm CẤU TRÚC.
+// Bộ phân tích PHÒNG THỦ: đề không tách được mục thì server trả null →
+// TutorApp rơi về nút chọn / ô nhập thường (không vỡ gì).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MathText } from "../lib/mathrender";
@@ -18,6 +19,10 @@ export interface MatchParsed {
   intro: string;
   left: Array<{ key: string; text: string }>;
   right: Array<{ key: string; text: string }>;
+}
+export interface ChecklistParsed {
+  intro: string;
+  items: Array<{ key: string; text: string }>;
 }
 
 // ── sap_xep: danh sách xếp lại được ──────────────────────────────────────────
@@ -137,6 +142,60 @@ export function MatchQuestion({
         ))}
       </div>
       <p className="iq-help">Chạm một mục rồi chạm ô ở dòng cần nối — hoặc kéo–thả. Chạm ô đã nối để gỡ.</p>
+    </div>
+  );
+}
+
+// ── checklist: "Đúng/Sai chùm ý" — mỗi ý con một dòng + cặp nút Đúng/Sai ─────
+// Trước đây các câu này bị gửi xuống dưới dạng mcq 4 nút, mỗi nút là NGUYÊN chuỗi
+// gộp "a) Đ · b) S · c) Đ · d) Đ" → dày đặc, không đọc nổi. Giờ tách từng ý.
+export function ChecklistQuestion({
+  parsed, disabled, onChange,
+}: { parsed: ChecklistParsed; disabled: boolean; onChange: (canonical: string | null) => void }) {
+  const [marks, setMarks] = useState<Record<string, boolean | null>>(
+    () => Object.fromEntries(parsed.items.map((i) => [i.key, null])),
+  );
+
+  // CHỈ gửi khi đã tick ĐỦ mọi ý — thiếu một ý mà nộp là bị chấm sai oan
+  // (server so khớp đủ số nhãn). Chưa đủ → null → nút Kiểm tra vẫn khoá.
+  useEffect(() => {
+    const done = parsed.items.every((i) => marks[i.key] != null);
+    onChange(
+      done
+        ? parsed.items.map((i) => `${i.key}:${marks[i.key] ? "dung" : "sai"}`).join(",")
+        : null,
+    );
+  }, [marks, parsed, onChange]);
+
+  return (
+    <div className="iq">
+      {parsed.intro && <p className="iq-intro"><MathText>{parsed.intro}</MathText></p>}
+      <ul className="iq-check">
+        {parsed.items.map((it) => (
+          <li key={it.key} className="iq-crow">
+            <span className="iq-ckey num">{it.key}</span>
+            <span className="iq-ctext"><MathText>{it.text}</MathText></span>
+            <span className="iq-cbtns">
+              {([["Đúng", true], ["Sai", false]] as Array<[string, boolean]>).map(([label, val]) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={"iq-cbtn" + (marks[it.key] === val ? " on" : "")}
+                  aria-pressed={marks[it.key] === val}
+                  aria-label={`Ý ${it.key}: ${label}`}
+                  disabled={disabled}
+                  onClick={() => setMarks((m) => ({ ...m, [it.key]: val }))}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="iq-help">
+        Chọn <b>Đúng</b> hay <b>Sai</b> cho <b>từng ý</b> — đủ cả {parsed.items.length} ý rồi bấm Kiểm tra.
+      </p>
     </div>
   );
 }

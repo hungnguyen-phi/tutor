@@ -113,7 +113,8 @@ Deno.serve(async (req: Request) => {
       const params = spec && ses ? genParams(spec, seedFrom(ses.id, q.id)) : {};
       const fill = (t: string) => (spec ? fillTemplate(t, params) : t);
       const promptFilled = fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING)\]\s*/i, ""));
-      // Bóc cấu trúc tương tác (sap_xep/noi_cot) — null cho dạng khác. KHÔNG kèm đáp án.
+      // Bóc cấu trúc tương tác (sap_xep/noi_cot/checklist) — null cho dạng khác.
+      // KHÔNG kèm đáp án.
       const inter = parseInteractive(q.dang_cau_hoi, promptFilled, String(q.dap_an ?? ""));
       const base = {
         id: q.id,
@@ -130,7 +131,9 @@ Deno.serve(async (req: Request) => {
         // Có phương án nhiễu → MCQ (thay params vào từng phương án); không có
         // (điền đáp án) → ô nhập tự do, chấm bằng CAS.
         const distractors = (q.distractors ?? []) as Array<{ phuong_an: string }>;
-        if (distractors.length > 0) {
+        // Checklist: distractors là biến thể lật một ý → KHÔNG dựng thành 4 nút
+        // (client đã có UI tick từng ý). Xem ghi chú ở chat-turn/pickQuestion.
+        if (distractors.length > 0 && !inter?.checklist) {
           const opts = shuffle([fill(String(q.dap_an)), ...distractors.map((d) => fill(d.phuong_an))]);
           return { ...base, options: opts };
         }
