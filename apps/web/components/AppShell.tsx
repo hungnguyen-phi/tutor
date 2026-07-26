@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { GraduationCap, History, Trophy, Flag, User } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 export type NavKey = "learn" | "review" | "scoreboard" | "quests" | "profile";
 
@@ -80,6 +81,12 @@ export default function AppShell({
               </a>
             );
           })}
+          {/* Sáng/tối sống TRONG thanh nav, không còn là nút nổi góc trên–phải.
+              Nút nổi cũ (position:fixed) đè lên đầu sư tử ở hero Ôn tập/Hạng và
+              lên thẻ bài học — mỗi màn phải tự chừa chỗ (.hud từng có hack
+              padding-right:52px). Ở đây nó có chỗ dành riêng, không bao giờ đè
+              nội dung, lại nằm trong tầm ngón cái. */}
+          <ThemeToggle />
         </nav>
       )}
       <main className="shell-main">{children}</main>

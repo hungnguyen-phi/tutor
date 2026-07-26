@@ -122,7 +122,11 @@ export default function DemoPage() {
       </div>
 
       {screen === "path" && (
-        <>
+        /* Bọc ĐÚNG khung của app thật (.learn-layout > .learn-main): nền cảnh
+           và các rule bố cục màn Học đều móc vào hai lớp này, nên thiếu chúng
+           thì bản xem trước sẽ khác production — đúng thứ demo sinh ra để tránh. */
+        <div className="learn-layout">
+          <div className="learn-main">
           {/* Pill chọn môn nằm ngay trong HUD (hi-fi 3a) — demo chưa đổi môn được */}
           <Hud progress={PROGRESS} subject={{ label: "Toán 10" }} />
           <LearningPath
@@ -132,7 +136,8 @@ export default function DemoPage() {
             greeting="Bạn đã thành thạo 2 điểm kiến thức. Hôm nay mình với bạn học Đỉnh parabol nhé — mình hỏi, bạn nghĩ."
             onStart={() => setScreen("lesson")}
           />
-        </>
+          </div>
+        </div>
       )}
 
       {(screen === "lesson" || screen === "retry") && (

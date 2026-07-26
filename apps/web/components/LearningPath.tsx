@@ -203,6 +203,10 @@ export default function LearningPath({
     return (
       <li
         key={n.key}
+        /* Sư tử đứng bên nào — để nhãn node né sang phía đối diện (CSS). Trước
+           đây nhãn luôn căn giữa nên viên trắng đè lên thân sư tử đúng tại node
+           đang học, ngay chỗ quan trọng nhất màn hình. */
+        data-lion={n.state === "current" ? (shiftedLeft ? "r" : "l") : undefined}
         style={
           {
             position: "relative",

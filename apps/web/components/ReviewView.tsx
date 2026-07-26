@@ -144,16 +144,13 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
             <BookOpenCheck strokeWidth={2.25} />
           </span>
           <b className="num">{count}</b>
-          <span>điểm đã thành thạo</span>
+          <span>đã thành thạo</span>
         </div>
-        {/* Nhịp Leitner THẬT thay tile nhân đôi số count (phê bình zero-state) */}
-        <div className="ws-stat" data-tone="gold">
-          <span className="ws-stat-ico" aria-hidden>
-            <Target strokeWidth={2.25} />
-          </span>
-          <b className="num">1·3·7</b>
-          <span>nhịp ôn (ngày)</span>
-        </div>
+        {/* GỠ ô "1·3·7 nhịp ôn": đó là một THIẾT LẬP của hệ thống, không phải
+            thành tích của học sinh. Đặt nó cạnh "điểm đã thành thạo" và "ngày
+            liên tiếp" khiến cả hàng mất nghĩa — cùng một khuôn hình mà chỗ là
+            thành tích, chỗ là cấu hình. Nhịp 1·3·7 được giải thích ở thẻ dưới,
+            đúng lúc học sinh đã có gì đó để ôn. */}
         <div className="ws-stat" data-tone="plain" data-zero={progress.streak === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <Flame strokeWidth={2.25} />
@@ -164,25 +161,23 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
       </div>
 
       {empty ? (
-        /* Trạng thái rỗng vẫn đầy đặn desktop: giải thích Leitner bên trái,
-           lời mời học điểm đầu tiên bên phải. */
-        <div className="ws-grid">
-          <LeitnerCard />
-          <section className="ws-panel rv-empty">
-            <Lion mood="idle" size={92} decorative />
-            <div>
-              <h2 className="ws-panel-title">Hộp ôn tập còn đang ngủ</h2>
-              <p className="muted">
-                Thành thạo điểm kiến thức đầu tiên ở phần Học là đánh thức nó ngay — mỗi điểm bạn nắm
-                chắc sẽ vào đây chờ bạn ghé ôn lại.
-              </p>
-            </div>
-            <a className="btn btn-gold" href="/learn/" onClick={goLearn}>
-              Vào học điểm đầu tiên
-              <ArrowRight aria-hidden strokeWidth={2} />
-            </a>
-          </section>
-        </div>
+        /* MÀN RỖNG = MỘT CÂU + MỘT NÚT.
+           Trước đây màn này là hai thẻ giảng giải: "Vì sao ôn lại 1·3·7 ngày?"
+           (kèm 3 hộp con) đứng cạnh "Hộp ôn tập còn đang ngủ" — tổng cộng nói
+           về giãn cách Leitner BA lần, cho một học sinh chưa thành thạo điểm
+           nào nên chưa dùng được kiến thức đó. PRODUCT.md: "Mở ra là học được."
+           Cách giãn cách sẽ được giải thích khi nó thực sự xảy ra (thẻ dưới,
+           nhánh không-rỗng). Sư tử cũng không lặp: hero ngay trên đã có. */
+        <section className="ws-panel rv-empty">
+          <h2 className="ws-panel-title">Chưa có gì để ôn</h2>
+          <p className="muted">
+            Học xong điểm kiến thức đầu tiên, nó sẽ tự hẹn bạn quay lại đây.
+          </p>
+          <a className="btn btn-gold" href="/learn/" onClick={goLearn}>
+            Vào học
+            <ArrowRight aria-hidden strokeWidth={2} />
+          </a>
+        </section>
       ) : (
         <div className="ws-grid">
           {/* Cột chính: các điểm đã thành thạo, gom theo chương */}
@@ -242,31 +237,31 @@ export default function ReviewView({ onGoLearn }: { onGoLearn?: () => void }) {
   );
 }
 
-/** Thẻ giải thích hộp Leitner — 3 hộp màu (trời → navy → vàng). */
+/** Nhịp ôn giãn dần — CHỈ hiện khi học sinh đã có điểm để ôn (nhánh không-rỗng),
+ *  vì lúc đó kiến thức này mới dùng được. Ba mốc là ba DÒNG trong chính thẻ này,
+ *  không phải ba thẻ con: DESIGN.md cấm thẻ lồng thẻ, và ba hộp màu đặc trước
+ *  đây (nhãn 11px, chữ trắng trên navy) làm thẻ mẹ vỡ nhịp trên điện thoại. */
 function LeitnerCard() {
   return (
     <section className="ws-panel rv-leitner">
-      {/* Sư tử tò mò ló đầu qua mép thẻ — cửa sổ overflow cắt tại mép */}
-      <span className="rv-peek" aria-hidden>
-        <Lion mood="think" size={58} decorative />
-      </span>
       <h2 className="ws-panel-title">
         <Target aria-hidden strokeWidth={2.25} />
-        Vì sao ôn lại 1 · 3 · 7 ngày?
+        Nhịp ôn 1 · 3 · 7 ngày
       </h2>
       <p className="muted rv-leitner-lead">
-        Mỗi lần bạn nhớ đúng, điểm kiến thức leo lên hộp xa hơn — khoảng cách ôn giãn dần để bạn nhớ
-        thật bền mà không tốn nhiều thời gian.
+        Mỗi lần bạn nhớ đúng, khoảng cách ôn lại giãn ra — nhớ bền hơn mà tốn ít thời gian hơn.
       </p>
-      <div className="rv-boxes">
+      <ol className="rv-steps">
         {LEITNER.map((b, i) => (
-          <div className="rv-box" data-tone={b.tone} key={b.days}>
-            <span className="rv-box-n num">{i + 1}</span>
-            <b className="rv-box-days">{b.days}</b>
-            <span className="rv-box-lbl">{b.label}</span>
-          </div>
+          <li className="rv-step" data-tone={b.tone} key={b.days}>
+            <span className="rv-step-n num" aria-hidden>
+              {i + 1}
+            </span>
+            <b className="rv-step-days">{b.days}</b>
+            <span className="rv-step-lbl">{b.label}</span>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }

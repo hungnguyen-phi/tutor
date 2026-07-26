@@ -47,11 +47,11 @@ const WEEK_TARGET = 5;
 
 /** Bảng thưởng XP — LẤY THẲNG từ lib/gamify (không bịa số). Thứ tự kể chuyện
  *  sư phạm: đúng → dám thử lại → xong buổi → thành thạo. */
-const XP_GUIDE: { key: keyof typeof G.XP; label: string; note: string; Icon: typeof Check }[] = [
-  { key: "correct", label: "Trả lời đúng", note: "mỗi câu bạn làm đúng", Icon: Check },
-  { key: "persistence", label: "Dám thử lại sau khi sai", note: "nỗ lực luôn được thưởng", Icon: RotateCcw },
-  { key: "lessonDone", label: "Hoàn thành một buổi học", note: "học trọn một bài", Icon: BookOpen },
-  { key: "nodeMastered", label: "Thành thạo một điểm kiến thức", note: "nắm chắc một điểm", Icon: Sparkles },
+const XP_GUIDE: { key: keyof typeof G.XP; label: string; Icon: typeof Check }[] = [
+  { key: "correct", label: "Trả lời đúng", Icon: Check },
+  { key: "persistence", label: "Dám thử lại sau khi sai", Icon: RotateCcw },
+  { key: "lessonDone", label: "Hoàn thành một buổi học", Icon: BookOpen },
+  { key: "nodeMastered", label: "Thành thạo một điểm kiến thức", Icon: Sparkles },
 ];
 
 /** Nửa đêm thứ Hai của tuần hiện tại (giờ địa phương). */
@@ -305,15 +305,16 @@ export default function QuestsView({
               XP thưởng cho <b>nỗ lực</b> — kể cả khi bạn thử lại sau lúc sai.
             </p>
             <ul className="gl-xp">
-              {XP_GUIDE.map(({ key, label, note, Icon }) => (
+              {/* MỘT dòng chữ mỗi mục: phụ đề cũ chỉ diễn đạt lại tiêu đề ("Trả
+                  lời đúng" / "mỗi câu bạn làm đúng") — 4 dòng chữ nhỏ không mang
+                  thêm thông tin nào. Cắt chữ thừa trị "chữ nhỏ quá" gọn hơn là
+                  tăng cỡ chữ. */}
+              {XP_GUIDE.map(({ key, label, Icon }) => (
                 <li className="gl-xp-row" key={key}>
                   <span className="gl-xp-ico" aria-hidden>
                     <Icon strokeWidth={2.25} />
                   </span>
-                  <div className="gl-xp-body">
-                    <b>{label}</b>
-                    <span className="muted">{note}</span>
-                  </div>
+                  <b className="gl-xp-body">{label}</b>
                   <span className="gl-xp-amt num">+{G.XP[key]}</span>
                 </li>
               ))}
@@ -330,7 +331,7 @@ export default function QuestsView({
                 const state = i < leagueIdx ? "past" : i === leagueIdx ? "current" : "future";
                 return (
                   <li className="gl-rung" key={l.name} data-state={state}>
-                    <span className="gl-rung-ico" aria-hidden>
+                    <span className="gl-rung-ico" data-rank={i} aria-hidden>
                       <Medal strokeWidth={2.25} />
                     </span>
                     <b className="gl-rung-name">{l.name}</b>

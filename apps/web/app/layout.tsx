@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
-import ThemeToggle from "../components/ThemeToggle";
 import "./globals.css";
 // Bộ cảm xúc động của mascot — PHẢI đứng sau globals.css: choreography trong
 // này ghi đè nhịp cơ bản (.lion-greet đảo tay đè lion-sway, v.v.).
@@ -62,8 +61,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               "(function(){try{var e=document.documentElement,t=localStorage.getItem('va-theme');(t==='dark'||t==='light')&&(e.dataset.theme=t);var f=localStorage.getItem('va-font');(f==='sm'||f==='lg')&&(e.dataset.font=f);localStorage.getItem('va-motion')==='reduce'&&(e.dataset.motion='reduce')}catch(n){}})()",
           }}
         />
-        {/* Nút SÁNG/TỐI nổi góc trên–phải — hiện MỌI trang, ai cũng bấm được. */}
-        <ThemeToggle />
         {/* App-shell 1:1 viewport (yêu cầu chủ dự án): body khoá cuộn, mọi
             trang cuộn NGẦM trong .viewport — không bao giờ thấy thanh kéo.
             Màn Học còn siết thêm: chỉ dải bài học cuộn bên trong cảnh. */}

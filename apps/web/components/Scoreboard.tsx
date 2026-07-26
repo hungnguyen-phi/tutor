@@ -265,15 +265,17 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
               <span className="ws-stat-ico" aria-hidden>
                 <Medal strokeWidth={2.25} />
               </span>
+              {/* Nhãn NGẮN để không xuống 2 dòng trên điện thoại; "nỗ lực" đã do
+                  chip hero nói rồi, không cần nhắc trong từng ô. */}
               <b className="num">{myRank != null ? `#${myRank}` : "–"}</b>
-              <span>hạng nỗ lực {scopeWord}</span>
+              <span>hạng {scopeWord}</span>
             </div>
             <div className="ws-stat" data-tone="gold" data-zero={myTotalXp === 0 || undefined}>
               <span className="ws-stat-ico" aria-hidden>
                 <Zap strokeWidth={2.25} />
               </span>
               <b className="num">{myTotalXp}</b>
-              <span>tổng XP của bạn</span>
+              <span>tổng XP</span>
             </div>
             <div className="ws-stat" data-tone="plain" data-zero={myStreak === 0 || undefined}>
               <span className="ws-stat-ico" aria-hidden>
@@ -291,30 +293,22 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                 /* COLD-START: chưa ai trong bảng có XP tuần này. Thay danh sách
                    vắng bằng lời mời đầy đặn — cân với cột phải, không để trống. */
                 <div className="sb-cold">
-                  <span className="sb-cold-lion" aria-hidden>
-                    <Lion mood="excited" size={92} variant="full" decorative />
-                  </span>
+                  {/* KHÔNG lặp sư tử: hero ngay trên đã có đúng tư thế này (excited
+                      132px). Một màn — một sư tử (DESIGN.md: "không rải sư tử lên
+                      mọi góc"). */}
                   <h2 className="sb-cold-title">
                     Bảng tuần đang chờ buổi học đầu tiên của {firstName}
                   </h2>
+                  {/* Bỏ "Xếp theo nỗ lực, không theo điểm số" — chip ở hero đã nói
+                      nguyên văn câu đó rồi. */}
                   <p className="sb-cold-lead">
-                    Xếp theo <b>nỗ lực</b>, không theo điểm số. Học <b>1 bài</b> hôm nay là {firstName} có
-                    tên trên bảng {scopeWord} ngay — ai quay lại đều đặn đều lên hạng được.
+                    Học <b>1 bài</b> hôm nay là {firstName} có tên trên bảng {scopeWord} ngay — ai quay
+                    lại đều đặn đều lên hạng được.
                   </p>
-                  <ul className="sb-cold-how">
-                    <li>
-                      <Zap aria-hidden strokeWidth={2.25} /> Mỗi buổi học cộng XP — kể cả khi làm sai
-                      rồi thử lại.
-                    </li>
-                    <li>
-                      <Flame aria-hidden strokeWidth={2.25} /> Quay lại mỗi ngày để giữ chuỗi ngày liên
-                      tiếp.
-                    </li>
-                    <li>
-                      <Sparkles aria-hidden strokeWidth={2.25} /> Bảng làm mới mỗi tuần — tuần nào cũng
-                      có cơ hội dẫn đầu.
-                    </li>
-                  </ul>
+                  {/* GỠ danh sách 3 gạch đầu dòng giảng luật chơi (XP mỗi buổi học,
+                      giữ chuỗi ngày, bảng làm mới hàng tuần): màn RỖNG không phải
+                      chỗ dạy cơ chế — tab Mục tiêu đã có bảng "Cách kiếm XP" đầy
+                      đủ. Ở đây chỉ cần một câu và một lối ra. */}
                   <button
                     type="button"
                     className="btn"

@@ -415,31 +415,28 @@ ul {
 /* Nút SÁNG/TỐI nổi góc TRÊN–PHẢI — hiện MỌI trang (mount ở layout), ai cũng bấm
    được. z=40: trên nội dung + nav (--z-nav 10) nhưng DƯỚI sheet/modal (50) nên
    sheet vẫn che. Desktop: nút nằm ở lề phải ngoài cột nội dung → không đè gì. */
+/* Sáng/tối: mục TIỆN ÍCH cuối thanh nav (không phải điểm đến, nên hẹp hơn tab
+   và ngăn bằng một nét mảnh). Trước đây là nút position:fixed góc trên–phải →
+   đè lên đầu sư tử và thẻ ở mọi màn; giờ nó có chỗ riêng trong nav. */
 .theme-toggle {
-  position: fixed;
-  top: max(10px, env(safe-area-inset-top));
-  right: 12px;
-  z-index: 40;
+  flex: 0 0 auto;
+  align-self: stretch;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--ink-2);
-  box-shadow: var(--shadow-sm);
+  width: 46px;
+  min-height: 44px;
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--hairline);
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--muted);
   cursor: pointer;
-  transition: transform 0.14s var(--ease), color 0.14s var(--ease),
-    background 0.14s var(--ease), border-color 0.14s var(--ease);
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
 .theme-toggle:hover {
   color: var(--ink);
-  border-color: var(--line-strong, var(--navy));
-  transform: translateY(-1px);
-}
-.theme-toggle:active {
-  transform: translateY(0);
+  background: var(--navy-tint);
 }
 .theme-toggle svg {
   width: 20px;
@@ -623,6 +620,17 @@ ul {
   .nav-item[aria-current="page"] .nav-ico {
     background: transparent;
   }
+  /* Rail DỌC: nét ngăn đổi sang cạnh trên, và margin-top:auto đẩy tiện ích
+     xuống đáy rail — tách hẳn khỏi nhóm 5 điểm đến ở trên. */
+  .theme-toggle {
+    width: 68px;
+    align-self: center;
+    margin: auto 0 0;
+    padding: 9px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+    border-radius: 12px;
+  }
 }
 
 /* ═══ HUD (hi-fi 3a): pill chọn môn · chuỗi ngày · XP ═════════════════
@@ -633,9 +641,8 @@ ul {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  /* Nút đổi nền (.theme-toggle) nổi fixed góc phải (right:12px, rộng 40px) đè lên
-     chip XP hút sát mép phải. Chừa chỗ để 3 badge không chồng nhau. */
-  padding-right: 52px;
+  /* (GỠ padding-right:52px) Hack chừa chỗ cho nút sáng/tối nổi — nút đã chuyển
+     vào thanh nav nên HUD lấy lại trọn bề ngang. */
 }
 .hud-spacer {
   flex: 1;
@@ -1175,6 +1182,57 @@ ul {
     height: calc(100dvh - 158px);
   }
 }
+
+/* ═══ MOBILE: cảnh là NỀN CẢ TRANG Học, thẻ nổi lên trên ═══════════════════
+   Trước đây .scene là một DẢI cao cố định (100dvh − nav − 128px) kẹp giữa HUD
+   và thẻ "Nhiệm vụ" → hai đường cắt ngang phũ, và khung cảnh — tài sản thương
+   hiệu mạnh nhất — bị dùng rụt rè nhất. Desktop (≥900px) từ trước đã cho cảnh
+   chiếm trọn khung với HUD/banner nổi lên trên; đây là đưa đúng cách đó xuống
+   điện thoại. DESIGN.md: chiến lược màu "Committed", màu phủ 30–60% bề mặt. */
+@media (max-width: 899.98px) {
+  /* Bỏ đệm của shell-main để nền chạm mép màn, rồi trả đệm lại cho .learn-layout
+     — nội dung vẫn thụt vào 16px như cũ, chỉ có NỀN là tràn. */
+  .shell-main:has(.learn-layout) {
+    padding: 0;
+  }
+  .learn-layout {
+    min-height: 100dvh;
+    padding: 16px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 32px);
+  }
+  /* Nền đặt trên CHÍNH phần tử cuộn (.viewport): nền của vùng cuộn vốn neo theo
+     border-box chứ không trôi theo nội dung, nên cảnh đứng yên suốt trang mà
+     KHÔNG cần background-attachment:fixed (thủ thuật đó sẽ hỏng vì transform
+     của .view-in tạo containing block). Trang dài bao nhiêu cảnh cũng không bị
+     kéo giãn, và không bao giờ có đường cắt. */
+  .viewport:has(.learn-layout) {
+    background-color: #14162d;
+    background-image:
+      linear-gradient(180deg, rgba(15, 16, 40, 0.3) 0%, rgba(15, 16, 40, 0) 22%, rgba(15, 16, 40, 0) 46%, rgba(15, 16, 40, 0.55) 100%),
+      var(--scene-img, none),
+      var(--scene-sky, var(--sky-grad));
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+  /* .scene giờ chỉ còn là KHUNG của con đường: hết nền riêng, hết chiều cao
+     cố định, hết đường cắt. */
+  .learn-main .scene {
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: none;
+    animation: none;
+  }
+  /* Con đường hết là vùng cuộn riêng — giờ CẢ TRANG cuộn trên nền cảnh, nên
+     bỏ flex:1 + overflow (nếu không .path sẽ cố co vào một khung không còn). */
+  .learn-main .path {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+}
 .scene-sky {
   position: absolute;
   inset: 0;
@@ -1267,7 +1325,7 @@ ul {
    vàng mờ hơi bụi, đồng cỏ olive-vàng (vẫn đủ đậm để dấu chân VÀNG bật), mặt
    trời ấm to. Cây keo tán bằng (acacia) — biểu tượng savanna — dựng ở đường
    chân cỏ qua ::after (xem dưới). */
-.scene[data-world="0"] {
+.viewport:has(.scene[data-world="0"]), .scene[data-world="0"] {
   --scene-sky: linear-gradient(180deg, #f3cf83 0%, #f8e4ac 42%, #fbf2d2 70%);
   --scene-hill-back: #9fb85a;
   --scene-hill-front: #73923c;
@@ -1278,7 +1336,7 @@ ul {
 /* (Đã bỏ 2 "cây keo" ::after ở thế giới 0 — render ra như cây nấm dán phẳng vào
    đồi, "cháy vào nền", quyết định chủ dự án 2026-07-21. Thảo nguyên giờ chỉ còn
    đồi cỏ + mặt trời + mây, sạch.) */
-.scene[data-world="1"] {
+.viewport:has(.scene[data-world="1"]), .scene[data-world="1"] {
   --scene-sky: linear-gradient(180deg, #8fd3a8 0%, #b8e6cc 40%, #def4e2 68%);
   --scene-hill-back: #5fb86b;
   --scene-hill-front: #2e9e5b;
@@ -1286,7 +1344,7 @@ ul {
   --scene-orb-glow: #fff0a8;
   --scene-cloud: #ffffff;
 }
-.scene[data-world="2"] {
+.viewport:has(.scene[data-world="2"]), .scene[data-world="2"] {
   --scene-sky: linear-gradient(180deg, #35b6d6 0%, #6fd0e0 40%, #b7eef0 68%);
   --scene-hill-back: #37aec0;
   --scene-hill-front: #1c7e93;
@@ -1294,7 +1352,7 @@ ul {
   --scene-orb-glow: #fff2a0;
   --scene-cloud: #ffffff;
 }
-.scene[data-world="3"] {
+.viewport:has(.scene[data-world="3"]), .scene[data-world="3"] {
   --scene-sky: linear-gradient(180deg, #6ea8e0 0%, #9cc6ec 40%, #c9e2f6 68%);
   --scene-hill-back: #a9c4e4;
   --scene-hill-front: #7c9fc8;
@@ -1302,7 +1360,7 @@ ul {
   --scene-orb-glow: #fbe9a0;
   --scene-cloud: #ffffff;
 }
-.scene[data-world="4"] {
+.viewport:has(.scene[data-world="4"]), .scene[data-world="4"] {
   --scene-sky: linear-gradient(180deg, #f3a6a0 0%, #f8c48a 40%, #fbe0a6 68%);
   --scene-hill-back: #6e5a9e;
   --scene-hill-front: #443a78;
@@ -1310,7 +1368,7 @@ ul {
   --scene-orb-glow: #ffd48a;
   --scene-cloud: #ffcf9e;
 }
-.scene[data-world="5"] {
+.viewport:has(.scene[data-world="5"]), .scene[data-world="5"] {
   --scene-sky: linear-gradient(180deg, #4a4a86 0%, #7b5a9e 40%, #c77ca0 68%);
   --scene-hill-back: #3b3568;
   --scene-hill-front: #262048;
@@ -1318,7 +1376,7 @@ ul {
   --scene-orb-glow: #f7c6d2;
   --scene-cloud: #b98cb4;
 }
-.scene[data-world="6"] {
+.viewport:has(.scene[data-world="6"]), .scene[data-world="6"] {
   --scene-sky: linear-gradient(180deg, #1b1c46 0%, #26275d 45%, #3a3b78 75%);
   --scene-hill-back: #232559;
   --scene-hill-front: #14163a;
@@ -1326,7 +1384,7 @@ ul {
   --scene-orb-glow: #d6dbef;
   --scene-cloud: #ffffff;
 }
-.scene[data-world="7"] {
+.viewport:has(.scene[data-world="7"]), .scene[data-world="7"] {
   --scene-sky: linear-gradient(180deg, #12233a 0%, #17414a 45%, #276b5e 78%);
   --scene-hill-back: #123038;
   --scene-hill-front: #0c1e28;
@@ -1334,7 +1392,7 @@ ul {
   --scene-orb-glow: #4fc59a;
   --scene-cloud: #eaf7ef;
 }
-.scene[data-world="8"] {
+.viewport:has(.scene[data-world="8"]), .scene[data-world="8"] {
   --scene-sky: linear-gradient(180deg, #241448 0%, #3e1e5e 45%, #5e2a6e 78%);
   --scene-hill-back: #3a1f5c;
   --scene-hill-front: #241040;
@@ -1345,15 +1403,19 @@ ul {
 
 /* Tranh savanna theo chương (Studio) — cung sáng→tối: sáng nắng → ngày → chiều →
    hoàng hôn → mưa → đêm trăng. Chỉ tranh của world ĐANG hiển thị mới được tải. */
-.scene[data-world="0"] { --scene-img: url("/scenes/world-0.webp"); }
-.scene[data-world="1"] { --scene-img: url("/scenes/world-1.webp"); }
-.scene[data-world="2"] { --scene-img: url("/scenes/world-2.webp"); }
-.scene[data-world="3"] { --scene-img: url("/scenes/world-3.webp"); }
-.scene[data-world="4"] { --scene-img: url("/scenes/world-4.webp"); }
-.scene[data-world="5"] { --scene-img: url("/scenes/world-5.webp"); }
-.scene[data-world="6"] { --scene-img: url("/scenes/world-6.webp"); }
-.scene[data-world="7"] { --scene-img: url("/scenes/world-7.webp"); }
-.scene[data-world="8"] { --scene-img: url("/scenes/world-8.webp"); }
+/* Đặt biến TRÊN .learn-layout (qua :has) để cảnh vẽ được ở tầng CẢ TRANG trên
+   mobile — biến CSS chỉ chảy xuống, nên nếu chỉ khai ở .scene thì tổ tiên không
+   đọc được. .scene vẫn nhận qua kế thừa; giữ luôn selector .scene cho trang
+   đứng riêng nào render cảnh ngoài .learn-layout. */
+.viewport:has(.scene[data-world="0"]), .scene[data-world="0"] { --scene-img: url("/scenes/world-0.webp"); }
+.viewport:has(.scene[data-world="1"]), .scene[data-world="1"] { --scene-img: url("/scenes/world-1.webp"); }
+.viewport:has(.scene[data-world="2"]), .scene[data-world="2"] { --scene-img: url("/scenes/world-2.webp"); }
+.viewport:has(.scene[data-world="3"]), .scene[data-world="3"] { --scene-img: url("/scenes/world-3.webp"); }
+.viewport:has(.scene[data-world="4"]), .scene[data-world="4"] { --scene-img: url("/scenes/world-4.webp"); }
+.viewport:has(.scene[data-world="5"]), .scene[data-world="5"] { --scene-img: url("/scenes/world-5.webp"); }
+.viewport:has(.scene[data-world="6"]), .scene[data-world="6"] { --scene-img: url("/scenes/world-6.webp"); }
+.viewport:has(.scene[data-world="7"]), .scene[data-world="7"] { --scene-img: url("/scenes/world-7.webp"); }
+.viewport:has(.scene[data-world="8"]), .scene[data-world="8"] { --scene-img: url("/scenes/world-8.webp"); }
 
 /* Hoàng hôn/chạng vạng: mây thành dải mù mỏng (haze) */
 .scene[data-world="4"] .scene-cloud {
@@ -1732,6 +1794,15 @@ ul {
 }
 /* Chỉ node hiện tại đeo nhãn. Gắn nhãn cho mọi node sẽ xé con đường thành các
    nút rời rạc — tên của các node khác nằm ở aria-label và title. */
+/* Nhãn node dạt sang phía ĐỐI DIỆN sư tử. Sư tử neo ở calc(50% + 40px) và rộng
+   132px, nên nhãn căn giữa (22ch ≈ 176px) chắc chắn chạm vào thân nó. Dịch 64px
+   là đủ tách hẳn ở màn 360px trở lên; dùng transform nên không đụng bố cục. */
+.path > li[data-lion="r"] .node-label {
+  transform: translateX(-64px);
+}
+.path > li[data-lion="l"] .node-label {
+  transform: translateX(64px);
+}
 .node-label {
   margin-top: 12px;
   max-width: 22ch;
@@ -7103,77 +7174,66 @@ html[data-motion="reduce"] .spin {
   font-size: 0.875rem;
   line-height: 1.55;
 }
-.rv-boxes {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.rv-box {
+/* Nhịp ôn 1·3·7 — BA DÒNG trong chính thẻ, không phải ba thẻ con.
+ * Trước đây .rv-box là ba hộp nền đặc (một hộp navy chữ trắng) lồng trong
+ * .ws-panel: vừa phạm luật "không thẻ lồng thẻ" của DESIGN.md, vừa ép nhãn
+ * xuống 11px trên điện thoại. Giờ màu hạng chỉ còn ở CHẤM SỐ, chữ đọc trên
+ * nền thẻ như mọi chỗ khác. */
+.rv-steps {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 14px 8px;
-  border-radius: 14px;
-  text-align: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.rv-box-n {
+.rv-step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+}
+.rv-step + .rv-step {
+  border-top: 1px solid var(--hairline);
+}
+.rv-step-n {
+  flex: 0 0 auto;
+  align-self: center;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  margin-bottom: 4px;
-}
-.rv-box-days {
-  font-size: 0.8125rem;
-  font-weight: 800;
-}
-.rv-box-lbl {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.rv-box[data-tone="sky"] {
-  background: var(--sky-tint);
-}
-.rv-box[data-tone="sky"] .rv-box-n {
-  background: var(--sky);
-  color: #fff;
-}
-.rv-box[data-tone="sky"] .rv-box-days {
-  color: var(--sky);
-}
-.rv-box[data-tone="sky"] .rv-box-lbl {
-  color: color-mix(in oklab, var(--sky) 80%, black);
-}
-.rv-box[data-tone="navy"] {
-  background: var(--navy);
-}
-.rv-box[data-tone="navy"] .rv-box-n {
-  background: color-mix(in oklab, #fff 18%, transparent);
-  color: var(--gold);
-}
-.rv-box[data-tone="navy"] .rv-box-days {
-  color: #fff;
-}
-.rv-box[data-tone="navy"] .rv-box-lbl {
-  color: color-mix(in oklab, #fff 76%, var(--navy));
-}
-.rv-box[data-tone="gold"] {
-  background: var(--gold-tint);
-}
-.rv-box[data-tone="gold"] .rv-box-n {
-  background: var(--gold);
-  color: var(--on-gold);
-}
-.rv-box[data-tone="gold"] .rv-box-days {
+  background: var(--navy-tint);
   color: var(--navy);
 }
-.rv-box[data-tone="gold"] .rv-box-lbl {
-  color: color-mix(in oklab, var(--navy) 74%, var(--gold-tint));
+.rv-step-days {
+  flex: 0 0 auto;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.rv-step-lbl {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: right;
+}
+/* Chấm số mang màu chặng: trời (vừa học) → navy (nhớ 1 lần) → vàng (nhớ nhiều). */
+.rv-step[data-tone="sky"] .rv-step-n {
+  background: var(--sky-tint);
+  color: var(--sky);
+}
+.rv-step[data-tone="navy"] .rv-step-n {
+  background: var(--navy);
+  color: #fff;
+}
+.rv-step[data-tone="gold"] .rv-step-n {
+  background: var(--gold-tint);
+  color: var(--gold-icon);
 }
 
 .rv-says {
@@ -7306,31 +7366,7 @@ html[data-motion="reduce"] .spin {
   font-weight: 800;
   color: var(--navy);
 }
-.sb-cold-how {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  list-style: none;
-  margin: 2px 0 4px;
-  width: 100%;
-}
-.sb-cold-how li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ink);
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--navy-tint);
-}
-.sb-cold-how svg {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  color: var(--sky);
-}
+/* (GỠ .sb-cold-how) Danh sách giảng luật chơi ở màn Hạng rỗng đã bỏ. */
 
 .sb-list {
   display: flex;
@@ -7555,19 +7591,15 @@ html[data-motion="reduce"] .spin {
   width: 18px;
   height: 18px;
 }
+/* Một dòng chữ duy nhất (phụ đề lặp ý đã gỡ) → nhích 14 → 15px cho dễ đọc trên
+   điện thoại, thay vì hai dòng trong đó một dòng không mang thông tin. */
 .gl-xp-body {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.gl-xp-body b {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 700;
+  line-height: 1.35;
   color: var(--ink);
-}
-.gl-xp-body .muted {
-  font-size: 0.75rem;
 }
 .gl-xp-amt {
   flex: 0 0 auto;
@@ -7595,6 +7627,10 @@ html[data-motion="reduce"] .spin {
   border: 1px solid var(--hairline);
   background: var(--surface);
 }
+/* Huy chương MANG MÀU CỦA HẠNG — trước đây cả bốn hạng dùng chung một huy
+   chương xám, nên hạng tên "Vàng" lại có huy chương xám, phá ẩn dụ phần thưởng.
+   Gold ở đây là --gold-icon (#d4a900), KHÔNG phải --gold: luật cứng cấm #F9DD0E
+   làm màu icon/chữ trên nền sáng. */
 .gl-rung-ico {
   flex: 0 0 auto;
   display: grid;
@@ -7604,6 +7640,18 @@ html[data-motion="reduce"] .spin {
   border-radius: 10px;
   background: var(--navy-tint);
   color: var(--muted);
+}
+.gl-rung-ico[data-rank="0"] { /* Đồng */
+  background: var(--mane-tint);
+  color: var(--mane-ink);
+}
+.gl-rung-ico[data-rank="2"] { /* Vàng */
+  background: var(--gold-tint);
+  color: var(--gold-icon);
+}
+.gl-rung-ico[data-rank="3"] { /* Ngọc */
+  background: var(--ok-tint);
+  color: var(--ok);
 }
 .gl-rung-ico svg {
   width: 17px;
@@ -7928,26 +7976,12 @@ html[data-motion="reduce"] .spin {
   transform: rotate(45deg);
 }
 
-/* ── 2c. Vệt bút dạ vàng quẹt dưới tiêu đề serif — vở ghi có highlight ── */
+/* ── 2c. (GỠ) Vệt bút dạ vàng dưới tiêu đề ────────────────────────────────
+   Bỏ theo phê bình 2026-07-26: vệt chỉ áp cho .ws-panel-title nên tiêu đề chỗ
+   có chỗ không → đọc ra như lỗi; và dải cao 9px skewX(-14deg) nằm đúng vùng
+   dấu dưới của chữ tiếng Việt. Thứ bậc giờ do cỡ + đậm + màu navy đảm nhiệm. */
 .ws-panel-title {
-  position: relative;
-  isolation: isolate;
   width: fit-content;
-}
-.ws-panel-title::after {
-  content: "";
-  position: absolute;
-  left: 29px; /* né icon 20 + gap 9 */
-  right: -4px;
-  bottom: 0;
-  height: 9px;
-  z-index: -1;
-  border-radius: 3px;
-  background: color-mix(in oklab, var(--gold) 42%, transparent);
-  transform: skewX(-14deg) rotate(-0.6deg);
-}
-.ws-panel-title:not(:has(svg))::after {
-  left: 0;
 }
 
 /* ── 2d. Confetti tĩnh trong hero — vài chấm + vòng quanh sư tử ── */
@@ -7973,23 +8007,8 @@ html[data-motion="reduce"] .spin {
 .rv-leitner {
   position: relative;
 }
-.rv-peek {
-  position: absolute;
-  top: -37px;
-  right: 24px;
-  height: 37px;
-  overflow: hidden;
-  pointer-events: none;
-}
-.rv-peek .lion {
-  display: block;
-  transform: rotate(5deg);
-}
-@media (max-width: 959px) {
-  .rv-peek {
-    display: none;
-  }
-}
+/* (GỠ .rv-peek) Sư tử ló đầu qua mép thẻ là con thứ BA trên cùng một màn — hero
+   đã có một con, khối .rv-says có một con. Trang trí thuần, cắt. */
 
 /* ── 2f. Top 3 = sticker huy chương dán lệch; hạng 1 có "con dấu" vàng ── */
 .sb-rank[data-podium] {
@@ -8112,21 +8131,8 @@ html[data-motion="reduce"] .spin {
   border: 2px dashed color-mix(in oklab, var(--navy) 28%, var(--surface));
   background: color-mix(in oklab, var(--navy-tint) 40%, var(--surface));
 }
-.rv-empty .lion {
-  transform: rotate(-6deg);
-}
-.rv-empty::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  width: 56px;
-  height: 56px;
-  background: url("/brand/lion/paw-plain.png") center / contain no-repeat;
-  opacity: 0.16;
-  transform: rotate(-14deg);
-  pointer-events: none;
-}
+/* (GỠ dấu chân mờ) Nó bị mép thẻ cắt cụt nên đọc ra như ảnh lỗi, và màn rỗng
+   giờ chỉ còn một câu + một nút — không cần thêm hoạ tiết cạnh tranh. */
 
 /* ── Tôn trọng reduced-motion: mọi trò nghịch đứng yên ── */
 @media (prefers-reduced-motion: reduce) {
@@ -9504,27 +9510,28 @@ textarea {
   .ws-stats[data-cols="4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* Ô chỉ số trên điện thoại: BỎ icon trang trí, cho số + nhãn dùng TRỌN bề
+     ngang ô. Trước đây icon 30px ăn mất một phần ba chiều ngang (~130px) nên
+     nhãn 11px buộc phải xuống 2 dòng — "điểm đã / thành thạo", "ngày liên /
+     tiếp". Đó chính là gốc của cảm giác "chữ nhỏ và rối". Màu họ của ô đã do
+     data-tone đảm nhiệm nên icon không mang thêm thông tin nào. */
   .ws-stat {
     min-width: 0;
     min-height: 0;
-    padding: 10px 10px;
-    column-gap: 8px;
+    grid-template-columns: 1fr;
+    padding: 12px;
+    row-gap: 2px;
     border-radius: 14px;
   }
   .ws-stat-ico {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-  }
-  .ws-stat-ico svg {
-    width: 16px;
-    height: 16px;
+    display: none;
   }
   .ws-stat .num {
-    font-size: 1.1875rem;
+    font-size: 1.3125rem;
   }
   .ws-stat span:last-child {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
+    line-height: 1.25;
   }
 
   /* ── Đ2.2 HERO nén: bớt "banner to chả để làm gì" ── */
@@ -9579,12 +9586,6 @@ textarea {
   }
   .gl-rung-name {
     font-size: 0.875rem;
-  }
-  .rv-box {
-    padding: 10px 6px;
-  }
-  .rv-boxes {
-    gap: 8px;
   }
   .sb-scope {
     padding: 3px;
@@ -9889,13 +9890,18 @@ textarea {
 /* ── FIX T1: sàn px cho chữ vi mô mobile (html[data-font="sm"] 87.5%
    từng bóp 0.6875rem→9.6px; .week-lbl 0.625rem=10px ngay mặc định) ── */
 @media (max-width: 899.98px) {
-  .ws-stat span:last-child,
   .ws-kicker,
   .node-flag,
   .gl-rung-you,
   .eyebrow,
   .week-lbl {
     font-size: max(0.6875rem, 11px);
+  }
+  /* Nhãn ô chỉ số tách riêng: sàn của nó là 12px (icon đã gỡ nên có đủ chỗ).
+     Nằm chung nhóm 11px ở trên thì rule này — đứng SAU, cùng độ đặc hiệu —
+     sẽ ghi đè cỡ 12px và nhãn lại xuống 2 dòng. */
+  .ws-stat span:last-child {
+    font-size: max(0.75rem, 12px);
   }
 }
 
