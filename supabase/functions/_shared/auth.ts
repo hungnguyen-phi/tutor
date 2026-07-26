@@ -108,6 +108,11 @@ export const hasRole = (ctx: AuthCtx, ...keys: string[]) => keys.some((k) => ctx
  * dual_consent (vd HS đủ tuổi tự quyết) chỉ cần `status = active`.
  */
 export async function hasActiveConsent(studentId: string, purpose = "ai_tutoring"): Promise<boolean> {
+  // CỜ PILOT — cổng đồng thuận PDPL TẮT MẶC ĐỊNH cho giai đoạn pilot/test nội bộ
+  // (chủ dự án quyết định 2026-07-25). ⚠️ TRƯỚC KHI CHO HỌC SINH THẬT: đặt secret
+  //   supabase secrets set PILOT_SKIP_CONSENT=false --project-ref <ref>
+  // để KHÔI PHỤC đồng thuận kép (cổng bất biến PDPL theo CLAUDE.md — bảo vệ trẻ em).
+  if (Deno.env.get("PILOT_SKIP_CONSENT") !== "false") return true;
   const supa = admin();
   const { data } = await supa
     .from("consent_records")
