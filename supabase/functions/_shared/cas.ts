@@ -14,7 +14,8 @@ const SAMPLES = 12;
 
 export interface CasResult {
   correct: boolean;
-  method: "tuple" | "set" | "numeric" | "symbolic" | "text" | "error";
+  /** "llm" = câu MỞ chấm bằng mô hình (so Ý, không so chữ) — xem gradeOpenAnswer. */
+  method: "tuple" | "set" | "numeric" | "symbolic" | "text" | "error" | "llm";
   detail?: string;
 }
 

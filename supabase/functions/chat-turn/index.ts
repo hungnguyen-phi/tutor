@@ -10,7 +10,7 @@
 import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
-import { checkAnswer } from "../_shared/cas.ts";
+import { checkAnswer, type CasResult } from "../_shared/cas.ts";
 import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
 import { evaluateEffortGate, recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
@@ -97,6 +97,74 @@ function rubricSummaryText(r: RubricResult): string {
 
 /** Câu hỏi auto kế tiếp trên một node mà học sinh CHƯA trả lời đúng.
  *  `excludeId`: bỏ qua đúng câu vừa làm (để không phục vụ lại chính nó). */
+/** Câu MỞ bị gắn nhãn objective/auto: KHÔNG có phương án nhiễu, đề KHÔNG có chỗ
+ *  trống, và đáp án là cả một ĐOẠN VĂN ("Giải thích vì sao…", "Tìm lỗi sai trong
+ *  bài làm…"). CAS so chữ chính xác nên học sinh viết đúng ý bằng lời mình vẫn bị
+ *  chấm SAI — 136 câu trong ngân hàng sống rơi vào diện này (đáp án dài trung vị
+ *  268 ký tự).
+ *
+ *  Ngưỡng 40 ký tự: đo trên toàn bộ dữ liệu sống, nhóm "không phương án + không
+ *  chỗ trống" chỉ có đúng 136 câu, ngắn nhất 60 ("LỖI 1: … LỖI 2: …" — cũng là
+ *  câu mở) rồi nhảy thẳng lên 113. Ngưỡng 40 ôm trọn nhóm mà vẫn chừa chỗ an
+ *  toàn cho câu đáp-án-ngắn về sau (số, công thức: thường dưới 25 ký tự) — những
+ *  câu đó phải ở lại CAS, chấm tất định. */
+function isOpenAnswer(q: { dap_an: unknown; noi_dung: string | null; distractors: unknown }): boolean {
+  if (Array.isArray(q.distractors) && q.distractors.length > 0) return false;
+  if (/_{2,}/.test(q.noi_dung ?? "")) return false; // điền khuyết → vẫn CAS
+  return String(q.dap_an ?? "").length > 40;
+}
+
+const OPEN_SYS_VI =
+  `Bạn là giám khảo chấm câu trả lời tự luận ngắn của học sinh lớp 10.\n` +
+  `So Ý CHÍNH của bài làm với đáp án mẫu — TUYỆT ĐỐI không đòi trùng câu chữ.\n` +
+  `Diễn đạt khác mà nêu đủ ý cốt lõi thì vẫn ĐÚNG. Thiếu ý cốt lõi hoặc sai bản chất thì SAI.\n` +
+  `Chỉ trả về JSON, không thêm lời nào khác:\n` +
+  `{"dung": true hoặc false, "thieu": "ý còn thiếu, một câu ngắn; để rỗng nếu đúng"}`;
+const OPEN_SYS_EN =
+  `You grade a Grade-10 student's short written answer.\n` +
+  `Compare the KEY IDEAS against the reference answer — never require identical wording.\n` +
+  `Different phrasing with all core ideas present is CORRECT. Missing a core idea or a\n` +
+  `conceptual error is INCORRECT. Reply with JSON only:\n` +
+  `{"dung": true or false, "thieu": "the missing idea in one short sentence; empty if correct"}`;
+
+/** Chấm câu MỞ bằng mô hình: so Ý, không so chữ. Trả null nếu gọi hỏng / hết
+ *  ngân sách token / mô hình trả rác — nơi gọi rơi về CAS như cũ (thà giữ hành vi
+ *  cũ còn hơn trao mastery bừa khi không chấm được). */
+async function gradeOpenAnswer(args: {
+  prompt: string;
+  reference: string;
+  studentAnswer: string;
+  names: string[];
+  en: boolean;
+  studentId: string;
+  tenantId: string;
+  supa: ReturnType<typeof admin>;
+}): Promise<CasResult | null> {
+  try {
+    const { text: safe, map } = anonymize(args.studentAnswer, args.names);
+    const res = await callLLM({
+      system: args.en ? OPEN_SYS_EN : OPEN_SYS_VI,
+      user:
+        `Đề:\n${args.prompt}\n\nĐáp án mẫu:\n${args.reference}\n\nBài làm của học sinh:\n${safe}`,
+      agent: "grade-open",
+      tier: "default",
+      maxTokens: 220,
+      temperature: 0,
+      studentId: args.studentId,
+      tenantId: args.tenantId,
+      supa: args.supa,
+    });
+    const raw = rehydrate(res.text, map);
+    const hit = raw.match(/\{[\s\S]*\}/); // mô hình hay bọc JSON trong lời dẫn
+    if (!hit) return null;
+    const j = JSON.parse(hit[0]) as { dung?: unknown; thieu?: unknown };
+    if (typeof j.dung !== "boolean") return null;
+    return { correct: j.dung, method: "llm", detail: String(j.thieu ?? "") };
+  } catch {
+    return null; // hỏng / hết ngân sách → CAS
+  }
+}
+
 async function pickQuestion(
   supa: ReturnType<typeof admin>,
   s: Session,
@@ -401,9 +469,24 @@ Deno.serve(async (req: Request) => {
       // Dạng tương tác (dung_sai/sap_xep/noi_cot) chấm CẤU TRÚC tất định (so dãy /
       // tập cặp / đúng-sai) — CAS không phủ được. Còn lại (mcq/điền/toán) dùng CAS:
       // checkAnswer thay {name} vào dap_an rồi so tương đương (KHÔNG nhận body.params).
+      // Thứ tự: (1) dạng tương tác chấm CẤU TRÚC tất định → (2) câu MỞ chấm bằng
+      // mô hình (so Ý) → (3) CAS. Mỗi bậc trả null thì rơi xuống bậc dưới, nên
+      // hỏng LLM cũng không kẹt học sinh.
+      const interV = gradeInteractive(q.dang_cau_hoi, studentAnswer, String(q.dap_an ?? ""));
+      const openV = interV || !isOpenAnswer(q)
+        ? null
+        : await gradeOpenAnswer({
+            prompt: q.noi_dung ?? "",
+            reference: String(q.dap_an ?? ""),
+            studentAnswer,
+            names,
+            en,
+            studentId: s.student_id,
+            tenantId: s.tenant_id,
+            supa,
+          });
       const verdict =
-        gradeInteractive(q.dang_cau_hoi, studentAnswer, String(q.dap_an ?? "")) ??
-        (await checkAnswer(studentAnswer, String(q.dap_an ?? ""), qParams));
+        interV ?? openV ?? (await checkAnswer(studentAnswer, String(q.dap_an ?? ""), qParams));
       // Chỉ khi SAI mới cần khớp distractor để bắt quan niệm sai; đúng thì bỏ hẳn
       // vòng lặp. Còn cần thì chạy SONG SONG (checkAnswer có thể nạp mathjs).
       let matched: string | null = null;
