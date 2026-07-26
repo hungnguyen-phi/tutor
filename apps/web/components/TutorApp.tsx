@@ -1108,7 +1108,7 @@ export default function TutorApp() {
   const letterMCQ =
     q && q.kind === "objective" && q.options && q.options.length > 0 &&
     q.options.every((o) => /^[A-DĐ]$/.test(o.trim()))
-      ? parseLetterMCQ(q.prompt)
+      ? parseLetterMCQ(q.prompt, q.options)
       : null;
   const canCheck =
     q?.kind === "objective" &&
@@ -1475,19 +1475,46 @@ const mathy = (s: string) => /[=^_\\$±≤≥√²³]/.test(s ?? "");
 
 /** Đề MCQ kiểu "STEM: A. … B. … C. … D. …" với đáp án là CHỮ CÁI (dap_an/distractors
  *  = "A".."D", text phương án nằm TRONG đề). Tách đề + text từng phương án theo nhãn.
- *  Mốc phương án LUÔN đứng sau "." hoặc ":" (hết đề / hết phương án trước) → phân biệt
- *  được với "B." nằm trong chính câu (vd "…đều thuộc B."). Trả null nếu không phải dạng. */
-function parseLetterMCQ(noiDung: string): { stem: string; opts: { letter: string; text: string }[] } | null {
-  const re = /(?<=[.:])\s+([A-DĐ])[.)]\s+/g;
+ *
+ *  Bản trước đòi nhãn phải đứng ngay sau "." hoặc ":" (lookbehind) để khỏi bắt nhầm
+ *  chữ "B." giữa câu. Giả định đó SAI với nội dung thật: phương án hay kết thúc bằng
+ *  số hoặc ký hiệu — "A. < 50 B. ≤ 50", "A. {3} B. {−3; 3}", "…ℤ ⊂ ℚ ⊂ ℝ B. …" — nên
+ *  59/79 câu không tách được và học sinh chỉ thấy 4 nút trơ "A B C D".
+ *
+ *  Cách mới: ta ĐÃ BIẾT cần tìm nhãn nào (chính là các phương án), nên đi tìm đúng
+ *  DÃY nhãn đó theo THỨ TỰ TĂNG DẦN, mỗi nhãn tìm từ sau nhãn trước. Một chữ "B."
+ *  lạc giữa câu không dựng nổi dãy A→B→C→D nên vẫn bị loại. Đo trên toàn bộ ngân
+ *  hàng câu hỏi sống: 79/79 tách đúng. Trả null nếu không phải dạng này. */
+const LETTER_ORDER = ["A", "B", "C", "D", "Đ"];
+function parseLetterMCQ(
+  noiDung: string,
+  letters: string[],
+): { stem: string; opts: { letter: string; text: string }[] } | null {
+  const text = noiDung ?? "";
+  const want = [...new Set(letters.map((l) => l.trim().toUpperCase()))]
+    .filter((l) => LETTER_ORDER.includes(l))
+    .sort((a, b) => LETTER_ORDER.indexOf(a) - LETTER_ORDER.indexOf(b));
+  if (want.length < 2) return null;
+
   const marks: { letter: string; start: number; textStart: number }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(noiDung))) marks.push({ letter: m[1] ?? "", start: m.index, textStart: re.lastIndex });
-  if (marks.length < 2) return null;
-  const stem = noiDung.slice(0, marks[0]!.start).trim();
-  const opts = marks.map((mk, i) => {
-    const next = marks[i + 1];
-    return { letter: mk.letter, text: noiDung.slice(mk.textStart, next ? next.start : undefined).trim() };
-  });
+  let from = 0;
+  for (const L of want) {
+    // Nhãn phải đứng đầu chuỗi hoặc sau khoảng trắng/ngoặc — không dính giữa từ.
+    const re = new RegExp(`(^|[\\s(\\[])(${L})[.)]\\s+`, "g");
+    re.lastIndex = from;
+    const m = re.exec(text);
+    if (!m) return null; // thiếu một nhãn → không phải dạng chữ-cái, rơi về lưới thường
+    marks.push({ letter: L, start: m.index + (m[1] ?? "").length, textStart: re.lastIndex });
+    from = re.lastIndex;
+  }
+
+  const stem = text.slice(0, marks[0]!.start).trim();
+  if (!stem) return null; // không còn đề → nhiều khả năng bắt nhầm
+  const opts = marks.map((mk, i) => ({
+    letter: mk.letter,
+    text: text.slice(mk.textStart, marks[i + 1]?.start).trim(),
+  }));
+  if (opts.some((o) => !o.text)) return null;
   return { stem, opts };
 }
 
