@@ -70,6 +70,8 @@ export interface InteractiveStruct {
   match?: { intro: string; left: InteractiveItem[]; right: InteractiveItem[] };
   /** "Đúng/Sai chùm ý": nhiều ý con a/b/c/d, mỗi ý tick Đúng hoặc Sai. */
   checklist?: { intro: string; items: InteractiveItem[] };
+  /** Điền khuyết NHIỀU ô: n+1 mảnh chữ xen n ô nhập. */
+  blanks?: { segments: string[]; count: number };
 }
 
 export interface DiagnoseQuestion {

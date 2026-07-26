@@ -115,7 +115,11 @@ Deno.serve(async (req: Request) => {
       const promptFilled = fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING)\]\s*/i, ""));
       // Bóc cấu trúc tương tác (sap_xep/noi_cot/checklist) — null cho dạng khác.
       // KHÔNG kèm đáp án.
-      const inter = parseInteractive(q.dang_cau_hoi, promptFilled, String(q.dap_an ?? ""));
+      const rawInter = parseInteractive(q.dang_cau_hoi, promptFilled, String(q.dap_an ?? ""));
+      // Điền-nhiều-ô CÓ phương án nhiễu vẫn là trắc nghiệm chọn cặp — giữ lưới
+      // đáp án; chỉ câu không phương án mới dựng ô nhập từng chỗ.
+      const inter =
+        rawInter?.blanks && (q.distractors ?? []).length > 0 ? null : rawInter;
       const base = {
         id: q.id,
         nodeKey: q.node_key,

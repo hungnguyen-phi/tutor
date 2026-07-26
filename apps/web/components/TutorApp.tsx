@@ -55,7 +55,7 @@ import {
   type NodeResource,
   type RubricResult,
 } from "../lib/api";
-import { OrderQuestion, MatchQuestion, ChecklistQuestion } from "./Interactive";
+import { OrderQuestion, MatchQuestion, ChecklistQuestion, BlanksQuestion } from "./Interactive";
 import { SpeakerButton } from "./SpeakerButton";
 
 /**
@@ -1102,8 +1102,10 @@ export default function TutorApp() {
   // "Đúng/Sai chùm ý": server phát hiện theo HÌNH DẠNG dap_an (dữ liệu gắn nhãn
   // dang_cau_hoi="mcq"), nên KHÔNG suy ra được từ dangCauHoi ở client.
   const checklistParsed = q?.interactive?.checklist ?? null;
+  // Điền khuyết nhiều ô: mỗi chỗ trống một ô nhập, server chấm từng phần.
+  const blanksParsed = q?.interactive?.blanks ?? null;
   const isTrueFalse = q?.dangCauHoi === "dung_sai";
-  const interactiveShown = !!(orderParsed || matchParsed || checklistParsed);
+  const interactiveShown = !!(orderParsed || matchParsed || checklistParsed || blanksParsed);
   // MCQ có đáp án là CHỮ CÁI (text nằm trong đề) → tách đề riêng + text phương án ra nút.
   const letterMCQ =
     q && q.kind === "objective" && q.options && q.options.length > 0 &&
@@ -1196,6 +1198,9 @@ export default function TutorApp() {
           )}
           {checklistParsed && (
             <ChecklistQuestion key={q.id} parsed={checklistParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
+          )}
+          {blanksParsed && (
+            <BlanksQuestion key={q.id} parsed={blanksParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
           )}
           {/* Đợt C: dạng nghe — đọc to transcript bằng Web Speech (chưa có audio_uri). */}
           {q.dangCauHoi === "nghe" && <SpeakerButton text={q.prompt} />}

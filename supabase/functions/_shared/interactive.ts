@@ -17,7 +17,7 @@ export type InteractiveDang = "dung_sai" | "sap_xep" | "noi_cot";
 
 export interface InteractiveVerdict {
   correct: boolean;
-  method: "dung_sai" | "sap_xep" | "noi_cot" | "checklist";
+  method: "dung_sai" | "sap_xep" | "noi_cot" | "checklist" | "blanks";
 }
 
 const norm = (s: string): string =>
@@ -155,6 +155,17 @@ export function gradeInteractive(
     if (ok) for (const [k, v] of b) if (a.get(k) !== v) { ok = false; break; }
     return { correct: ok, method: "noi_cot" };
   }
+  // blanks (điền nhiều ô): chỉ UI nhiều ô mới nối đáp án bằng ";;", nên chuỗi
+  // này là dấu hiệu chắc chắn. So TỪNG PHẦN với từng ô — trước đây học sinh
+  // phải gõ trúng nguyên chuỗi "a; b" trong một ô duy nhất mới được tính đúng.
+  if (student.includes(";;")) {
+    const want = splitTop(correct, [";"]).filter(Boolean);
+    const got = student.split(";;").map((x) => x.trim());
+    if (want.length >= 2 && got.length === want.length) {
+      const ok = want.every((w, i) => norm(got[i] ?? "") === norm(w));
+      return { correct: ok, method: "blanks" };
+    }
+  }
   // checklist: KHÔNG gate theo `dang` — nội dung thật gắn nhãn "mcq". Phát hiện
   // từ HÌNH DẠNG dap_an (checklistMap trả null nếu không khớp) → an toàn cho mọi
   // câu mcq/dien_dap_an khác (không đổi hành vi chấm của chúng).
@@ -183,7 +194,31 @@ export interface InteractiveStruct {
   order?: { mode: "label" | "word"; intro: string; items: OrderItem[] };
   match?: { intro: string; left: OrderItem[]; right: OrderItem[] };
   checklist?: { intro: string; items: OrderItem[] };
+  /** Điền khuyết NHIỀU ô: câu bị cắt tại mỗi chỗ trống → n+1 mảnh chữ, n ô nhập. */
+  blanks?: { segments: string[]; count: number };
 }
+
+/** Chỗ trống trong đề: từ 2 gạch dưới liền trở lên ("___", "______"). */
+const BLANK_RE = /_{2,}/g;
+
+/** Đề nhiều chỗ trống + đáp án tách bằng ";" ĐÚNG BẰNG số ô → bóc thành các
+ *  mảnh chữ để client dựng ô nhập riêng cho từng chỗ. Trước đây cả câu chỉ có
+ *  MỘT ô nhập nên học sinh phải gõ nguyên chuỗi "độ lệch chuẩn; số trung bình"
+ *  mới đúng — và các ô trống sau vẫn trơ "______" trên màn hình.
+ *  Trả null nếu số ô ≠ số phần đáp án (không suy diễn bừa). */
+function parseBlanks(noiDung: string, dapAn: string): { segments: string[]; count: number } | null {
+  const text = noiDung ?? "";
+  const holes = text.match(BLANK_RE);
+  if (!holes || holes.length < 2) return null;
+  const parts = splitTop(dapAn ?? "", [";"]).filter(Boolean);
+  if (parts.length !== holes.length) return null;
+  const segments = text.split(BLANK_RE);
+  if (segments.length !== holes.length + 1) return null;
+  return { segments, count: holes.length };
+}
+
+/* Đáp án học sinh cho dạng nhiều ô: client nối các ô bằng ";;" — người gõ tay
+   gần như không bao giờ tạo ra chuỗi đó, nên không đụng nhầm ô nhập thường. */
 
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -283,6 +318,11 @@ export function parseInteractive(
       },
     };
   }
+  // BLANKS trước CHECKLIST: điều kiện của nó chặt hơn hẳn (đề phải có ≥2 chỗ
+  // trống VÀ số phần đáp án phải khớp đúng số ô), nên xét trước thì không sợ
+  // checklistMap "nhận vơ" một đáp án nhiều phần bắt đầu bằng chữ a–d.
+  const bl = parseBlanks(prompt, dapAn);
+  if (bl) return { blanks: bl };
   // CHECKLIST: đúng/sai chùm ý — phát hiện từ HÌNH DẠNG dap_an, KHÔNG phụ thuộc
   // dang_cau_hoi (dữ liệu thật đang gắn nhãn "mcq" cho dạng này, không phải
   // "dung_sai"). dap_an dạng "a) Đ · b) S · c) Đ · d) Đ" → checklistMap.

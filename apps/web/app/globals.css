@@ -6140,6 +6140,37 @@ html[data-motion="reduce"] .spin {
   cursor: not-allowed;
   opacity: 0.6;
 }
+/* blanks — điền khuyết nhiều ô: ô nhập nằm ĐÚNG chỗ trống trong câu, gạch chân
+   thay vì khung kín để đọc liền mạch như một câu văn. */
+.iq-blanks {
+  font-size: 1.0625rem;
+  line-height: 2.1; /* thoáng để ô nhập không chạm dòng trên */
+  color: var(--ink);
+}
+.iq-blank {
+  width: 10ch;
+  min-width: 10ch;
+  margin: 0 4px;
+  padding: 2px 8px;
+  border: 0;
+  border-bottom: 2px solid var(--line-strong);
+  border-radius: 6px 6px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+.iq-blank:focus {
+  outline: none;
+  border-bottom-color: var(--navy);
+  background: var(--navy-tint);
+}
+.iq-blank:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 
 /* ── Đợt B: bảng điểm rubric theo kỹ năng (formative) ─────────────────────── */
 .rubric-card {

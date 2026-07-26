@@ -24,6 +24,10 @@ export interface ChecklistParsed {
   intro: string;
   items: Array<{ key: string; text: string }>;
 }
+export interface BlanksParsed {
+  segments: string[];
+  count: number;
+}
 
 // ── sap_xep: danh sách xếp lại được ──────────────────────────────────────────
 export function OrderQuestion({
@@ -195,6 +199,54 @@ export function ChecklistQuestion({
       </ul>
       <p className="iq-help">
         Chọn <b>Đúng</b> hay <b>Sai</b> cho <b>từng ý</b> — đủ cả {parsed.items.length} ý rồi bấm Kiểm tra.
+      </p>
+    </div>
+  );
+}
+
+// ── blanks: điền khuyết NHIỀU ô — mỗi chỗ trống một ô nhập ───────────────────
+// Trước đây cả câu chỉ có MỘT ô nhập: học sinh phải gõ trúng nguyên chuỗi
+// "độ lệch chuẩn; số trung bình" mới được tính đúng, mà các ô "______" phía sau
+// vẫn trơ trên màn hình. Giờ mỗi ô nhập đúng chỗ của nó, server chấm TỪNG phần.
+export function BlanksQuestion({
+  parsed, disabled, onChange,
+}: { parsed: BlanksParsed; disabled: boolean; onChange: (canonical: string | null) => void }) {
+  const [vals, setVals] = useState<string[]>(() => Array(parsed.count).fill(""));
+
+  // Chỉ gửi khi ĐỦ mọi ô — thiếu một ô mà nộp là bị chấm sai oan.
+  useEffect(() => {
+    const done = vals.every((v) => v.trim().length > 0);
+    onChange(done ? vals.map((v) => v.trim()).join(";;") : null);
+  }, [vals, onChange]);
+
+  return (
+    <div className="iq">
+      <p className="iq-blanks">
+        {parsed.segments.map((seg, i) => (
+          <span key={i}>
+            <MathText>{seg}</MathText>
+            {i < parsed.count && (
+              <input
+                type="text"
+                className="iq-blank"
+                value={vals[i] ?? ""}
+                disabled={disabled}
+                aria-label={`Chỗ trống thứ ${i + 1}`}
+                onChange={(e) =>
+                  setVals((v) => { const a = [...v]; a[i] = e.target.value; return a; })
+                }
+                /* Bàn phím KHÔNG sửa hộ đáp án */
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+            )}
+          </span>
+        ))}
+      </p>
+      <p className="iq-help">
+        Điền đủ cả <b>{parsed.count} chỗ trống</b> rồi bấm Kiểm tra.
       </p>
     </div>
   );
