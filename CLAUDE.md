@@ -21,14 +21,20 @@ Tài liệu chính (đều trong `docs/`):
 - **Claude BỊ CHẶN ghi production** (classifier) → mọi lệnh ghi DB / deploy do **người
   dùng tự chạy** (prefix `!`). Claude viết script, người dùng chạy.
 - **KHÔNG gõ mật khẩu / set secret** hộ người dùng.
-- **DB dùng chung (prod):** project `gxbxsdhvtwtjkfygetzb`. Đọc/nạp DB qua **Management
+- **DB dùng chung (prod):** project `oonuzgnfoypibrssvmrt`. Đọc/nạp DB qua **Management
   API + token trong `.env`** (Supabase MCP hay bị de-auth). SQL:
-  `POST https://api.supabase.com/v1/projects/gxbxsdhvtwtjkfygetzb/database/query`.
-- **Deploy edge function** qua **Supabase CLI**:
-  `supabase functions deploy <fn> --project-ref gxbxsdhvtwtjkfygetzb`.
+  `POST https://api.supabase.com/v1/projects/oonuzgnfoypibrssvmrt/database/query`.
+  Chạy sẵn file .sql: `node packages/db/run-sql.mjs <file.sql>` (thêm `--dry` để xem trước).
+- **Deploy edge function** qua **Supabase CLI** (KHÔNG cần Docker, KHÔNG cần bundle):
+  `supabase functions deploy <fn> --project-ref oonuzgnfoypibrssvmrt --use-api`.
+  CLI không có cờ `--token`, chỉ đọc biến `SUPABASE_ACCESS_TOKEN`. Người dùng dùng
+  **cmd.exe** nên `export` KHÔNG chạy — nạp token bằng:
+  `for /f "tokens=1,* delims==" %a in ('findstr /b "SUPABASE_ACCESS_TOKEN=" .env') do @set "SUPABASE_ACCESS_TOKEN=%b"`
 - Version: Toán 10 `6cc28358-2d65-4f18-ac34-c670f6b82a58` · Anh 10
   `4a839fc3-4008-482d-9802-cd4c3566739d`. Acc demo `hs1@vietanh.edu.vn`/`VietAnh@2026`.
-- Nhánh git: `feat/kg-ingest-v2.2`. Web CHƯA deploy production (Cloudflare).
+- Nhánh git: `feat/kg-ingest-v2.2` — đẩy thẳng vào **`main` của origin**
+  (`git push origin HEAD:main`) vì workflow build web bám `main`. Web ĐÃ LIVE:
+  **tutor.vietanh.org** (Docker/GHCR → Coolify, ~2,5 phút sau push).
 
 ## Bối cảnh sư phạm bất biến (đừng đổi)
 Socratic không cho đáp án · mastery learning · growth mindset + grit · CAS tách tính

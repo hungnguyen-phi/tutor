@@ -1,5 +1,5 @@
-# Supabase project config. Link with: supabase link --project-ref gxbxsdhvtwtjkfygetzb
-project_id = "gxbxsdhvtwtjkfygetzb"
+# Supabase project config. Link with: supabase link --project-ref oonuzgnfoypibrssvmrt
+project_id = "oonuzgnfoypibrssvmrt"
 
 # M4: JWT required for all functions (gateway-level). Functions additionally derive
 # identity from the token (auth.uid()) and check RBAC permissions + consent.
