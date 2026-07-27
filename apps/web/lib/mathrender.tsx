@@ -2,140 +2,25 @@
 //
 // Nguyên tắc (để học sinh học ĐÚNG):
 //  1. Nội dung soạn bài là text unicode (x², √, ≤, a/b…) hoặc LaTeX lẫn ($...$,
-//     \(...\)). Bộ chuyển dưới đây gom đúng ĐOẠN là toán rồi đưa qua KaTeX;
+//     \(...\)). Lõi ở lib/mathtex.ts gom đúng ĐOẠN là toán rồi đưa qua KaTeX;
 //     phần văn xuôi giữ nguyên.
 //  2. Mỗi đoạn toán phải KaTeX PARSE ĐƯỢC. Không parse được → trả text gốc
 //     (KHÔNG bịa, KHÔNG render sai công thức, thà hiện thô còn hơn dạy sai).
-//  3. Chạy được cả client (component) lẫn build script (segmentMath thuần).
+//  3. Đề bài (`block`) bày theo lối sách giáo khoa: công thức có phân số đứng
+//     riêng một dòng canh giữa; chữ cái đầu câu viết hoa (`cap`).
 
 import React from "react";
 import katex from "katex";
+import { segmentMath, displayFlags, capitalizeLead } from "./mathtex";
 
-// ── unicode toán → LaTeX ────────────────────────────────────────────────────
-const UNI: Record<string, string> = {
-  "²": "^{2}", "³": "^{3}", "⁰": "^{0}", "¹": "^{1}", "⁴": "^{4}", "⁵": "^{5}",
-  "⁶": "^{6}", "⁷": "^{7}", "⁸": "^{8}", "⁹": "^{9}", "⁺": "^{+}", "⁻": "^{-}", "ⁿ": "^{n}",
-  "₀": "_{0}", "₁": "_{1}", "₂": "_{2}", "₃": "_{3}", "₄": "_{4}", "₅": "_{5}",
-  "₆": "_{6}", "₇": "_{7}", "₈": "_{8}", "₉": "_{9}",
-  "≤": "\\le ", "≥": "\\ge ", "≠": "\\ne ", "±": "\\pm ", "∓": "\\mp ",
-  "×": "\\times ", "·": "\\cdot ", "÷": "\\div ", "∞": "\\infty ",
-  "⇒": "\\Rightarrow ", "⇔": "\\Leftrightarrow ", "→": "\\to ", "←": "\\leftarrow ",
-  "∈": "\\in ", "∉": "\\notin ", "∀": "\\forall ", "∃": "\\exists ", "∄": "\\nexists ",
-  "∪": "\\cup ", "∩": "\\cap ", "⊂": "\\subset ", "⊆": "\\subseteq ", "⊃": "\\supset ",
-  "∅": "\\varnothing ", "≈": "\\approx ", "≡": "\\equiv ", "∘": "\\circ ", "°": "^{\\circ}",
-  "√": "\\surd ", "∆": "\\Delta ", "Δ": "\\Delta ", "∑": "\\sum ", "∏": "\\prod ",
-  "α": "\\alpha ", "β": "\\beta ", "γ": "\\gamma ", "δ": "\\delta ", "ε": "\\varepsilon ",
-  "θ": "\\theta ", "λ": "\\lambda ", "μ": "\\mu ", "π": "\\pi ", "ρ": "\\rho ",
-  "σ": "\\sigma ", "τ": "\\tau ", "φ": "\\varphi ", "ω": "\\omega ", "Ω": "\\Omega ",
-  "≪": "\\ll ", "≫": "\\gg ", "⊥": "\\perp ", "∥": "\\parallel ", "∠": "\\angle ",
-  "‖": "\\|", "−": "-", "–": "-", "—": "-",
-  // Tập số blackboard-bold: KHÔNG có trong MATHTOK/STRONG sẽ cắt đứt math-run
-  // (làm "{x ∈" hở ngoặc → KaTeX lỗi) và không đổi. Đưa vào đây + STRONG/MATHTOK.
-  "ℝ": "\\mathbb{R}", "ℕ": "\\mathbb{N}", "ℤ": "\\mathbb{Z}", "ℚ": "\\mathbb{Q}",
-  "ℂ": "\\mathbb{C}", "ℙ": "\\mathbb{P}", "∖": "\\setminus ", "∣": "\\mid ",
-};
-
-// "math-run": gom CỤM LIỀN MẠCH gồm số/biến/toán tử/ngoặc; chỉ coi là TOÁN nếu
-// bên trong có ≥1 "dấu hiệu mạnh" (STRONG). Nhờ vậy "y = x² − 4x + 3" thành MỘT
-// công thức trọn vẹn thay vì vụn ra. Từ ngữ (≥2 chữ / có dấu tiếng Việt) cắt cụm.
-const STRONG = /[=<>≤≥≠±×·÷√^∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣]|\d\s*\/\s*\d|[A-Za-z]\d|\d[A-Za-z]/;
-const MATHTOK = /^[A-Za-z0-9()[\]{}.,;:'"|=<>≤≥≠±×·÷√^_/+\-−–—∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣\\]+$/;
-const MATHFN = /^(sin|cos|tan|cot|sec|csc|log|ln|lim|max|min|sqrt|arcsin|arccos|arctan|deg|mod)$/i;
-
-// Phân loại token: 'text' (chữ nghĩa) | 'strong' (chắc chắn toán) | 'weak' (số/biến/toán tử).
-function classify(tk: string): "text" | "strong" | "weak" {
-  // Dấu đánh số / nhãn đáp án → luôn text (không hút vào công thức bên cạnh).
-  // Bắt "(1)" "(a)"; "1)" "2)"; "A." "B)" "d." — CHỪA "5." (là toán tử, vd "x = 5.").
-  if (/^\(\w{1,3}\)$/.test(tk) || /^\d{1,3}\)$/.test(tk) || /^[A-Za-z]\d?[.)]$/.test(tk)) return "text";
-  if (STRONG.test(tk)) return "strong"; // dấu hiệu mạnh (=, ², √, Δ, hệ số kề biến…) → toán
-  if (/[À-ỹ]/.test(tk)) return "text"; // dấu tiếng Việt → chữ (check SAU STRONG vì Δ,π… lọt [À-ỹ])
-  // "Từ ngữ" = token THUẦN chữ cái (bỏ dấu câu bao quanh) ≥2 chữ: parabol, cho…
-  // Token lẫn số/toán tử/ngoặc (4ac, (a+b), -b/(2a)) KHÔNG phải từ → để xuống weak.
-  const core = tk.replace(/^[.,;:!?"'()[\]]+|[.,;:!?"'()[\]]+$/g, "");
-  if (/^[A-Za-z]+$/.test(core) && core.length >= 2 && !MATHFN.test(core)) return "text";
-  if (MATHTOK.test(tk)) return "weak";
-  return "text";
-}
-
-function toLatexInner(s: string): string {
-  let t = s;
-  // Ngoặc nhọn TRẦN trong KaTeX là NHÓM VÔ HÌNH → "{1;2}" hiện ra "1;2", mất sạch
-  // dấu tập hợp (dạy SAI: A = 1;2). Trong nội dung soạn bài, "{…}" LUÔN là TẬP HỢP
-  // — LaTeX thật của người soạn đi qua $…$ / \(…\) và segmentMath tách trước, KHÔNG
-  // vào hàm này — nên bọc \{ \} cho mọi ngoặc. "|" bên trong là "sao cho" → \mid.
-  // Phải chạy TRƯỚC mọi luật sinh ra ngoặc LaTeX (\sqrt{}, \frac{}, ^{2}, \mathbb{})
-  // ở dưới, kẻo bọc nhầm chính ngoặc mình vừa tạo.
-  t = t.replace(/\{([^{}]*)\}/g, (_m, inner: string) => `\\{${inner.replace(/\|/g, " \\mid ")}\\}`);
-  // Chỗ điền khuyết "___" (≥2 gạch dưới liền): KaTeX hiểu "_" là chỉ-số → lỗi
-  // "Expected group after '_'". Đổi thành ô gạch chân trống (hiện đúng dạng điền).
-  t = t.replace(/_{2,}/g, (m) => `\\underline{${"\\ ".repeat(m.length)}}`);
-  t = t.replace(/√\s*\(([^()]*)\)/g, "\\sqrt{$1}");
-  t = t.replace(/√\s*([A-Za-z0-9]+)/g, "\\sqrt{$1}");
-  t = t.replace(/\(([^()]{1,20})\)\s*\/\s*\(([^()]{1,20})\)/g, "\\frac{$1}{$2}");
-  t = t.replace(/(-?[A-Za-z0-9.]+)\s*\/\s*\(([^()]{1,20})\)/g, "\\frac{$1}{$2}");
-  t = t.replace(/\(([^()]{1,20})\)\s*\/\s*(-?[A-Za-z0-9.]+)/g, "\\frac{$1}{$2}");
-  t = t.replace(/(?<![/\w])(-?\d+)\s*\/\s*(\d+)(?![/\w])/g, "\\frac{$1}{$2}");
-  for (const [k, v] of Object.entries(UNI)) t = t.split(k).join(v);
-  // GỘP mũ/chỉ số LIỀN nhau: unicode "4¹⁰" → "^{1}^{0}" (KaTeX báo "Double
-  // superscript"). Gộp lại "^{10}". Lặp tới ổn định cho ≥3 chữ số liền.
-  for (let i = 0; i < 4; i++) {
-    t = t.replace(/\^\{([^{}]*)\}\s*\^\{([^{}]*)\}/g, "^{$1$2}")
-      .replace(/_\{([^{}]*)\}\s*_\{([^{}]*)\}/g, "_{$1$2}");
-  }
-  t = t.replace(/(?<=[\dA-Za-z)])\s*\*\s*(?=[\dA-Za-z(])/g, " \\cdot ");
-  return t.trim();
-}
-
-export interface Seg { t: "text" | "math"; v: string }
-
-function autoSpans(text: string): Seg[] {
-  const toks = text.split(/(\s+)/).filter((t) => t.length); // giữ khoảng trắng
-  const segs: Seg[] = [];
-  let run: string[] = [], hasStrong = false;
-  const flushRun = () => {
-    if (!run.length) return;
-    const s = run.join("");
-    run = []; const strong = hasStrong; hasStrong = false;
-    if (!strong) { segs.push({ t: "text", v: s }); return; }
-    const lead = s.match(/^\s+/)?.[0] ?? "";
-    const trail = s.match(/\s+$/)?.[0] ?? "";
-    const core = s.slice(lead.length, s.length - trail.length);
-    if (lead) segs.push({ t: "text", v: lead });
-    if (core) segs.push({ t: "math", v: toLatexInner(core) });
-    if (trail) segs.push({ t: "text", v: trail });
-  };
-  for (const tk of toks) {
-    if (/^\s+$/.test(tk)) { if (run.length) run.push(tk); else segs.push({ t: "text", v: tk }); continue; }
-    const c = classify(tk);
-    if (c === "text") { flushRun(); segs.push({ t: "text", v: tk }); }
-    else { if (c === "strong") hasStrong = true; run.push(tk); }
-  }
-  flushRun();
-  return segs;
-}
-
-/** Cắt chuỗi thành đoạn text / toán (đoạn toán đã là LaTeX, chờ KaTeX render). */
-export function segmentMath(input: string | null | undefined): Seg[] {
-  const s = String(input ?? "");
-  if (!s) return [];
-  const out: Seg[] = [];
-  const re = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]/g;
-  let last = 0, m: RegExpExecArray | null;
-  const pushText = (txt: string) => { if (txt) out.push(...autoSpans(txt)); };
-  while ((m = re.exec(s))) {
-    pushText(s.slice(last, m.index));
-    out.push({ t: "math", v: (m[1] ?? m[2] ?? m[3] ?? m[4] ?? "").trim() });
-    last = re.lastIndex;
-  }
-  pushText(s.slice(last));
-  return out;
-}
+export { segmentMath, capitalizeLead };
+export type { Seg } from "./mathtex";
 
 // Bỏ ghi chú soạn bài lọt vào nội dung (metadata của GV, HS không cần thấy).
 const stripNote = (s: string) => (s ?? "").replace(/\s*\(khu[ôo]n tham s[ốo][^)]*\)/gi, "");
 
-function katexHtml(tex: string): string | null {
-  try { return katex.renderToString(tex, { throwOnError: true, displayMode: false }); }
+function katexHtml(tex: string, display: boolean): string | null {
+  try { return katex.renderToString(tex, { throwOnError: true, displayMode: display }); }
   catch { return null; } // parse fail → để nơi gọi rơi về text gốc
 }
 
@@ -159,28 +44,64 @@ function textSeg(v: string, key: string): React.ReactNode {
 }
 
 /** Render 1 chuỗi (đã tách **đậm**) thành các node: text thường + <span> KaTeX. */
-function renderSegs(text: string, keyBase: string): React.ReactNode[] {
-  return segmentMath(text).map((seg, i) => {
-    if (seg.t === "text") return textSeg(seg.v, keyBase + i);
-    const html = katexHtml(seg.v);
-    if (html == null) return textSeg(seg.v, keyBase + i);
-    return <span key={keyBase + i} dangerouslySetInnerHTML={{ __html: html }} />;
+function renderSegs(text: string, keyBase: string, block: boolean): React.ReactNode[] {
+  const segs = segmentMath(text);
+  const disp = block ? displayFlags(segs) : segs.map(() => false);
+  // Dấu chấm/phẩy ngay sau công thức tách dòng phải ĐI THEO công thức, không rơi
+  // xuống đầu dòng kế (dòng mở đầu bằng ". (b) …" trông như lỗi gõ).
+  const glue = segs.map((s, i) => {
+    const nx = segs[i + 1];
+    return disp[i] && nx?.t === "text" ? (/^[.,;:]/.exec(nx.v)?.[0] ?? "") : "";
+  });
+  const html = segs.map((s, i) => {
+    if (s.t !== "math") return null;
+    if (glue[i]) {
+      const glued = katexHtml(`${s.v}\\text{${glue[i]}}`, true);
+      if (glued) return glued;
+      glue[i] = ""; // dán không được thì thôi, giữ nguyên dấu ở đoạn chữ
+    }
+    return katexHtml(s.v, disp[i]!);
+  });
+  return segs.map((seg, i) => {
+    // Công thức tách dòng thì nuốt luôn khoảng trắng hai bên, kẻo hở ra một
+    // dòng trống lửng lơ trên/dưới công thức.
+    const solo = (j: number) => disp[j] === true && html[j] != null;
+    if (seg.t === "text") {
+      let v = seg.v;
+      if (solo(i - 1)) v = v.slice(glue[i - 1]!.length).replace(/^[ \t]+/, "");
+      if (solo(i + 1)) v = v.replace(/[ \t]+$/, "");
+      return v ? textSeg(v, keyBase + i) : null;
+    }
+    if (html[i] == null) return textSeg(seg.v, keyBase + i);
+    return (
+      <span
+        key={keyBase + i}
+        className={solo(i) ? "math-solo" : undefined}
+        dangerouslySetInnerHTML={{ __html: html[i]! }}
+      />
+    );
   });
 }
 
 /**
  * Hiển thị nội dung có công thức: **đậm** → <b>, mọi công thức qua KaTeX.
- * Dùng thay cho prettyMath/renderRich cũ (vốn chỉ "làm đẹp" thô, không chuẩn).
+ * `block` — đang bày ĐỀ BÀI: công thức nặng được tách ra một dòng riêng.
+ * `cap`   — viết hoa chữ đầu (chỉ khi câu mở đầu bằng chữ, không phải biến).
  */
-export function MathText({ children }: { children: string | null | undefined }): React.ReactElement {
-  const src = stripNote(String(children ?? ""));
+export function MathText({ children, block = false, cap = false }: {
+  children: string | null | undefined;
+  block?: boolean;
+  cap?: boolean;
+}): React.ReactElement {
+  let src = stripNote(String(children ?? ""));
+  if (cap) src = capitalizeLead(src);
   const parts = src.split(/\*\*([^*]+)\*\*/g); // lẻ = đậm
   return (
     <>
       {parts.map((p, i) =>
         i % 2 === 1
-          ? <b key={"b" + i}>{renderSegs(p, "b" + i + "-")}</b>
-          : <React.Fragment key={"t" + i}>{renderSegs(p, "t" + i + "-")}</React.Fragment>,
+          ? <b key={"b" + i}>{renderSegs(p, "b" + i + "-", block)}</b>
+          : <React.Fragment key={"t" + i}>{renderSegs(p, "t" + i + "-", block)}</React.Fragment>,
       )}
     </>
   );

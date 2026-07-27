@@ -1,12 +1,18 @@
-// MIRROR phần THUẦN (không React) của apps/web/lib/mathrender.tsx — cùng logic
-// tách đoạn toán + chuyển unicode→LaTeX mà app dùng để HIỂN THỊ. Sửa ở
-// mathrender.tsx TRƯỚC, rồi đồng bộ file này. Phải khớp 1-1, nếu không cổng
-// validate sẽ "pass" thứ mà renderer lại "fail" (đúng lỗi ta đang chặn).
+// LÕI THUẦN (không React/JSX) của bộ hiển thị toán: cắt chuỗi thành đoạn
+// chữ / đoạn toán, và đổi nội dung soạn bài (unicode + ASCII) sang LaTeX cho
+// KaTeX. Tách khỏi mathrender.tsx để script kiểm thử (node) và edge function
+// dùng chung được mà không kéo theo React.
 //
-// Dùng cho content-sync: kiểm mọi công thức có KaTeX parse được không, để KHÔNG
-// auto-publish nội dung sẽ rơi về text thô trước mặt học sinh.
-import katex from "npm:katex@0.18.1";
+// Nguyên tắc (để học sinh học ĐÚNG):
+//  1. Nội dung soạn bài là text unicode (x², √, ≤, a/b…) hoặc LaTeX lẫn ($...$,
+//     \(...\)). Bộ chuyển dưới đây gom đúng ĐOẠN là toán rồi đưa qua KaTeX;
+//     phần văn xuôi giữ nguyên.
+//  2. Mỗi đoạn toán phải KaTeX PARSE ĐƯỢC. Không parse được → nơi gọi trả text
+//     gốc (KHÔNG bịa, KHÔNG render sai công thức, thà hiện thô còn hơn dạy sai).
+//  3. Phân số phải là GẠCH NGANG như sách giáo khoa — "x²/16" hiện ra dấu "/"
+//     là trình bày sai (xem khối "Phân số thật" bên dưới).
 
+// ── unicode toán → LaTeX ────────────────────────────────────────────────────
 const UNI: Record<string, string> = {
   "²": "^{2}", "³": "^{3}", "⁰": "^{0}", "¹": "^{1}", "⁴": "^{4}", "⁵": "^{5}",
   "⁶": "^{6}", "⁷": "^{7}", "⁸": "^{8}", "⁹": "^{9}", "⁺": "^{+}", "⁻": "^{-}", "ⁿ": "^{n}",
@@ -24,18 +30,28 @@ const UNI: Record<string, string> = {
   "σ": "\\sigma ", "τ": "\\tau ", "φ": "\\varphi ", "ω": "\\omega ", "Ω": "\\Omega ",
   "≪": "\\ll ", "≫": "\\gg ", "⊥": "\\perp ", "∥": "\\parallel ", "∠": "\\angle ",
   "‖": "\\|", "−": "-", "–": "-", "—": "-",
+  // Tập số blackboard-bold: KHÔNG có trong MATHTOK/STRONG sẽ cắt đứt math-run
+  // (làm "{x ∈" hở ngoặc → KaTeX lỗi) và không đổi. Đưa vào đây + STRONG/MATHTOK.
   "ℝ": "\\mathbb{R}", "ℕ": "\\mathbb{N}", "ℤ": "\\mathbb{Z}", "ℚ": "\\mathbb{Q}",
   "ℂ": "\\mathbb{C}", "ℙ": "\\mathbb{P}", "∖": "\\setminus ", "∣": "\\mid ",
 };
 
+// "math-run": gom CỤM LIỀN MẠCH gồm số/biến/toán tử/ngoặc; chỉ coi là TOÁN nếu
+// bên trong có ≥1 "dấu hiệu mạnh" (STRONG). Nhờ vậy "y = x² − 4x + 3" thành MỘT
+// công thức trọn vẹn thay vì vụn ra. Từ ngữ (≥2 chữ / có dấu tiếng Việt) cắt cụm.
 const STRONG = /[=<>≤≥≠±×·÷√^∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφωΩ∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣]|\d\s*\/\s*\d|[A-Za-z]\d|\d[A-Za-z]/;
 const MATHTOK = /^[A-Za-z0-9()[\]{}.,;:'"|=<>≤≥≠±×·÷√^_/+\-−–—∞⇒⇔∈∉∀∃∪∩⊂⊆°²³⁰¹⁴⁵⁶⁷⁸⁹₀-₉αβγδεθλμπρσφω∆Δ∑∏∠⊥ℝℕℤℚℂℙ∖∣\\]+$/;
 const MATHFN = /^(sin|cos|tan|cot|sec|csc|log|ln|lim|max|min|sqrt|arcsin|arccos|arctan|deg|mod)$/i;
 
-function classify(tk: string): "text" | "strong" | "weak" {
+/** Phân loại token: 'text' (chữ nghĩa) | 'strong' (chắc chắn toán) | 'weak' (số/biến/toán tử). */
+export function classify(tk: string): "text" | "strong" | "weak" {
+  // Dấu đánh số / nhãn đáp án → luôn text (không hút vào công thức bên cạnh).
+  // Bắt "(1)" "(a)"; "1)" "2)"; "A." "B)" "d." — CHỪA "5." (là toán tử, vd "x = 5.").
   if (/^\(\w{1,3}\)$/.test(tk) || /^\d{1,3}\)$/.test(tk) || /^[A-Za-z]\d?[.)]$/.test(tk)) return "text";
-  if (STRONG.test(tk)) return "strong";
-  if (/[À-ỹ]/.test(tk)) return "text";
+  if (STRONG.test(tk)) return "strong"; // dấu hiệu mạnh (=, ², √, Δ, hệ số kề biến…) → toán
+  if (/[À-ỹ]/.test(tk)) return "text"; // dấu tiếng Việt → chữ (check SAU STRONG vì Δ,π… lọt [À-ỹ])
+  // "Từ ngữ" = token THUẦN chữ cái (bỏ dấu câu bao quanh) ≥2 chữ: parabol, cho…
+  // Token lẫn số/toán tử/ngoặc (4ac, (a+b), -b/(2a)) KHÔNG phải từ → để xuống weak.
   const core = tk.replace(/^[.,;:!?"'()[\]]+|[.,;:!?"'()[\]]+$/g, "");
   if (/^[A-Za-z]+$/.test(core) && core.length >= 2 && !MATHFN.test(core)) return "text";
   if (MATHTOK.test(tk)) return "weak";
@@ -144,7 +160,7 @@ function toLatexInner(s: string): string {
   return t.trim();
 }
 
-interface Seg { t: "text" | "math"; v: string }
+export interface Seg { t: "text" | "math"; v: string }
 
 function autoSpans(text: string): Seg[] {
   const toks = text.split(/(\s+)/).filter((t) => t.length); // giữ khoảng trắng
@@ -182,7 +198,8 @@ function autoSpans(text: string): Seg[] {
   return segs;
 }
 
-function segmentMath(input: string | null | undefined): Seg[] {
+/** Cắt chuỗi thành đoạn text / toán (đoạn toán đã là LaTeX, chờ KaTeX render). */
+export function segmentMath(input: string | null | undefined): Seg[] {
   const s = String(input ?? "");
   if (!s) return [];
   const out: Seg[] = [];
@@ -198,25 +215,54 @@ function segmentMath(input: string | null | undefined): Seg[] {
   return out;
 }
 
-/** LaTeX của mọi đoạn toán KHÔNG KaTeX parse được trong 1 chuỗi (rỗng = ổn). */
-export function mathFailures(text: string | null | undefined): string[] {
-  const bad: string[] = [];
-  for (const seg of segmentMath(text)) {
-    if (seg.t !== "math") continue;
-    try { katex.renderToString(seg.v, { throwOnError: true, displayMode: false }); }
-    catch { bad.push(seg.v); }
-  }
-  return bad;
+// ── Công thức đứng RIÊNG MỘT DÒNG ───────────────────────────────────────────
+// Công thức có PHÂN SỐ (hay ∑/∏/∫) chồng hai tầng — nhét giữa dòng chữ thì dòng
+// bị đội cao, chữ nhảy. Đúng lối sách giáo khoa: tách ra, canh giữa một dòng.
+const TALL = /\\frac|\\dfrac|\\begin|\\sum|\\prod|\\int/;
+
+// Bộ gom công thức chạy theo TOKEN nên đôi khi cắt giữa chừng: "…= 12,72 ⇒ a"
+// rồi phần "≈ 3,57" rớt ra ngoài, hay "'0" là mẩu đầu câu nói của học sinh.
+// Mẩu CỤT như thế mà đem canh giữa một dòng thì trông hỏng hơn là để trong dòng.
+const CUT_HEAD = /^\s*(?:=|\+|-|\\Rightarrow|\\Leftrightarrow|\\to|\\cdot|\\times|\\le|\\ge|\\approx|\\pm)/;
+const CUT_TAIL = /(?:=|\+|-|\\Rightarrow|\\Leftrightarrow|\\to|\\cdot|\\times|\\le|\\ge|\\approx|\\pm)\s*(?:\\?[A-Za-z]{1,7})?\s*$/;
+
+/** Công thức "cao" VÀ trọn vẹn — đủ tư cách đứng riêng một dòng. */
+function isTall(tex: string): boolean {
+  const t = tex.trim();
+  if (!TALL.test(t) || t.length < 12) return false;
+  if (CUT_HEAD.test(t) || CUT_TAIL.test(t)) return false; // cụt đầu / cụt đuôi
+  if ((t.match(/'/g)?.length ?? 0) % 2 === 1) return false; // nháy lẻ → cắt giữa câu nói
+  return true;
 }
 
-/** Kiểm mọi trường chữ của 1 câu hỏi; trả số công thức hỏng. */
-export function questionMathFailCount(q: {
-  noi_dung?: unknown; dap_an?: unknown; loi_giai?: unknown;
-  distractors?: Array<{ phuong_an?: unknown }>;
-}): number {
-  let n = mathFailures(q.noi_dung as string).length
-    + mathFailures(q.dap_an as string).length
-    + mathFailures(q.loi_giai as string).length;
-  for (const d of q.distractors ?? []) n += mathFailures(String(d?.phuong_an ?? "")).length;
-  return n;
+/**
+ * Đề nào thì tách công thức ra dòng riêng — trả cờ cho TỪNG đoạn.
+ * CHỈ tách khi đề có ĐÚNG MỘT công thức đáng tách (hoặc cả đề chỉ là một công
+ * thức). Đề nhiều bước rải 5–6 mẩu toán mà tách hết thì câu chữ bị băm nát —
+ * thà để trong dòng còn đọc được.
+ */
+export function displayFlags(segs: Seg[]): boolean[] {
+  const flags = segs.map(() => false);
+  const math = segs.map((s, i) => (s.t === "math" ? i : -1)).filter((i) => i >= 0);
+  const tall = math.filter((i) => isTall(segs[i]!.v));
+  if (tall.length === 1) { flags[tall[0]!] = true; return flags; }
+  // Cả đề CHỈ là một công thức (chữ xung quanh không có nghĩa) → cho đứng giữa.
+  const bare = segs.every((s) => s.t === "math" || !/\p{L}/u.test(s.v));
+  if (math.length === 1 && bare && segs[math[0]!]!.v.length >= 6) flags[math[0]!] = true;
+  return flags;
+}
+
+/**
+ * Viết hoa chữ cái đầu câu. CHỈ khi câu mở đầu bằng CHỮ NGHĨA — đề bắt đầu bằng
+ * biến ("x² + 1 = 0 có nghiệm không?") hay nhãn ("(a) Vì sao…") phải giữ nguyên,
+ * viết hoa vào đó là đổi nghĩa toán học.
+ */
+export function capitalizeLead(s: string): string {
+  const head = /^[\s*"'“([]*\S+/.exec(s)?.[0];
+  if (!head) return s;
+  const tok = head.replace(/^[\s*"'“([]*/, "");
+  if (classify(tok) !== "text" || !/\p{L}\p{L}/u.test(tok)) return s;
+  const i = head.search(/\p{L}/u); // chữ cái ĐẦU TIÊN, không phải chữ thường đầu tiên
+  const ch = i < 0 ? "" : s[i]!;
+  return ch && ch !== ch.toUpperCase() ? s.slice(0, i) + ch.toUpperCase() + s.slice(i + 1) : s;
 }

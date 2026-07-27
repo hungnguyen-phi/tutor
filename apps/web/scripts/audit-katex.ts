@@ -4,7 +4,7 @@
 // nguồn. Chạy:  cd apps/web && node --import tsx scripts/audit-katex.ts
 import fs from "node:fs";
 import katex from "katex";
-import { segmentMath } from "../lib/mathrender";
+import { segmentMath } from "../lib/mathtex"; // lõi thuần, không kéo theo React
 
 const ENV: Record<string, string> = {};
 for (const l of fs.readFileSync("../../.env", "utf8").split(/\r?\n/)) {

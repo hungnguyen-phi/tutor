@@ -5810,13 +5810,32 @@ html[data-motion="reduce"] .spin {
   box-shadow: var(--shadow);
   text-align: center;
 }
-/* Đề toán: serif italic 26 navy — chữ ký "học thuật" của hi-fi */
+/* Đề toán: cỡ lớn, navy. Chữ nghiêng serif của hi-fi cũ đã BỎ — nó bôi nghiêng
+   cả câu tiếng Việt (khó đọc), trong khi công thức đã do KaTeX lo phần chữ. */
 .qcard-expr {
-  font-size: 1.625rem;
-  line-height: 1.3;
+  font-size: 1.25rem;
+  line-height: 1.45;
   letter-spacing: 0.01em;
   color: var(--navy);
   overflow-wrap: break-word;
+}
+/* Công thức đứng RIÊNG MỘT DÒNG (đề bài) — canh giữa, thoáng trên dưới, to hơn
+   dòng chữ một nhịp. Đây là lối bày của sách giáo khoa:
+       Phương trình
+          x²/16 + y²/25 = 1        ← gạch phân số thật, một dòng của riêng nó
+       là đường conic nào?
+   .katex-display của KaTeX mặc định margin 1em → thay bằng nhịp của app. */
+.math-solo .katex-display {
+  margin: 0.55em 0;
+  font-size: 1.12em;
+}
+/* Công thức dài hơn thẻ (ma trận, hệ) thì cuộn ngang trong lòng nó, không đẩy
+   toác cả thẻ câu hỏi. */
+.math-solo {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .qcard-text {
   font-size: 0.9375rem;
@@ -5854,11 +5873,26 @@ html[data-motion="reduce"] .spin {
 .ans-tile.lettered .ans-otext {
   flex: 1;
 }
-/* Lưới đáp án: 2×2 khi vừa, tự về 1 cột khi chữ dài (auto-fit minmax) */
+/* Lưới đáp án: LUÔN 2 cột (4 phương án = ô vuông 2×2 cân đối). Trước đây dùng
+   auto-fit minmax(150px) → bề ngang thật của cột học rơi vào khoảng 3 ô/hàng,
+   nên 4 đáp án bày thành 3 + 1 lạc lõng. Đáp án dài → .stack về 1 cột (React
+   quyết định theo độ dài chữ). */
 .ans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.ans-grid.stack {
+  grid-template-columns: 1fr;
+}
+/* Đáp án ngắn xếp 2 cột: các hàng CAO BẰNG NHAU. Có câu một phương án là phân số
+   (cao gấp đôi dòng chữ) — không ép bằng thì hàng dưới phình, khối 2×2 vênh. */
+.ans-grid:not(.stack):not(.lettered) {
+  grid-auto-rows: 1fr;
+}
+/* Số ô LẺ: ô cuối trải hết hàng — không để một ô đơn độc lệch sang trái. */
+.ans-grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 .ans-tile {
   min-height: 56px;

@@ -52,7 +52,7 @@ export function OrderQuestion({
 
   return (
     <div className="iq">
-      {parsed.intro && <p className="iq-intro"><MathText>{parsed.intro}</MathText></p>}
+      {parsed.intro && <p className="iq-intro"><MathText block cap>{parsed.intro}</MathText></p>}
       <ol className="iq-order">
         {order.map((k, idx) => (
           <li
@@ -110,7 +110,7 @@ export function MatchQuestion({
 
   return (
     <div className="iq">
-      {parsed.intro && <p className="iq-intro"><MathText>{parsed.intro}</MathText></p>}
+      {parsed.intro && <p className="iq-intro"><MathText block cap>{parsed.intro}</MathText></p>}
       <ul className="iq-match">
         {parsed.left.map((l) => (
           <li key={l.key} className="iq-row">
@@ -173,7 +173,7 @@ export function ChecklistQuestion({
 
   return (
     <div className="iq">
-      {parsed.intro && <p className="iq-intro"><MathText>{parsed.intro}</MathText></p>}
+      {parsed.intro && <p className="iq-intro"><MathText block cap>{parsed.intro}</MathText></p>}
       <ul className="iq-check">
         {parsed.items.map((it) => (
           <li key={it.key} className="iq-crow">

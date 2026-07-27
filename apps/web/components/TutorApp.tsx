@@ -1179,14 +1179,16 @@ export default function TutorApp() {
           {/* Dạng tương tác tự dựng đề (câu dẫn + các mục) → ẩn qcard mặc định. */}
           {!interactiveShown && (
             <div className="qcard">
-              {/* Đề có công thức → cả dòng serif italic 26 theo hi-fi; câu chữ
-                  thường (tiếng Anh, đọc hiểu) giữ sans 15/1.5. */}
+              {/* Đề có công thức → cỡ chữ lớn hơn; câu chữ thường (tiếng Anh,
+                  đọc hiểu) giữ sans 15/1.5. Chữ nghiêng serif của hi-fi cũ đã
+                  BỎ: KaTeX lo phần công thức, còn câu tiếng Việt in nghiêng
+                  suốt dòng thì rất khó đọc. */}
               {letterMCQ ? (
-                <div className="qcard-stem"><MathText>{letterMCQ.stem}</MathText></div>
+                <div className="qcard-stem"><MathText block cap>{letterMCQ.stem}</MathText></div>
               ) : mathy(q.prompt) ? (
-                <div className="qcard-expr math"><MathText>{q.prompt}</MathText></div>
+                <div className="qcard-expr"><MathText block cap>{q.prompt}</MathText></div>
               ) : (
-                <div className="qcard-text"><MathText>{q.prompt}</MathText></div>
+                <div className="qcard-text"><MathText block cap>{q.prompt}</MathText></div>
               )}
             </div>
           )}
@@ -1266,12 +1268,12 @@ export default function TutorApp() {
                 onClick={() => setPicked(o.letter)}
               >
                 <span className="ans-letter">{o.letter}.</span>
-                <span className="ans-otext"><MathText>{o.text}</MathText></span>
+                <span className="ans-otext"><MathText cap>{o.text}</MathText></span>
               </button>
             ))}
           </div>
         ) : (
-          <div className="ans-grid">
+          <div className={`ans-grid${stackOptions(q.options) ? " stack" : ""}`}>
             {q.options.map((opt) => (
               <button
                 key={opt}
@@ -1280,7 +1282,7 @@ export default function TutorApp() {
                 disabled={busy || verdict != null}
                 onClick={() => setPicked(opt)}
               >
-                <MathText>{opt}</MathText>
+                <MathText cap>{opt}</MathText>
               </button>
             ))}
           </div>
@@ -1475,8 +1477,14 @@ function kindEyebrow(q: DiagnoseQuestion): string {
   return "Nhập đáp án của bạn";
 }
 
-/** Đề có "chất toán" (công thức, biến, so sánh) → hiển thị serif italic. */
+/** Đề có "chất toán" (công thức, biến, so sánh) → cỡ chữ đề lớn hơn. */
 const mathy = (s: string) => /[=^_\\$±≤≥√²³]/.test(s ?? "");
+
+/** Đáp án dài (một câu, một mệnh đề) thì xếp 1 cột cho dễ đọc; đáp án ngắn
+ *  ("Elip", "12 cm") xếp 2 cột cân đối — 4 phương án thành ô vuông 2×2, không
+ *  còn cảnh 3 ô một hàng rồi 1 ô lạc lõng hàng dưới. */
+const stackOptions = (opts: string[]) =>
+  opts.length < 2 || opts.some((o) => (o ?? "").trim().length > 26);
 
 /** Đề MCQ kiểu "STEM: A. … B. … C. … D. …" với đáp án là CHỮ CÁI (dap_an/distractors
  *  = "A".."D", text phương án nằm TRONG đề). Tách đề + text từng phương án theo nhãn.
