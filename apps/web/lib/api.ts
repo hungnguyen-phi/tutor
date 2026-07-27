@@ -61,7 +61,9 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-export type QKind = "objective" | "rubric" | "writing" | "speaking";
+/** `nop_bai`: câu tự luận dài — học sinh làm NGOÀI (giấy/Word), tải bài lên,
+ *  giáo viên chấm sau. App không chấm dạng này. */
+export type QKind = "objective" | "rubric" | "writing" | "speaking" | "nop_bai";
 
 export interface InteractiveItem { key: string; text: string }
 /** Cấu trúc bóc sẵn ở server cho dạng tương tác — KHÔNG kèm thứ tự/cặp đúng. */
@@ -182,6 +184,47 @@ export const answer = (
 export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
 
+/**
+ * Nộp bài làm ngoài (ảnh chụp / tệp Word…). Tệp đã được tải thẳng lên storage
+ * bằng JWT của học sinh (policy `student_work_insert` chặn ghi ra ngoài thư mục
+ * của chính mình); hàm này chỉ ghi VẾT để giáo viên có hàng đợi chấm.
+ */
+export const submitWork = (
+  sessionId: string,
+  questionId: string,
+  filePath: string,
+  mime: string,
+  size: number,
+) =>
+  callFn<{ kind: string; submitted: boolean }>("chat-turn", {
+    sessionId,
+    action: "submit-work",
+    questionId,
+    filePath,
+    mime,
+    size,
+  });
+
+/** Tải tệp bài làm lên đúng thư mục của học sinh: bai-lam/<trường>/<học sinh>/…
+ *  Trả về đường dẫn trong bucket để gửi kèm submitWork. */
+export async function uploadWork(file: File): Promise<string> {
+  const { data: sess } = await supabase.auth.getSession();
+  const uid = sess.session?.user?.id;
+  if (!uid) throw new Error("Bạn cần đăng nhập lại để nộp bài.");
+  const { data: prof } = await supabase.from("profiles").select("tenant_id").eq("id", uid).single();
+  const tenant = prof?.tenant_id;
+  if (!tenant) throw new Error("Không đọc được thông tin trường của bạn.");
+  // Tên tệp: giờ nộp + tên gốc đã làm sạch (giữ đuôi để giáo viên biết mở bằng gì).
+  const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-60);
+  const path = `bai-lam/${tenant}/${uid}/${Date.now()}-${safe}`;
+  const { error } = await supabase.storage.from("learning-assets").upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(`Tải tệp lên không được: ${error.message}`);
+  return path;
+}
+
 export const speaking = (sessionId: string, questionId: string, transcript: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "speaking", questionId, transcript });
 
@@ -246,6 +289,35 @@ export const teacherStats = () => callFn<TeacherStats>("teacher-stats", {});
 
 export const teacherReview = (kind: "question" | "ladder", id: string, status: string) =>
   callFn<{ ok: boolean }>("teacher-review", { kind, id, status });
+
+// ── Chấm bài nộp ngoài (ảnh chụp / file Word học sinh tải lên) ────────────────
+export interface GradingItem {
+  id: string;
+  studentName: string;
+  nodeLabel: string;
+  prompt: string;
+  /** Đáp án mẫu để đối chiếu — CHỈ giáo viên thấy. */
+  reference: string;
+  mime: string | null;
+  sizeKb: number | null;
+  status: "pending" | "passed" | "redo";
+  note: string | null;
+  submittedAt: string;
+  gradedAt: string | null;
+}
+export const gradingList = (status: "pending" | "passed" | "redo" = "pending") =>
+  callFn<{ items: GradingItem[] }>("teacher-grading", { action: "list", status });
+/** Link xem bài, hạn 1 giờ (bucket private). */
+export const gradingFile = (id: string) =>
+  callFn<{ url: string }>("teacher-grading", { action: "file", id });
+/** `pass=false` → bài về trạng thái "làm lại": lộ trình học sinh hiện bàn chân đỏ. */
+export const gradingGrade = (id: string, pass: boolean, note: string) =>
+  callFn<{ ok: boolean; status: string; mastered?: boolean }>("teacher-grading", {
+    action: "grade",
+    id,
+    pass,
+    note,
+  });
 
 // ── Lớp phủ nội dung GV (H5) — ẩn/sửa câu + lý do; áp lúc phục vụ ─────────────
 export interface ContentOverride {

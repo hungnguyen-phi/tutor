@@ -42,6 +42,8 @@ import {
   answer,
   writing,
   speaking,
+  uploadWork,
+  submitWork,
   endSession,
   learningPath,
   nodeResources,
@@ -79,7 +81,8 @@ type Msg =
   | { role: "hint"; text: string }
   | { role: "feedback"; text: string };
 
-type Verdict = "ok" | "retry" | "done" | null;
+// "submitted": đã NỘP BÀI làm ngoài — chưa chấm, nhưng được đi tiếp ngay.
+type Verdict = "ok" | "retry" | "done" | "submitted" | null;
 type Subject = "Toan" | "Van" | "Anh" | "GDKTPL";
 
 // Mỗi môn: nhãn dài (banner) + ngắn (pill/thẻ) + slug file lộ trình tĩnh +
@@ -141,6 +144,7 @@ export default function TutorApp() {
   const [interactiveAns, setInteractiveAns] = useState<string | null>(null);
   // Đợt B: bảng điểm rubric (viết/nói) — formative.
   const [rubricResult, setRubricResult] = useState<RubricResult | null>(null);
+  const [workFile, setWorkFile] = useState<File | null>(null); // tệp bài làm chờ nộp
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [attempts, setAttempts] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -470,6 +474,7 @@ export default function TutorApp() {
     setPicked(null);
     setInteractiveAns(null);
     setRubricResult(null);
+    setWorkFile(null);
     setVerdict(null);
     setAttempts(0);
   }
@@ -540,6 +545,7 @@ export default function TutorApp() {
     setText("");
     setInteractiveAns(null);
     setRubricResult(null);
+    setWorkFile(null);
     setAttempts(0);
   }
 
@@ -644,6 +650,24 @@ export default function TutorApp() {
       applyTurn(res, attemptNo, wasInjected);
       // Ghi nhớ câu từng sai — nguồn số liệu "chính xác x/y" và "xem lại câu sai".
       if (!res.correct) wrongRef.current.add(q.id);
+    } catch (e) {
+      setError(errText(e));
+    } finally {
+      setLoading(false);
+      setBusy(false);
+    }
+  }
+
+  /** Nộp bài làm ngoài: tải tệp lên storage rồi ghi vết cho giáo viên chấm.
+   *  KHÔNG chấm ở đây — nộp xong là được đi tiếp, mastery chờ giáo viên. */
+  async function submitWorkFile() {
+    if (!ses || !q || busy || !workFile) return;
+    setBusy(true);
+    setLoading(true);
+    try {
+      const path = await uploadWork(workFile);
+      await submitWork(ses.sessionId, q.id, path, workFile.type, workFile.size);
+      setVerdict("submitted");
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -1310,14 +1334,30 @@ export default function TutorApp() {
       )}
 
       {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" && (
-        <input
-          type="text"
+        /* Ô TỰ CAO DẦN, không phải ô một dòng: cùng một dạng "nhập đáp án" có câu
+           chỉ điền một cụm từ, có câu đòi giải thích cả đoạn (đáp án mẫu dài trên
+           200 chữ). Ô một dòng làm học sinh gõ đoạn dài mà không thấy mình viết
+           gì. Bắt đầu bằng ĐÚNG một dòng nên câu ngắn trông y như cũ.
+           Enter = nộp (giữ thói quen cũ); Shift+Enter = xuống dòng. */
+        <textarea
+          key={q.id} /* câu mới → dựng lại ô, xoá chiều cao đã nới của câu trước */
+          className="ans-input"
+          rows={1}
           placeholder="Nhập đáp án của bạn…"
           value={text}
           disabled={busy || verdict === "retry"}
           autoFocus
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && canCheck && !busy && check()}
+          onChange={(e) => {
+            setText(e.target.value);
+            const el = e.currentTarget;
+            el.style.height = "auto";
+            el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || e.shiftKey) return;
+            e.preventDefault(); // không chèn xuống dòng rồi mới nộp
+            if (canCheck && !busy) check();
+          }}
           /* Bàn phím KHÔNG sửa hộ đáp án ("2x" không được thành chữ khác) */
           inputMode="text"
           enterKeyHint="go"
@@ -1347,6 +1387,33 @@ export default function TutorApp() {
             </button>
             <span className="muted">Góp ý để bạn tự sửa — không phải điểm chính thức.</span>
           </div>
+        </div>
+      )}
+
+      {/* NỘP BÀI — câu tự luận dài: làm ngoài (giấy hoặc Word) rồi tải bài lên.
+          App KHÔNG chấm; nộp xong là đi tiếp được ngay, thầy cô chấm sau. */}
+      {q && q.kind === "nop_bai" && verdict == null && (
+        <div className="submit-box">
+          <p className="submit-how">
+            Bài này em làm ra <b>giấy hoặc file Word</b>, rồi <b>chụp ảnh / chọn tệp</b> nộp lên đây.
+            Nộp xong em học tiếp bài khác luôn — thầy cô chấm sau.
+          </p>
+          <label className="submit-pick">
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/*,.pdf,.doc,.docx"
+              disabled={busy}
+              onChange={(e) => {
+                setWorkFile(e.target.files?.[0] ?? null);
+                setError(null);
+              }}
+            />
+            <span>{workFile ? workFile.name : "Chọn ảnh bài làm hoặc tệp…"}</span>
+          </label>
+          {workFile && (
+            <p className="muted submit-size">{Math.round(workFile.size / 1024)} KB</p>
+          )}
         </div>
       )}
 
@@ -1403,6 +1470,38 @@ export default function TutorApp() {
               onClick={check}
             >
               KIỂM TRA
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Nộp bài: nút NỘP BÀI chỉ sáng khi đã chọn tệp. */}
+      {q && q.kind === "nop_bai" && verdict == null && (
+        <div className="lfoot">
+          <div className="lfoot-inner">
+            <button
+              className="btn btn-block btn-check"
+              disabled={busy || !workFile}
+              data-loading={busy || undefined}
+              onClick={submitWorkFile}
+            >
+              NỘP BÀI
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Đã nộp — chưa chấm. Nói thẳng để học sinh không tưởng mình đã "qua bài". */}
+      {verdict === "submitted" && (
+        <div className="lfoot" data-verdict="done" role="status">
+          <div className="lfoot-inner">
+            <div className="lfoot-says">
+              <Lion mood="cheer" size={48} decorative />
+              <b className="lfoot-title">Đã nộp bài — thầy cô sẽ chấm sau</b>
+              <span className="muted">Chưa tính là làm chủ bài này; chấm xong em sẽ thấy kết quả ở lộ trình.</span>
+            </div>
+            <button className="btn btn-block" data-loading={busy || undefined} onClick={advance}>
+              {last ? "HOÀN THÀNH" : "HỌC TIẾP"}
             </button>
           </div>
         </div>
@@ -1479,6 +1578,7 @@ export default function TutorApp() {
 
 /** Eyebrow trên thẻ câu hỏi — lệnh làm bài theo dạng câu (hi-fi 3b). */
 function kindEyebrow(q: DiagnoseQuestion): string {
+  if (q.kind === "nop_bai") return "Làm ra giấy rồi nộp bài";
   if (q.kind === "writing") return "Viết câu trả lời";
   if (q.kind === "speaking") return "Luyện nói tiếng Anh";
   if (q.dangCauHoi === "dung_sai") return "Đúng hay Sai?";
@@ -1488,6 +1588,8 @@ function kindEyebrow(q: DiagnoseQuestion): string {
   // phải xét TRƯỚC q.options kẻo rơi nhầm vào nhãn "Chọn đáp án đúng".
   if (q.interactive?.checklist) return "Đúng hay Sai cho từng ý?";
   if (q.options) return "Chọn đáp án đúng";
+  // Đề có chỗ trống "___" → nói rõ đang ĐIỀN, không phải trả lời tự do.
+  if (/_{2,}/.test(q.prompt ?? "")) return "Điền vào chỗ trống";
   return "Nhập đáp án của bạn";
 }
 
@@ -1521,9 +1623,51 @@ const stackOptions = (opts: string[]) =>
  *
  *  Cách mới: ta ĐÃ BIẾT cần tìm nhãn nào (chính là các phương án), nên đi tìm đúng
  *  DÃY nhãn đó theo THỨ TỰ TĂNG DẦN, mỗi nhãn tìm từ sau nhãn trước. Một chữ "B."
- *  lạc giữa câu không dựng nổi dãy A→B→C→D nên vẫn bị loại. Đo trên toàn bộ ngân
- *  hàng câu hỏi sống: 79/79 tách đúng. Trả null nếu không phải dạng này. */
+ *  lạc giữa câu không dựng nổi dãy A→B→C→D nên vẫn bị loại.
+ *
+ *  Nhưng "đứng sau khoảng trắng" thôi thì vẫn vớ nhầm khi chữ cái ĐÓ nằm cuối
+ *  phương án trước:
+ *      "A. Mọi phần tử của A đều thuộc B.  B. Mọi phần tử của B đều thuộc A."
+ *                                     ↑ bắt vào đây → A cụt, B lặp nhãn
+ *      "A. n(A∪B) = n(A) + n(B)  B. …"  → bắt vào chữ B TRONG n(B)
+ *  Nên đi HAI VÒNG: vòng CHẶT đòi nhãn đứng ngay sau dấu kết câu (. : ; ? !) —
+ *  đúng với đề viết chuẩn; vòng chặt hụt mới nới ra như cũ, vì đề thật hay kết
+ *  thúc phương án bằng số/ký hiệu ("A. < 50 B. ≤ 50") nên chẳng có dấu chấm nào.
+ *  Cả hai vòng: dấu "(" chỉ MỞ NHÃN khi nó đứng đầu / sau khoảng trắng — "n(B)"
+ *  là gọi hàm, không phải nhãn "(B)".
+ *
+ *  Đo trên toàn bộ ngân hàng sống: 79/79 tách được, 0 câu tách sai (trước có 2).
+ *  Trả null nếu không phải dạng này. */
 const LETTER_ORDER = ["A", "B", "C", "D", "Đ"];
+// Cái đứng TRƯỚC nhãn: đầu chuỗi | sau dấu kết câu | ngoặc mở "tự do".
+const MARK_STRICT = String.raw`(^|(?<=[.:;?!])\s+|(?<![^\s])[(\[])`;
+const MARK_LOOSE = String.raw`(^|\s+|(?<![^\s])[(\[])`;
+
+function markChain(
+  text: string,
+  want: string[],
+  pre: string,
+): { stem: string; opts: { letter: string; text: string }[] } | null {
+  const marks: { letter: string; start: number; textStart: number }[] = [];
+  let from = 0;
+  for (const L of want) {
+    const re = new RegExp(`${pre}(${L})[.)]\\s+`, "g");
+    re.lastIndex = from;
+    const m = re.exec(text);
+    if (!m) return null; // thiếu một nhãn → không phải dạng chữ-cái, rơi về lưới thường
+    marks.push({ letter: L, start: m.index + (m[1] ?? "").length, textStart: re.lastIndex });
+    from = re.lastIndex;
+  }
+  const stem = text.slice(0, marks[0]!.start).trim();
+  if (!stem) return null; // không còn đề → nhiều khả năng bắt nhầm
+  const opts = marks.map((mk, i) => ({
+    letter: mk.letter,
+    text: text.slice(mk.textStart, marks[i + 1]?.start).trim(),
+  }));
+  if (opts.some((o) => !o.text)) return null;
+  return { stem, opts };
+}
+
 function parseLetterMCQ(
   noiDung: string,
   letters: string[],
@@ -1533,27 +1677,7 @@ function parseLetterMCQ(
     .filter((l) => LETTER_ORDER.includes(l))
     .sort((a, b) => LETTER_ORDER.indexOf(a) - LETTER_ORDER.indexOf(b));
   if (want.length < 2) return null;
-
-  const marks: { letter: string; start: number; textStart: number }[] = [];
-  let from = 0;
-  for (const L of want) {
-    // Nhãn phải đứng đầu chuỗi hoặc sau khoảng trắng/ngoặc — không dính giữa từ.
-    const re = new RegExp(`(^|[\\s(\\[])(${L})[.)]\\s+`, "g");
-    re.lastIndex = from;
-    const m = re.exec(text);
-    if (!m) return null; // thiếu một nhãn → không phải dạng chữ-cái, rơi về lưới thường
-    marks.push({ letter: L, start: m.index + (m[1] ?? "").length, textStart: re.lastIndex });
-    from = re.lastIndex;
-  }
-
-  const stem = text.slice(0, marks[0]!.start).trim();
-  if (!stem) return null; // không còn đề → nhiều khả năng bắt nhầm
-  const opts = marks.map((mk, i) => ({
-    letter: mk.letter,
-    text: text.slice(mk.textStart, marks[i + 1]?.start).trim(),
-  }));
-  if (opts.some((o) => !o.text)) return null;
-  return { stem, opts };
+  return markChain(text, want, MARK_STRICT) ?? markChain(text, want, MARK_LOOSE);
 }
 
 interface SR {

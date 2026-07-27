@@ -1715,6 +1715,49 @@ ul {
   stroke: var(--warn);
   stroke-width: 2;
 }
+/* Bài nộp bị thầy cô trả về: bàn chân ĐỎ. Dùng nền err-tint + viền/nét err đậm
+   (không tô đỏ nguyên đĩa) — đủ nổi để thấy ngay, không biến lộ trình thành
+   bảng báo lỗi. Node này KHÔNG bị khoá: bấm vào là làm lại được. */
+.node[data-state="redo"] {
+  --paw-face: var(--err-tint);
+  --paw-edge: color-mix(in oklab, var(--err) 45%, var(--err-tint));
+}
+.node[data-state="redo"] .paw-face {
+  stroke: var(--err);
+  stroke-width: 2.5;
+}
+.node[data-state="redo"] .node-face {
+  color: var(--err);
+}
+/* Báo trên đầu lộ trình — cùng khuôn thẻ với "cổng chương". */
+.redo-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--err-tint);
+  border: 2px solid color-mix(in oklab, var(--err) 40%, var(--err-tint));
+  border-radius: var(--r);
+  color: var(--ink);
+}
+.redo-notice svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  color: var(--err);
+}
+.redo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.redo-body span {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
 .node[data-state="current"] {
   --paw-face: var(--navy);
   --paw-edge: var(--navy-press);
@@ -2112,6 +2155,16 @@ textarea:focus {
 textarea {
   resize: vertical;
   min-height: 96px;
+}
+/* Ô nhập đáp án: khởi điểm ĐÚNG một dòng (48px như ô cũ), tự cao dần theo chữ —
+   cùng một dạng câu có chỗ chỉ điền một cụm từ, có chỗ đòi giải thích cả đoạn.
+   Không cho kéo tay: chiều cao do nội dung quyết định. */
+.ans-input {
+  min-height: 48px;
+  height: 48px; /* JS ghi đè khi gõ; remount theo câu nên luôn về lại một dòng */
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
 }
 .row {
   display: flex;
@@ -5936,6 +5989,106 @@ html[data-motion="reduce"] .spin {
 /* dung_sai: hai nút Đúng/Sai — lưới 2 cột. */
 .ans-grid.tf {
   grid-template-columns: 1fr 1fr;
+}
+
+/* ── CHẤM BÀI (console giáo viên): hàng đợi bài học sinh tải lên ──────────── */
+.grade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.grade-card {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.grade-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.grade-prompt {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+/* Đáp án mẫu GẤP LẠI: giáo viên đọc bài của em trước, muốn đối chiếu mới mở —
+   nhìn đáp án trước dễ chấm theo trí nhớ đáp án thay vì theo bài làm. */
+.grade-ref summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.grade-ref p {
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--navy-tint);
+  border-radius: var(--r-sm, 10px);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.grade-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.grade-actions input {
+  flex: 1 1 220px;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.grade-redo {
+  color: var(--err);
+  border-color: color-mix(in oklab, var(--err) 40%, transparent);
+}
+
+/* ── NỘP BÀI: câu tự luận dài, làm ngoài rồi tải ảnh/tệp lên ──────────────── */
+.submit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 2px;
+}
+.submit-how {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+/* Ô chọn tệp: viền ĐỨT nét — quy ước quen thuộc của "thả tệp vào đây". Input thật
+   ẩn theo lối sr-only (vẫn tab tới được), nên vòng focus vẽ trên chính cái nhãn. */
+.submit-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 14px 16px;
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.submit-pick:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+.submit-pick:focus-within {
+  outline: 3px solid var(--navy);
+  outline-offset: 2px;
+}
+.submit-size {
+  font-size: 0.8125rem;
 }
 
 /* ── Dạng tương tác (sap_xep / noi_cot) — kéo–thả + chạm ──────────────────── */

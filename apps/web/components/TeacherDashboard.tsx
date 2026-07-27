@@ -6,6 +6,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ClipboardCheck,
   Clock,
   Download,
   EyeOff,
@@ -24,6 +25,10 @@ import {
 import {
   teacherStats,
   teacherReview,
+  gradingList,
+  gradingFile,
+  gradingGrade,
+  type GradingItem,
   recomputeQuestionStats,
   createOverride,
   type TeacherStats,
@@ -114,7 +119,7 @@ function FlagChips({ flags }: { flags: string[] }) {
 
 const initialOf = (name: string) => (name.split(/\s+/).pop() ?? "?").charAt(0).toUpperCase();
 
-type Tab = "overview" | "students" | "topics" | "content";
+type Tab = "overview" | "students" | "topics" | "grading" | "content";
 
 export default function TeacherDashboard() {
   const { session, profile, roles, ready } = useAuth();
@@ -301,6 +306,7 @@ function Console({
   onScan: () => void;
   scanNote: string | null;
 }) {
+  const [gradingCount, setGradingCount] = useState(0); // huy hiệu "còn bao nhiêu bài chờ chấm"
   const m = data.metrics;
   const roster = data.roster;
   const topics = data.topics ?? [];
@@ -317,6 +323,7 @@ function Console({
     { id: "overview", label: "Tổng quan", icon: <LayoutGrid aria-hidden strokeWidth={2} /> },
     { id: "students", label: "Học sinh", icon: <Users aria-hidden strokeWidth={2} />, badge: roster?.total },
     { id: "topics", label: "Chủ đề", icon: <BookOpen aria-hidden strokeWidth={2} />, badge: topics.length || undefined },
+    { id: "grading", label: "Chấm bài", icon: <ClipboardCheck aria-hidden strokeWidth={2} />, badge: gradingCount || undefined },
     { id: "content", label: "Duyệt & nội dung", icon: <Inbox aria-hidden strokeWidth={2} />, badge: pendingReview || undefined },
   ];
 
@@ -382,6 +389,7 @@ function Console({
       )}
       {tab === "students" && <StudentsTab roster={roster} studentNodes={data.studentNodes} />}
       {tab === "topics" && <TopicsTab topics={topics} />}
+      {tab === "grading" && <GradingTab onCount={setGradingCount} />}
       {tab === "content" && (
         <ContentTab
           data={data}
@@ -693,6 +701,127 @@ function StudentRow({ s, nodes }: { s: RosterStudent; nodes: NonNullable<Teacher
 }
 
 // ── Tab: Chủ đề ───────────────────────────────────────────────────────────────
+/**
+ * CHẤM BÀI — hàng đợi bài học sinh làm ngoài rồi tải lên (ảnh chụp / file Word).
+ *
+ * Học sinh nộp xong là học tiếp ngay, KHÔNG được mastery. Chỗ này mới quyết:
+ *  · ĐẠT      → server ghi bằng chứng mastery + thưởng XP;
+ *  · LÀM LẠI  → node hiện BÀN CHÂN ĐỎ trên lộ trình của em, kèm lời nhắn.
+ * Tệp nằm trong bucket kín; bấm "Xem bài" mới xin link ký hạn 1 giờ.
+ */
+function GradingTab({ onCount }: { onCount: (n: number) => void }) {
+  const [status, setStatus] = useState<"pending" | "passed" | "redo">("pending");
+  const [items, setItems] = useState<GradingItem[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  async function load(s = status) {
+    setItems(null);
+    setErr(null);
+    try {
+      const r = await gradingList(s);
+      setItems(r.items ?? []);
+      if (s === "pending") onCount(r.items?.length ?? 0);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setItems([]);
+    }
+  }
+  useEffect(() => {
+    void load(status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  async function view(id: string) {
+    try {
+      const { url } = await gradingFile(id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  }
+  async function grade(id: string, pass: boolean) {
+    setBusyId(id);
+    try {
+      await gradingGrade(id, pass, notes[id] ?? "");
+      await load(status);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="tdb-card">
+      <div className="tdb-card-head">
+        <b className="tdb-card-title">Chấm bài nộp</b>
+        <div className="st-seg" role="tablist" aria-label="Lọc theo trạng thái">
+          {([["pending", "Chờ chấm"], ["redo", "Đã trả về"], ["passed", "Đã đạt"]] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={status === id} onClick={() => setStatus(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {err && <p className="banner err">{err}</p>}
+      {items === null && <p className="muted">Đang tải…</p>}
+      {items?.length === 0 && (
+        <p className="muted">
+          {status === "pending" ? "Chưa có bài nào chờ chấm." : "Chưa có bài nào ở mục này."}
+        </p>
+      )}
+      <ul className="grade-list">
+        {(items ?? []).map((it) => (
+          <li key={it.id} className="grade-card">
+            <div className="grade-head">
+              <b>{it.studentName}</b>
+              <span className="muted">{it.nodeLabel}</span>
+              <span className="muted num">{new Date(it.submittedAt).toLocaleDateString("vi-VN")}</span>
+            </div>
+            <p className="grade-prompt">{it.prompt}</p>
+            <details className="grade-ref">
+              <summary>Đáp án mẫu để đối chiếu</summary>
+              <p>{it.reference}</p>
+            </details>
+            <div className="grade-actions">
+              <button className="btn btn-quiet" onClick={() => view(it.id)}>
+                Xem bài{it.sizeKb ? ` (${it.sizeKb} KB)` : ""}
+              </button>
+              {status === "pending" && (
+                <>
+                  <input
+                    placeholder="Lời nhắn cho em (không bắt buộc)…"
+                    value={notes[it.id] ?? ""}
+                    onChange={(e) => setNotes((n) => ({ ...n, [it.id]: e.target.value }))}
+                  />
+                  <button
+                    className="btn"
+                    disabled={busyId === it.id}
+                    data-loading={busyId === it.id || undefined}
+                    onClick={() => grade(it.id, true)}
+                  >
+                    Đạt
+                  </button>
+                  <button
+                    className="btn btn-quiet grade-redo"
+                    disabled={busyId === it.id}
+                    onClick={() => grade(it.id, false)}
+                  >
+                    Cho làm lại
+                  </button>
+                </>
+              )}
+              {status !== "pending" && it.note && <span className="muted">Lời nhắn: {it.note}</span>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function TopicsTab({ topics }: { topics: NonNullable<TeacherStats["topics"]> }) {
   if (topics.length === 0) {
     return (

@@ -102,17 +102,22 @@ Deno.serve(async (req: Request) => {
       .single();
 
     const items = served.map((q) => {
+      // Dạng câu do NHÃN trong đề quyết định (lối có sẵn của [WRITING]/[SPEAKING]).
+      // [NOPBAI] = câu tự luận dài: học sinh làm ngoài rồi tải bài lên, giáo viên
+      // chấm sau — app không chấm, không đòi gõ cả đoạn vào ô nhập.
       const kind = /\[SPEAKING\]/i.test(q.noi_dung)
         ? "speaking"
         : /\[WRITING\]/i.test(q.noi_dung)
           ? "writing"
-          : q.loai_danh_gia;
+          : /\[NOPBAI\]/i.test(q.noi_dung)
+            ? "nop_bai"
+            : q.loai_danh_gia;
       // Câu khuôn: sinh params TẤT ĐỊNH theo (session, câu) — chat-turn chấm
       // dùng CÙNG seed nên số khớp cái học sinh thấy. Câu tĩnh: fill là no-op.
       const spec = q.tham_so_hoa ? readSpec(q.tham_so) : null;
       const params = spec && ses ? genParams(spec, seedFrom(ses.id, q.id)) : {};
       const fill = (t: string) => (spec ? fillTemplate(t, params) : t);
-      const promptFilled = fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING)\]\s*/i, ""));
+      const promptFilled = fill(q.noi_dung.replace(/^\[(SPEAKING|WRITING|NOPBAI)\]\s*/i, ""));
       // Bóc cấu trúc tương tác (sap_xep/noi_cot/checklist) — null cho dạng khác.
       // KHÔNG kèm đáp án.
       const rawInter = parseInteractive(q.dang_cau_hoi, promptFilled, String(q.dap_an ?? ""));

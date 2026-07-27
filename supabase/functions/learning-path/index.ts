@@ -7,7 +7,8 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 
-type NodeState = "mastered" | "stale" | "current" | "available" | "locked";
+// "redo": bài đã nộp nhưng giáo viên chấm CHƯA ĐẠT — bàn chân đỏ, mời làm lại.
+type NodeState = "mastered" | "stale" | "current" | "available" | "locked" | "redo";
 
 interface NodeRow {
   node_key: string;
@@ -104,7 +105,7 @@ Deno.serve(async (req: Request) => {
     // (LearningPath.tsx có sẵn màn "Chưa có bài học nào").
     if (!version) return json({ version_id: null, version_label: null, nodes: [] });
 
-    const [nodesRes, edgesRes, statesRes, qRes] = await Promise.all([
+    const [nodesRes, edgesRes, statesRes, subRes, qRes] = await Promise.all([
       supa
         .from("kg_nodes")
         .select("node_key, label, chapter, cluster, revision")
@@ -120,6 +121,15 @@ Deno.serve(async (req: Request) => {
         .select("node_id, mastered, node_revision")
         .eq("student_id", ctx.userId)
         .eq("kg_version_id", version.id),
+      // Bài NỘP làm ngoài + kết quả chấm của giáo viên. Lấy CẢ lịch sử rồi mới
+      // rút bản mới nhất của từng câu: nộp lại lần nữa phải xoá được dấu đỏ,
+      // không thì node đỏ vĩnh viễn dù em đã sửa bài.
+      supa
+        .from("submissions")
+        .select("node_key, question_id, status, created_at")
+        .eq("student_id", ctx.userId)
+        .eq("kind", "upload")
+        .order("created_at", { ascending: true }),
       // Node NÀO đã có câu hỏi luyện (servable) — nền của cơ chế "mở khoá thông
       // minh": chưa có bài tập thì không thể mastery, nên KHÔNG được quyền khoá
       // các bài sau. Khoá theo tiên quyết tự siết lại khi giáo viên cắm câu hỏi.
@@ -159,6 +169,17 @@ Deno.serve(async (req: Request) => {
       if (st.node_revision != null && st.node_revision !== node.revision) stale.add(st.node_id);
     }
 
+    // Bài nộp bị trả về: chỉ tính bản MỚI NHẤT của mỗi câu. Nộp lại (pending) đè
+    // lên lần bị trả trước đó → dấu đỏ tự tắt, khỏi cần sửa dữ liệu cũ.
+    const latestByQuestion = new Map<string, { node_key: string | null; status: string }>();
+    for (const s of subRes.data ?? []) {
+      latestByQuestion.set(String(s.question_id), { node_key: s.node_key, status: String(s.status) });
+    }
+    const redo = new Set<string>();
+    for (const s of latestByQuestion.values()) {
+      if (s.status === "redo" && s.node_key && byKey.has(s.node_key)) redo.add(s.node_key);
+    }
+
     // Tiên quyết còn thiếu của từng node — chỉ tính cạnh giữa các node active.
     // MỞ KHOÁ THÔNG MINH: bỏ qua tiên quyết CHƯA có câu hỏi (không thể mastery
     // → không được chặn). Nhờ vậy bản đồ đầy đủ vẫn ĐI ĐƯỢC khi nội dung còn
@@ -185,7 +206,11 @@ Deno.serve(async (req: Request) => {
     // Node đã học giữ nguyên màu kể cả khi cạnh tiên quyết đổi sau đó (§4).
     const items: Item[] = topoSort(nodes, edges).map((n) => {
       let state: NodeState;
-      if (learned.has(n.node_key)) {
+      // Bài bị trả về ĐỨNG TRÊN mọi trạng thái khác: dù node đã xanh, có bài
+      // chấm chưa đạt là phải làm lại — và không bao giờ bị khoá theo lượt.
+      if (redo.has(n.node_key)) {
+        state = "redo";
+      } else if (learned.has(n.node_key)) {
         state = stale.has(n.node_key) ? "stale" : "mastered";
       } else if ((missing.get(n.node_key)?.length ?? 0) > 0) {
         state = "locked";

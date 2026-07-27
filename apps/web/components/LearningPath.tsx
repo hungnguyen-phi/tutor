@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Lock, Play, RotateCcw } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 
@@ -9,8 +9,10 @@ import PawNode from "./PawNode";
  * Trạng thái một điểm kiến thức trên lộ trình.
  * `stale` = em đã học, nhưng giáo viên đã sửa NGHĨA của nội dung sau đó.
  * Dấu "đã học" không bao giờ bị xoá — chỉ chuyển vàng để mời ôn lại.
+ * `redo` = em đã NỘP bài làm ngoài nhưng thầy cô chấm CHƯA ĐẠT → bàn chân đỏ,
+ * mời làm lại. Trạng thái này ĐÈ lên mọi trạng thái khác và không bị khoá.
  */
-export type NodeState = "mastered" | "stale" | "current" | "available" | "locked";
+export type NodeState = "mastered" | "stale" | "current" | "available" | "locked" | "redo";
 
 export type PathNode = {
   key: string;
@@ -28,6 +30,7 @@ const HINT: Record<NodeState, string> = {
   current: "Bắt đầu ở đây",
   available: "Chưa học",
   locked: "Chưa mở",
+  redo: "Thầy cô yêu cầu làm lại bài này",
 };
 
 /* Icon theo trạng thái (hi-fi 3a) — node `available` KHÔNG dùng icon mà hiện
@@ -37,6 +40,7 @@ const ICON: Record<Exclude<NodeState, "available">, typeof Check> = {
   stale: RotateCcw, // lời mời ôn lại — không phải cảnh báo
   current: Play,
   locked: Lock,
+  redo: Undo2,
 };
 
 /** Nhãn NGẮN hiện dưới node hiện tại: lấy phần trước dấu hai chấm / gạch ngang,
@@ -147,6 +151,7 @@ export default function LearningPath({
   const [chapterTitle, ...restParts] = subtitle.split(" · ");
   const chapterDesc = restParts.join(" · ");
   const hasLocked = nodes.some((n) => n.state === "locked");
+  const redoNodes = nodes.filter((n) => n.state === "redo");
 
   // ── CHẶNG theo chương (điểm dừng — chủ dự án: "lướt trong vô vọng…
   // phải có điểm dừng"). Node mang `chapter` → gom thành chặng: chặng đang
@@ -309,6 +314,18 @@ export default function LearningPath({
           </div>
         )}
       </header>
+
+      {/* Bài nộp bị trả về: báo NGAY trên đầu lộ trình, kèm tên bài — học sinh
+          nộp hôm trước, hôm sau vào mới biết kết quả nên phải nói rõ ràng. */}
+      {redoNodes.length > 0 && (
+        <div className="redo-notice" role="status">
+          <Undo2 aria-hidden strokeWidth={2.25} />
+          <div className="redo-body">
+            <b>Thầy cô đã chấm — {redoNodes.length} bài cần làm lại</b>
+            <span>{redoNodes.map((n) => n.label).join(" · ")}</span>
+          </div>
+        </div>
+      )}
 
       {/* Sư tử giờ đứng cạnh node hiện tại — lời chào thành thẻ gọn, không lion */}
       {greeting && <p className="scene-greeting">{greeting}</p>}

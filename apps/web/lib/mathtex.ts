@@ -140,6 +140,16 @@ function toLatexInner(s: string): string {
   t = t.replace(/(?<![/\w])(-?\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)(?![/\w])/g, "\\frac{$1}{$2}");
   t = t.replace(FN_NAME, "\\$1");
   for (const [k, v] of Object.entries(UNI)) t = t.split(k).join(v);
+  // Chỉ số dưới viết phẳng: "x1, x2" là x₁, x₂ — KHÔNG phải "x nhân 1". Luật CỐ Ý
+  // hẹp: đúng MỘT chữ cái + MỘT chữ số, không dính chữ/số nào khác. Đo trên ngân
+  // hàng sống để tránh ba thứ trông giống mà không phải chỉ số:
+  //  · "B05", "A16", "MIS-D01" là MÃ nguyên tử/quan niệm sai → hai chữ số, trượt;
+  //  · "cos2x" → chữ "s" dính chữ khác, trượt;
+  //  · "1m2" → có chữ số đứng trước, trượt;
+  //  · "misc_..._q1_voi_q2" là MÃ quan niệm sai lọt vào nội dung — gạch dưới hai
+  //    bên chặn lại, kẻo thành "q_{1}_voi" (KaTeX báo lỗi hai chỉ số liền).
+  // Chữ B bị CHỪA HẲN: ở đây "B1 B2 B3" là nhãn BƯỚC (357 chỗ), chưa lần nào là điểm B₁.
+  t = t.replace(/(?<![A-Za-z0-9\\_])(?!B\d)([A-Za-z])(\d)(?![0-9A-Za-z_])/g, "$1_{$2}");
   // GỘP mũ/chỉ số LIỀN nhau: unicode "4¹⁰" → "^{1}^{0}" (KaTeX báo "Double
   // superscript"). Gộp lại "^{10}". Lặp tới ổn định cho ≥3 chữ số liền.
   for (let i = 0; i < 4; i++) {

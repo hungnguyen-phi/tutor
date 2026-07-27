@@ -12,12 +12,13 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer, type CasResult } from "../_shared/cas.ts";
 import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
-import { evaluateEffortGate, recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
+import { evaluateEffortGate } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM } from "../_shared/llm.ts";
 import { buildGuideSystem, buildScoredRubricSystem } from "../_shared/prompts.ts";
 import { rubricFor, buildRubricResult, parseRubricJson, type RubricResult } from "../_shared/rubrics.ts";
 import { awardXp, type XpEventInput } from "../_shared/xp.ts";
+import { recomputeNodeState } from "../_shared/mastery-state.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
 import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
@@ -110,8 +111,20 @@ function rubricSummaryText(r: RubricResult): string {
  *  câu đó phải ở lại CAS, chấm tất định. */
 function isOpenAnswer(q: { dap_an: unknown; noi_dung: string | null; distractors: unknown }): boolean {
   if (Array.isArray(q.distractors) && q.distractors.length > 0) return false;
-  if (/_{2,}/.test(q.noi_dung ?? "")) return false; // điền khuyết → vẫn CAS
-  return String(q.dap_an ?? "").length > 40;
+  const dap = String(q.dap_an ?? "");
+  // Điền khuyết: chỗ trống là SỐ / biểu thức thì CAS chấm CHUẨN HƠN mô hình
+  // (nó biết 1/2 = 0,5 = 50%). Nhưng chỗ trống là CỤM TỪ ("trái dấu a") thì CAS
+  // chỉ so chữ — học sinh viết "ngược dấu a", đúng nghĩa toán học, vẫn bị chấm
+  // sai. Chữ nghĩa thì giao cho mô hình so Ý. Đo trên ngân hàng sống: 31 câu
+  // điền-bằng-chữ (đang oan) vs 22 câu điền-bằng-số (giữ CAS).
+  if (/_{2,}/.test(q.noi_dung ?? "")) return isWordyAnswer(dap);
+  return dap.length > 40;
+}
+
+/** Đáp án "chữ nghĩa" — không phải số, biểu thức hay LaTeX. */
+function isWordyAnswer(dap: string): boolean {
+  if (/\\|[=+^{}]|\d\s*\/\s*\d/.test(dap)) return false; // \vec, x=1, 1/2 → toán
+  return /\p{L}{3,}/u.test(dap);
 }
 
 const OPEN_SYS_VI =
@@ -188,7 +201,11 @@ async function pickQuestion(
   const visible = (qs ?? [])
     .filter((q) => !isHidden(ovr.get(q.id)))
     .map((q) => applyQuestionEdit(q, ovr.get(q.id)));
-  const auto = visible.filter((q) => q.nhom_cham === "auto" || q.loai_danh_gia === "objective");
+  // Câu VÁ NỀN phải trả lời được ngay tại chỗ. Câu [NOPBAI] (làm ngoài rồi tải
+  // bài lên, giáo viên chấm hôm sau) không dùng để vá nền được — bỏ khỏi kho chọn.
+  const auto = visible.filter(
+    (q) => (q.nhom_cham === "auto" || q.loai_danh_gia === "objective") && !/\[NOPBAI\]/i.test(q.noi_dung ?? ""),
+  );
   if (auto.length === 0) return null;
 
   const { data: done } = await supa
@@ -294,57 +311,6 @@ async function findRemediation(
     return { nodeKey, label: node?.label ?? nodeKey, question };
   }
   return null;
-}
-
-/** Cập nhật mastery/Leitner NGAY sau mỗi bằng chứng — không đợi end-session.
- *  `nodeRevision` được TRUYỀN VÀO (đã đọc kg_nodes ở đường nóng) để KHÔNG đọc
- *  kg_nodes lần hai. */
-async function recomputeNodeState(
-  supa: ReturnType<typeof admin>,
-  s: Session,
-  nodeKey: string,
-  nodeRevision: number | null,
-): Promise<{ mastered: boolean; score: number; newlyMastered: boolean }> {
-  const [{ data: evidence }, { data: prevState }] = await Promise.all([
-    supa
-      .from("mastery_evidence")
-      .select("correct, dok, is_target_difficulty, created_at")
-      .eq("student_id", s.student_id)
-      .eq("kg_version_id", s.kg_version_id)
-      .eq("node_id", nodeKey),
-    supa
-      .from("student_node_state")
-      .select("mastered, leitner_box")
-      .eq("student_id", s.student_id)
-      .eq("kg_version_id", s.kg_version_id)
-      .eq("node_id", nodeKey)
-      .maybeSingle(),
-  ]);
-  const ev: Evidence[] = (evidence ?? []).map((e) => ({
-    correct: e.correct,
-    dok: e.dok,
-    isTargetDifficulty: e.is_target_difficulty,
-    at: new Date(e.created_at).getTime(),
-  }));
-  const v = recomputeMastery(ev);
-  const now = Date.now();
-  const box = prevState?.leitner_box ?? 0;
-  await supa.from("student_node_state").upsert(
-    {
-      tenant_id: s.tenant_id,
-      student_id: s.student_id,
-      node_id: nodeKey,
-      kg_version_id: s.kg_version_id,
-      mastery_score: v.score,
-      mastered: v.mastered,
-      node_revision: nodeRevision ?? null,
-      leitner_box: box,
-      next_review_at: v.mastered ? nextReviewISO(box, now) : null,
-      updated_at: new Date(now).toISOString(),
-    },
-    { onConflict: "student_id,node_id,kg_version_id" },
-  );
-  return { mastered: v.mastered, score: v.score, newlyMastered: v.mastered && !prevState?.mastered };
 }
 
 Deno.serve(async (req: Request) => {
@@ -555,7 +521,10 @@ Deno.serve(async (req: Request) => {
       if (evErr) return json({ error: "mastery_evidence: " + evErr.message }, 500);
 
       // Mastery sống — trạng thái node đổi ngay khi có bằng chứng mới.
-      const state = await recomputeNodeState(supa, s, q.node_key, nodeRow?.revision ?? null);
+      const state = await recomputeNodeState(supa, {
+        tenantId: s.tenant_id, studentId: s.student_id, kgVersionId: s.kg_version_id,
+        nodeKey: q.node_key, nodeRevision: nodeRow?.revision ?? null,
+      });
 
       // XP server-authoritative (xp-stats.sql): đúng +10, thử lại sau khi sai +5,
       // làm chủ node +30 — dedup chống farm nằm ở unique index DB. Gọi CẢ KHI
@@ -742,6 +711,40 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Writing (English rubric, formative) — LLM đúng vai: chấm rubric ────
+    // ── NỘP BÀI: câu tự luận dài, học sinh làm NGOÀI (giấy hoặc Word) rồi tải
+    //    ảnh/tệp lên, tự bấm "đã nộp" để đi tiếp. Ở đây KHÔNG chấm, KHÔNG đụng
+    //    mastery: bài nằm hàng đợi 'pending' chờ giáo viên. XP cũng để dành tới
+    //    lúc chấm ĐẠT — bấm nút mà chưa làm gì thì không được gì.
+    if (action === "submit-work") {
+      const { data: q } = await supa
+        .from("questions")
+        .select("id, node_key")
+        .eq("id", body.questionId)
+        .eq("kg_version_id", s.kg_version_id)
+        .single();
+      if (!q) return json({ error: "question not found" }, 404);
+      const filePath = String(body.filePath ?? "").trim();
+      // Policy storage đã chặn GHI ra ngoài thư mục của mình; đây chặn nốt việc
+      // ghi VẾT trỏ sang tệp của người khác (đường dẫn tự gõ trong body).
+      const prefix = `bai-lam/${s.tenant_id}/${s.student_id}/`;
+      if (!filePath.startsWith(prefix)) return json({ error: "bad file path" }, 400);
+      const { error: insErr } = await supa.from("submissions").insert({
+        tenant_id: s.tenant_id,
+        session_id: s.id,
+        student_id: s.student_id,
+        question_id: q.id,
+        node_key: q.node_key,
+        kind: "upload",
+        file_path: filePath,
+        mime: String(body.mime ?? "").slice(0, 80) || null,
+        size_bytes: Number(body.size) || null,
+        status: "pending",
+      });
+      if (insErr) return json({ error: insErr.message }, 500);
+      persist("student", `[nộp bài] ${filePath.split("/").pop()}`, undefined, { questionId: q.id, kind: "upload" });
+      return json({ kind: "nop_bai", submitted: true });
+    }
+
     if (action === "writing") {
       if (!Deno.env.get("OPENROUTER_API_KEY")) {
         const msg = "Chấm bài viết cần AI — trường chưa bật khoá AI. Bạn luyện các câu khách quan trước nhé, phần viết sẽ mở sau!";
