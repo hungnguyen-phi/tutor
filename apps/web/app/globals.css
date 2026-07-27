@@ -1939,6 +1939,10 @@ ul {
   gap: 10px;
   margin: 20px 0;
 }
+/* Dạng trả lời bằng thao tác không có đối thoại → khung rỗng, đừng chừa 40px trống. */
+.thread:empty {
+  margin: 0;
+}
 .bubble {
   max-width: 90%;
   padding: 12px 14px;
@@ -6342,6 +6346,30 @@ html[data-motion="reduce"] .spin {
   min-width: 0;
   font-size: 1.0625rem;
   font-weight: 700;
+}
+/* Dạng trả lời bằng thao tác (Đúng/Sai từng ý, kéo–thả, nối cột): không có bong
+   bóng đối thoại nào ở trên, nên sư tử đứng ngay trong khối kết quả — trên câu
+   nhắc, canh giữa. Chữ trở lại cỡ thường (bỏ flex:1 của .lfoot-title). */
+.lfoot-says {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.lfoot-says .lfoot-title {
+  flex: none;
+}
+/* Khối kết quả có sư tử cao hơn hẳn (~200px so với ~128px). .lesson-pad là chỗ
+   CHỪA cho footer cố định — không nới thì sư tử đè lên ý cuối của bài, học sinh
+   không sửa được đáp án. Chỉ nới đúng lúc có sư tử. */
+body:has(.lfoot-says) .lesson-pad {
+  height: 216px; /* đo thật: khối này cao 210px */
+}
+@media (max-width: 899.98px) {
+  body:has(.lfoot-says) .lesson-pad {
+    height: calc(244px + env(safe-area-inset-bottom));
+  }
 }
 .lfoot[data-verdict="ok"] .lfoot-title {
   color: var(--ok-strong);

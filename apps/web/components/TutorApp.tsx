@@ -544,7 +544,9 @@ export default function TutorApp() {
   }
 
   function applyTurn(res: TurnResult, attemptNo: number, wasInjected: boolean) {
-    if (res.message) setMsgs((m) => [...m, { role: "tutor", text: res.message! }]);
+    // Dạng trả lời bằng thao tác → im lặng, không dựng bong bóng đối thoại.
+    const quiet = isWidgetAnswer(q);
+    if (res.message && !quiet) setMsgs((m) => [...m, { role: "tutor", text: res.message! }]);
 
     // XP SERVER-AUTHORITATIVE: engine trả res.xp (student_xp) → số server thắng,
     // cache máy chỉ chép lại. gained=0 nghĩa là nguồn XP này đã ăn trước đó
@@ -592,7 +594,7 @@ export default function TutorApp() {
     // Thưởng cho việc thử lại: từ lần thứ hai trở đi, mỗi lần thử được cộng XP nỗ lực.
     if (!serverXp && attemptNo >= 2) grant(G.XP.persistence);
     // res.message đã đẩy vào thread ở trên; đổi nhãn vai để bong bóng đúng kiểu.
-    if (res.message) {
+    if (res.message && !quiet) {
       setMsgs((m) => {
         const copy = [...m];
         copy[copy.length - 1] = {
@@ -632,7 +634,8 @@ export default function TutorApp() {
     setAttempts(attemptNo);
     setPicked(ans);
     setText("");
-    setMsgs((m) => [...m, { role: "student", text: ans }]);
+    // Widget đã hiện rõ lựa chọn → không nhại lại chuỗi máy thành bong bóng.
+    if (!isWidgetAnswer(q)) setMsgs((m) => [...m, { role: "student", text: ans }]);
     setBusy(true);
     setLoading(true);
     try {
@@ -1438,11 +1441,22 @@ export default function TutorApp() {
       {verdict === "retry" && (
         <div className="lfoot" data-verdict="retry" role="status">
           <div className="lfoot-inner">
-            <div className="lfoot-row">
-              <RefreshCw aria-hidden strokeWidth={2.5} />
-              <b className="lfoot-title">Chưa đúng — thử lại nhé</b>
-              {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
-            </div>
+            {/* Dạng thao tác không có bong bóng đối thoại → sư tử đứng ngay đây,
+                trên câu nhắc. Lời nhắc CỐ Ý không chỉ ra ý nào sai (không cho
+                đáp án), chỉ đẩy học sinh soát lại. */}
+            {isWidgetAnswer(q) ? (
+              <div className="lfoot-says">
+                <Lion mood="thinking" size={48} decorative />
+                <b className="lfoot-title">Chưa đúng rồi — soát lại từng ý xem sao nhé!</b>
+                {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
+              </div>
+            ) : (
+              <div className="lfoot-row">
+                <RefreshCw aria-hidden strokeWidth={2.5} />
+                <b className="lfoot-title">Chưa đúng — thử lại nhé</b>
+                {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
+              </div>
+            )}
             <button
               className="btn btn-block"
               onClick={() => {
@@ -1479,6 +1493,17 @@ function kindEyebrow(q: DiagnoseQuestion): string {
 
 /** Đề có "chất toán" (công thức, biến, so sánh) → cỡ chữ đề lớn hơn. */
 const mathy = (s: string) => /[=^_\\$±≤≥√²³]/.test(s ?? "");
+
+/**
+ * Câu trả lời bằng THAO TÁC — chọn Đúng/Sai từng ý, kéo–thả xếp thứ tự, nối cột,
+ * điền ô. Dạng này KHÔNG mở đối thoại, vì hai lẽ:
+ *  · Lựa chọn của học sinh đã hiện rõ ngay trên widget → lặp lại chuỗi máy
+ *    ("a:dung,b:dung,c:dung,d:dung") thành bong bóng chat vừa thừa vừa khó đọc.
+ *  · Màn hình dạng này KHÔNG có ô gõ chữ → hỏi "em đã nghĩ thế nào?" là hỏi vào
+ *    chỗ học sinh không có cách nào trả lời. Sai thì cho thử lại, thế thôi.
+ */
+const isWidgetAnswer = (x: DiagnoseQuestion | null | undefined) =>
+  !!(x?.interactive?.order || x?.interactive?.match || x?.interactive?.checklist || x?.interactive?.blanks);
 
 /** Đáp án dài (một câu, một mệnh đề) thì xếp 1 cột cho dễ đọc; đáp án ngắn
  *  ("Elip", "12 cm") xếp 2 cột cân đối — 4 phương án thành ô vuông 2×2, không
