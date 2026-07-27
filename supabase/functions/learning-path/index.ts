@@ -206,6 +206,21 @@ Deno.serve(async (req: Request) => {
     if (curIdx < 0) curIdx = items.findIndex((it) => it.state === "available");
     if (curIdx >= 0) items[curIdx]!.state = "current";
 
+    // Bước 3: KHOÁ MỌI BÀI SAU BÀI ĐANG HỌC (quyết định chủ dự án 2026-07-27).
+    // Trước đây mọi node đủ tiên quyết đều là "available" nên học sinh bấm nhảy
+    // cóc được — mastery learning đòi đi tuần tự, học chắc bài này mới sang bài
+    // sau. Node đã học (mastered/stale) GIỮ NGUYÊN để còn ôn lại; chỉ hạ những
+    // node CHƯA học nằm SAU điểm hiện tại.
+    //
+    // blockedBy để TRỐNG có chủ đích: node này không thiếu tiên quyết, nó chỉ
+    // chưa tới lượt. Client gặp blockedBy rỗng thì hiện "Chưa mở" — đúng nghĩa,
+    // không bịa ra bài tiên quyết không tồn tại.
+    if (curIdx >= 0) {
+      for (let i = curIdx + 1; i < items.length; i++) {
+        if (items[i]!.state === "available") items[i]!.state = "locked";
+      }
+    }
+
     return json({ version_id: version.id, version_label: version.label, nodes: items });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
