@@ -185,24 +185,33 @@ export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
 
 /**
- * Nộp bài làm ngoài (ảnh chụp / tệp Word…). Tệp đã được tải thẳng lên storage
- * bằng JWT của học sinh (policy `student_work_insert` chặn ghi ra ngoài thư mục
- * của chính mình); hàm này chỉ ghi VẾT để giáo viên có hàng đợi chấm.
+ * Nộp bài tự luận dài. Hai đường trong một:
+ *  · `text` — bài em GÕ: server cho AI chấm NGAY theo Ý (đúng → mastery + XP
+ *    liền, giáo viên vẫn xem lại sau); đây là đường chính.
+ *  · `filePath` — ảnh/tệp đã tải thẳng lên storage bằng JWT của học sinh
+ *    (policy `student_work_insert` chặn ghi ra ngoài thư mục của mình); chỉ
+ *    nộp tệp không kèm chữ thì chờ giáo viên chấm như cũ.
  */
 export const submitWork = (
   sessionId: string,
   questionId: string,
-  filePath: string,
-  mime: string,
-  size: number,
+  // KHÔNG có attemptNo: server đếm lần thử từ bảng attempts (client tự khai thì
+  // bịa được XP "nỗ lực", mà vào lại bài hôm sau bộ đếm client cũng về 0).
+  opts: { text?: string; filePath?: string; mime?: string; size?: number },
 ) =>
-  callFn<{ kind: string; submitted: boolean }>("chat-turn", {
+  callFn<{
+    kind: string;
+    submitted: boolean;
+    /** Có mặt khi AI chấm được bài gõ; vắng = chỉ nộp tệp, chờ giáo viên. */
+    correct?: boolean;
+    feedback?: string;
+    mastered?: boolean;
+    xp?: XpState;
+  }>("chat-turn", {
     sessionId,
     action: "submit-work",
     questionId,
-    filePath,
-    mime,
-    size,
+    ...opts,
   });
 
 /** Tải tệp bài làm lên đúng thư mục của học sinh: bai-lam/<trường>/<học sinh>/…
@@ -298,6 +307,11 @@ export interface GradingItem {
   prompt: string;
   /** Đáp án mẫu để đối chiếu — CHỈ giáo viên thấy. */
   reference: string;
+  /** Bài GÕ của học sinh (nếu em gõ thay vì chỉ chụp ảnh). */
+  text: string | null;
+  /** Sơ khảo của AI trên bài gõ — giáo viên là người quyết cuối. */
+  aiVerdict: { dung?: boolean; thieu?: string } | null;
+  hasFile: boolean;
   mime: string | null;
   sizeKb: number | null;
   status: "pending" | "passed" | "redo";
@@ -393,7 +407,7 @@ export const syncScoreboard = (studentId?: string) =>
 // ── Lộ trình & học liệu (KG v2.2) ────────────────────────────────────────────
 // Hai function này có thể CHƯA deploy — nơi gọi phải tự bắt lỗi và fallback,
 // giao diện không được phép vỡ khi server trả 404.
-export type PathNodeState = "mastered" | "stale" | "current" | "available" | "locked";
+export type PathNodeState = "mastered" | "stale" | "current" | "available" | "locked" | "redo";
 
 export interface LearningPathNode {
   key: string;
@@ -403,6 +417,12 @@ export interface LearningPathNode {
   blockedBy?: string[];
   /** Tên chương/Unit — có thì lộ trình gom thành CHẶNG (điểm dừng khi cuộn). */
   chapter?: string;
+  /** Tiến trình dang dở 0..1 = số câu đã làm / số câu của bài (chưa mastered). */
+  progress?: number;
+  doneCount?: number;
+  totalCount?: number;
+  /** Số bài nộp đang chờ giáo viên chấm trên node này. */
+  pending?: number;
 }
 
 export interface LearningPathResult {

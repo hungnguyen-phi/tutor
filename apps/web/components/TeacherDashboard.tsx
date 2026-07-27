@@ -781,14 +781,24 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
               <span className="muted num">{new Date(it.submittedAt).toLocaleDateString("vi-VN")}</span>
             </div>
             <p className="grade-prompt">{it.prompt}</p>
+            {/* Bài GÕ của em — đọc ngay tại chỗ, khỏi mở tệp. */}
+            {it.text && <blockquote className="grade-text">{it.text}</blockquote>}
+            {/* Sơ khảo của AI: chỉ là THAM KHẢO — giáo viên là người quyết cuối. */}
+            {it.aiVerdict && (
+              <p className="grade-ai" data-ok={it.aiVerdict.dung || undefined}>
+                AI sơ khảo: {it.aiVerdict.dung ? "đủ ý chính" : `chưa đạt${it.aiVerdict.thieu ? ` — thiếu: ${it.aiVerdict.thieu}` : ""}`}
+              </p>
+            )}
             <details className="grade-ref">
               <summary>Đáp án mẫu để đối chiếu</summary>
               <p>{it.reference}</p>
             </details>
             <div className="grade-actions">
-              <button className="btn btn-quiet" onClick={() => view(it.id)}>
-                Xem bài{it.sizeKb ? ` (${it.sizeKb} KB)` : ""}
-              </button>
+              {it.hasFile && (
+                <button className="btn btn-quiet" onClick={() => view(it.id)}>
+                  Xem tệp đính kèm{it.sizeKb ? ` (${it.sizeKb} KB)` : ""}
+                </button>
+              )}
               {status === "pending" && (
                 <>
                   <input

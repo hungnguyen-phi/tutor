@@ -705,24 +705,60 @@ Deno.serve(async (req: Request) => {
       return json({ correct: false, attemptNo, gate: gate.action, currentRung, message: msg, ...(xp ? { xp } : {}) });
     }
 
-    // ── Writing (English rubric, formative) — LLM đúng vai: chấm rubric ────
-    // ── NỘP BÀI: câu tự luận dài, học sinh làm NGOÀI (giấy hoặc Word) rồi tải
-    //    ảnh/tệp lên, tự bấm "đã nộp" để đi tiếp. Ở đây KHÔNG chấm, KHÔNG đụng
-    //    mastery: bài nằm hàng đợi 'pending' chờ giáo viên. XP cũng để dành tới
-    //    lúc chấm ĐẠT — bấm nút mà chưa làm gì thì không được gì.
+    // ── NỘP BÀI (câu tự luận dài) — hai đường trong MỘT action:
+    //    · Em GÕ bài làm (kèm ảnh/tệp tuỳ thích) → AI chấm NGAY theo Ý (so với
+    //      đáp án mẫu), đúng thì ghi bằng chứng mastery + XP liền — vì các câu
+    //      này là câu DOK≥3 duy nhất của node, không chấm ngay thì node không
+    //      bao giờ xanh nổi trước khi giáo viên rảnh (đo 27/07: học sinh xong
+    //      8/8 câu mà lộ trình đứng im). Giáo viên vẫn chấm LẠI sau — chấm
+    //      "làm lại" sẽ lật node thành bàn chân đỏ (teacher-grading).
+    //    · Em chỉ TẢI TỆP (bài viết tay khó gõ: hình vẽ, bảng biến thiên…) →
+    //      như cũ: nằm hàng đợi chờ giáo viên, không XP, không mastery.
     if (action === "submit-work") {
+      // Cùng cửa sổ trượt như nhánh "answer": mỗi lượt nộp là một lệnh gọi LLM
+      // trả phí + một dòng hàng đợi của giáo viên, không siết thì bơm được cả hai.
+      const rlW = await rateLimit(supa, `submit:${ctx.userId}:${String(body.questionId ?? "")}`, 8, 60);
+      if (!rlW.ok) return json({ error: "rate_limited", retryAfter: rlW.retryAfter }, 429);
+
       const { data: q } = await supa
         .from("questions")
-        .select("id, node_key")
+        .select("id, node_key, dap_an, loi_giai, noi_dung, dok, do_kho")
         .eq("id", body.questionId)
         .eq("kg_version_id", s.kg_version_id)
         .single();
       if (!q) return json({ error: "question not found" }, 404);
+      // CHỈ câu gắn nhãn nộp bài mới đi đường này. Thiếu chốt này thì gọi thẳng
+      // API với một câu trắc nghiệm thường cũng được chấm bằng AI — vừa lách
+      // luật "chỉ lần thử đầu mới tính bằng chứng đích", vừa biến phản hồi
+      // "còn thiếu: …" thành máy đọc dần đáp án.
+      if (!/^\[(NOPBAI|WRITING|SPEAKING)\]/i.test(String(q.noi_dung ?? ""))) {
+        return json({ error: "not a submission question" }, 400);
+      }
+
+      // Cắt trần độ dài bài gõ (bài tự luận lớp 10 dài nhất cũng không tới 6k).
+      const workText = String(body.text ?? "").trim().slice(0, 6000);
       const filePath = String(body.filePath ?? "").trim();
       // Policy storage đã chặn GHI ra ngoài thư mục của mình; đây chặn nốt việc
       // ghi VẾT trỏ sang tệp của người khác (đường dẫn tự gõ trong body).
       const prefix = `bai-lam/${s.tenant_id}/${s.student_id}/`;
-      if (!filePath.startsWith(prefix)) return json({ error: "bad file path" }, 400);
+      if (filePath && !filePath.startsWith(prefix)) return json({ error: "bad file path" }, 400);
+      if (!workText && !filePath) return json({ error: "empty submission" }, 400);
+
+      // Chấm bằng AI khi có BÀI GÕ — so Ý với đáp án mẫu, không so chữ.
+      let ai: CasResult | null = null;
+      if (workText) {
+        ai = await gradeOpenAnswer({
+          prompt: (q.noi_dung ?? "").replace(/^\[(NOPBAI|WRITING|SPEAKING)\]\s*/i, ""),
+          reference: [q.dap_an, q.loi_giai].filter(Boolean).join("\n"),
+          studentAnswer: workText,
+          names,
+          en,
+          studentId: s.student_id,
+          tenantId: s.tenant_id,
+          supa,
+        }); // LLM hỏng/thiếu khoá → null → rơi về "đã nộp, chờ thầy cô" (không kẹt em)
+      }
+
       const { error: insErr } = await supa.from("submissions").insert({
         tenant_id: s.tenant_id,
         session_id: s.id,
@@ -730,15 +766,109 @@ Deno.serve(async (req: Request) => {
         question_id: q.id,
         node_key: q.node_key,
         kind: "upload",
-        file_path: filePath,
+        text_content: workText || null,
+        file_path: filePath || null,
         mime: String(body.mime ?? "").slice(0, 80) || null,
         size_bytes: Number(body.size) || null,
-        status: "pending",
+        status: "pending", // luôn chờ giáo viên xem lại — AI chấm là SƠ khảo
+        feedback: ai ? { ai: { dung: ai.correct, thieu: ai.detail ?? "" } } : null,
       });
       if (insErr) return json({ error: insErr.message }, 500);
-      persist("student", `[nộp bài] ${filePath.split("/").pop()}`, undefined, { questionId: q.id, kind: "upload" });
-      return json({ kind: "nop_bai", submitted: true });
+      persist("student", workText || `[nộp tệp] ${filePath.split("/").pop()}`, undefined, {
+        questionId: q.id, kind: "upload", aiGraded: !!ai,
+      });
+
+      // Không có kết quả AI (chỉ nộp tệp / LLM hỏng) → đường cũ: chờ giáo viên.
+      if (!ai) return json({ kind: "nop_bai", submitted: true });
+
+      // Có kết quả AI → ghi bằng chứng như một câu trả lời thật (đúng CẢ khi
+      // sai — attempts trung thực), rồi tính lại mastery + XP.
+      // Lần thử ĐẾM TỪ DB (như nhánh "answer"), không tin client: XP "nỗ lực"
+      // phát theo số client tự khai thì bịa được, mà em vào lại bài hôm sau
+      // (state client về 0) lại mất công kiên trì thật.
+      const [{ count: prevW }, { data: nodeRow }] = await Promise.all([
+        supa.from("attempts").select("id", { count: "exact", head: true })
+          .eq("session_id", s.id).eq("question_id", q.id),
+        supa.from("kg_nodes").select("revision, label")
+          .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key).maybeSingle(),
+      ]);
+      const attemptNo = (prevW ?? 0) + 1;
+      // MỘT câu tự luận = MỘT bằng chứng, dù nộp lại ở phiên khác. Khoá chống
+      // trùng của bảng chỉ tính trong CÙNG phiên, nên không dọn thì nộp lại 3
+      // phiên là ba dòng "đúng, câu đích" của CÙNG một câu — tự thoả luật
+      // mastery, và giáo viên bấm "làm lại" chỉ lật được dòng của phiên mới nhất.
+      await supa.from("mastery_evidence").delete()
+        .eq("student_id", s.student_id).eq("question_id", q.id).neq("session_id", s.id);
+      const [attRes, evRes] = await Promise.all([
+        supa.from("attempts").insert({
+          tenant_id: s.tenant_id,
+          session_id: s.id,
+          student_id: s.student_id,
+          question_id: q.id,
+          node_id: q.node_key,
+          attempt_no: attemptNo,
+          raw_answer: workText,
+          is_correct: ai.correct,
+        }),
+        // KHÔNG ignoreDuplicates: nộp lại trong cùng phiên thì kết quả MỚI đè
+        // kết quả cũ (em sửa bài theo góp ý của AI là phải được tính lại).
+        supa.from("mastery_evidence").upsert(
+          {
+            tenant_id: s.tenant_id,
+            session_id: s.id,
+            student_id: s.student_id,
+            node_id: q.node_key,
+            question_id: q.id,
+            correct: ai.correct,
+            dok: q.dok,
+            do_kho: toDoKho(q.do_kho),
+            is_target_difficulty: true, // câu tự luận là câu ĐÍCH của node
+            kg_version_id: s.kg_version_id,
+            node_revision: nodeRow?.revision ?? null,
+          },
+          { onConflict: "session_id,question_id" },
+        ),
+      ]);
+      // Ghi hỏng mà vẫn báo "được tính điểm luôn" + cộng XP thì đúng lại chính
+      // cái triệu chứng đợt vá này sinh ra để sửa (lộ trình đứng im), lần này
+      // còn im lặng hơn — nên hỏng là trả 500 cho lộ ra.
+      if (attRes.error || evRes.error) {
+        return json({ error: (attRes.error ?? evRes.error)?.message ?? "write failed" }, 500);
+      }
+      const state = await recomputeNodeState(supa, {
+        tenantId: s.tenant_id,
+        studentId: s.student_id,
+        kgVersionId: s.kg_version_id,
+        nodeKey: q.node_key,
+        nodeRevision: nodeRow?.revision ?? null,
+      });
+      const xpEvents: XpEventInput[] = [];
+      if (ai.correct) xpEvents.push({ kind: "correct", questionId: q.id, sessionId: s.id });
+      if (attemptNo >= 2) xpEvents.push({ kind: "persistence", questionId: q.id, sessionId: s.id });
+      if (state.newlyMastered) {
+        xpEvents.push({ kind: "node_mastered", nodeId: q.node_key, kgVersionId: s.kg_version_id, sessionId: s.id });
+      }
+      const xp = await awardXp(supa, s.tenant_id, s.student_id, xpEvents);
+
+      const fb = ai.correct
+        ? (state.newlyMastered
+            ? `Bài viết ổn rồi! Em vừa làm chủ «${nodeRow?.label ?? q.node_key}» — thầy cô sẽ xem lại bài sau.`
+            : "Bài viết ổn rồi — AI thấy đủ ý chính. Thầy cô sẽ xem lại sau nhé!")
+        : (ai.detail
+            ? `Gần được rồi — còn thiếu: ${ai.detail}`
+            : "Chưa đủ ý chính — em đọc lại đề rồi bổ sung thêm nhé.");
+      persist("tutor", fb, "grade-open", { formative: true, aiCorrect: ai.correct });
+      return json({
+        kind: "nop_bai",
+        submitted: true,
+        correct: ai.correct,
+        feedback: fb,
+        ...(state.newlyMastered ? { mastered: true } : {}),
+        ...(xp ? { xp } : {}),
+      });
     }
+
+    // ── Writing (English rubric, formative) — LLM đúng vai: chấm rubric ────
 
     if (action === "writing") {
       if (!Deno.env.get("OPENROUTER_API_KEY")) {

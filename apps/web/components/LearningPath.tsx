@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Hourglass, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 
@@ -22,6 +22,12 @@ export type PathNode = {
   blockedBy?: string[];
   /** Tên chương/Unit — có thì lộ trình gom thành CHẶNG (điểm dừng khi cuộn). */
   chapter?: string;
+  /** Tiến trình dang dở 0..1 = số câu đã làm / số câu của bài (chưa mastered). */
+  progress?: number;
+  doneCount?: number;
+  totalCount?: number;
+  /** Số bài nộp đang chờ giáo viên chấm. */
+  pending?: number;
 };
 
 const HINT: Record<NodeState, string> = {
@@ -249,6 +255,23 @@ export default function LearningPath({
           </span>
         </button>
         {n.state === "current" && <span className="node-label">{shortLabel(n.label)}</span>}
+        {/* Tiến trình DANG DỞ phải nhìn thấy: xong 6/8 câu mà node trông y như
+            chưa học là học sinh tưởng mất trắng (phản hồi 27/07). */}
+        {n.state === "current" && (n.progress ?? 0) > 0 && (
+          <span
+            className="node-progress num"
+            aria-label={`Đã làm ${n.doneCount ?? 0} trên ${n.totalCount ?? 0} câu của bài này`}
+          >
+            {n.doneCount ?? 0}/{n.totalCount ?? 0}
+          </span>
+        )}
+        {/* Bài đang chờ thầy cô chấm — nói ra, kẻo em tưởng app nuốt bài nộp. */}
+        {(n.pending ?? 0) > 0 && n.state !== "mastered" && (
+          <span className="node-pending" title={`${n.pending} bài đang chờ thầy cô chấm`}>
+            <Hourglass aria-hidden strokeWidth={2.25} />
+            chờ chấm
+          </span>
+        )}
         {n.state === "current" && (
           <span className={"path-lion" + (shiftedLeft ? " path-lion-r" : "")} aria-hidden>
             <Lion mood={heroMood} variant="full" size={118} decorative eager />

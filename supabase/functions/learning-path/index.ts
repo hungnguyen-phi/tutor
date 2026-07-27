@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
     // (LearningPath.tsx có sẵn màn "Chưa có bài học nào").
     if (!version) return json({ version_id: null, version_label: null, nodes: [] });
 
-    const [nodesRes, edgesRes, statesRes, subRes, qRes] = await Promise.all([
+    const [nodesRes, edgesRes, statesRes, subRes, qRes, attRes] = await Promise.all([
       supa
         .from("kg_nodes")
         .select("node_key, label, chapter, cluster, revision")
@@ -139,6 +139,15 @@ Deno.serve(async (req: Request) => {
         .eq("kg_version_id", version.id)
         .eq("trang_thai", "active")
         .eq("tham_so_hoa", false),
+      // ĐÃ LÀM BAO NHIÊU CÂU của mỗi bài — đếm câu KHÁC NHAU đã trả lời. Đây là
+      // "tiến trình" theo nghĩa học sinh hiểu; mastery_score KHÔNG phải (nó là
+      // tỉ lệ đúng trong cửa sổ 4 bằng chứng gần nhất, làm đúng câu ĐẦU TIÊN đã
+      // thành 100% trên một bài mới đi được 1/8).
+      supa
+        .from("attempts")
+        .select("node_id, question_id")
+        .eq("student_id", ctx.userId)
+        .limit(5000), // trần an toàn: một học sinh pilot làm ~vài trăm câu
     ]);
 
     const rawNodes = nodesRes.data ?? [];
@@ -154,6 +163,15 @@ Deno.serve(async (req: Request) => {
     const edges = (edgesRes.data ?? []) as EdgeRow[];
     const byKey = new Map(nodes.map((n) => [n.node_key, n]));
     const hasQuestions = new Set<string>((qRes.data ?? []).map((r) => r.node_key));
+    // Mẫu số: số câu bài đó CÓ. Tử số: số câu KHÁC NHAU em đã trả lời.
+    const qTotal = new Map<string, number>();
+    for (const r of qRes.data ?? []) qTotal.set(r.node_key, (qTotal.get(r.node_key) ?? 0) + 1);
+    const doneQs = new Map<string, Set<string>>();
+    for (const a of attRes.data ?? []) {
+      const k = String(a.node_id ?? "");
+      if (!k) continue;
+      (doneQs.get(k) ?? doneQs.set(k, new Set()).get(k)!).add(String(a.question_id));
+    }
 
     // "Đã học" gồm cả xanh lẫn vàng — dấu đã học không bao giờ bị xoá (§4).
     // Vàng = đã học nhưng nội dung đã đổi NGHĨA sau đó: vẫn mở khoá node sau,
@@ -162,9 +180,9 @@ Deno.serve(async (req: Request) => {
     const learned = new Set<string>();
     const stale = new Set<string>();
     for (const st of statesRes.data ?? []) {
-      if (!st.mastered) continue;
       const node = byKey.get(st.node_id);
       if (!node) continue; // node đã ẩn/gộp — giữ lịch sử, không hiện trên lộ trình
+      if (!st.mastered) continue;
       learned.add(st.node_id);
       if (st.node_revision != null && st.node_revision !== node.revision) stale.add(st.node_id);
     }
@@ -176,8 +194,19 @@ Deno.serve(async (req: Request) => {
       latestByQuestion.set(String(s.question_id), { node_key: s.node_key, status: String(s.status) });
     }
     const redo = new Set<string>();
+    const redoCount = new Map<string, number>();
+    const pendingCount = new Map<string, number>();
     for (const s of latestByQuestion.values()) {
-      if (s.status === "redo" && s.node_key && byKey.has(s.node_key)) redo.add(s.node_key);
+      if (!s.node_key || !byKey.has(s.node_key)) continue;
+      if (s.status === "redo") {
+        redo.add(s.node_key);
+        redoCount.set(s.node_key, (redoCount.get(s.node_key) ?? 0) + 1);
+      }
+      // Bài đang CHỜ THẦY CÔ CHẤM: node phải nói ra điều đó ("⏳ chờ chấm"),
+      // không thì học sinh nộp xong thấy lộ trình đứng im, tưởng app nuốt bài.
+      if (s.status === "pending") {
+        pendingCount.set(s.node_key, (pendingCount.get(s.node_key) ?? 0) + 1);
+      }
     }
 
     // Tiên quyết còn thiếu của từng node — chỉ tính cạnh giữa các node active.
@@ -200,6 +229,12 @@ Deno.serve(async (req: Request) => {
       state: NodeState;
       chapter?: string;
       blockedBy?: string[];
+      /** Tiến trình dang dở 0..1 = số câu đã làm / số câu của bài (chưa mastered). */
+      progress?: number;
+      doneCount?: number;
+      totalCount?: number;
+      /** Số bài nộp đang chờ giáo viên chấm trên node này. */
+      pending?: number;
     }
 
     // Bước 1: trạng thái cơ bản theo thứ tự tô-pô (chưa gán "current").
@@ -222,6 +257,16 @@ Deno.serve(async (req: Request) => {
       if (n.chapter) item.chapter = n.chapter;
       // blockedBy = MẢNG KEY tiên quyết còn thiếu; client tự đổi ra tên bài.
       if (state === "locked") item.blockedBy = missing.get(n.node_key)!;
+      if (!learned.has(n.node_key)) {
+        const done = doneQs.get(n.node_key)?.size ?? 0;
+        const total = qTotal.get(n.node_key) ?? 0;
+        if (done > 0 && total > 0) {
+          item.progress = Math.round(Math.min(1, done / total) * 100) / 100;
+          item.doneCount = Math.min(done, total);
+          item.totalCount = total;
+        }
+      }
+      if (pendingCount.has(n.node_key)) item.pending = pendingCount.get(n.node_key)!;
       return item;
     });
 

@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Timer,
   LifeBuoy,
+  Paperclip,
 } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
 import RedirectToLogin from "./RedirectToLogin";
@@ -145,6 +146,8 @@ export default function TutorApp() {
   // Đợt B: bảng điểm rubric (viết/nói) — formative.
   const [rubricResult, setRubricResult] = useState<RubricResult | null>(null);
   const [workFile, setWorkFile] = useState<File | null>(null); // tệp bài làm chờ nộp
+  const [aiPassed, setAiPassed] = useState(false); // AI sơ khảo ĐẠT bài gõ của câu hiện tại
+  const [stepAns, setStepAns] = useState<Record<number, string>>({}); // Có/Không từng bước của đề nhiều bước
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [attempts, setAttempts] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -362,7 +365,9 @@ export default function TutorApp() {
         if (typeof r.version_label === "string" && r.version_label.trim()) {
           setPathLabel(r.version_label.trim());
         }
-        const VALID = new Set<PathNode["state"]>(["mastered", "stale", "current", "available", "locked"]);
+        // "redo" PHẢI nằm trong danh sách hợp lệ — thiếu nó thì node bị giáo
+        // viên trả về BIẾN MẤT khỏi lộ trình thay vì hiện bàn chân đỏ.
+        const VALID = new Set<PathNode["state"]>(["mastered", "stale", "current", "available", "locked", "redo"]);
         const nodes: PathNode[] = r.nodes
           .filter((n) => n && typeof n.key === "string" && VALID.has(n.state))
           .map((n) => ({
@@ -375,6 +380,10 @@ export default function TutorApp() {
               : undefined,
             // Chương → LearningPath gom thành CHẶNG (điểm dừng khi cuộn).
             chapter: typeof n.chapter === "string" ? n.chapter : undefined,
+            // Tiến trình dang dở (0..1) + số bài chờ thầy cô chấm — để lộ trình
+            // NÓI được "em đã đi 75% bài này" thay vì đứng im như chưa học.
+            progress: typeof n.progress === "number" ? n.progress : undefined,
+            pending: typeof n.pending === "number" && n.pending > 0 ? n.pending : undefined,
           }));
         // Có node nhưng không node nào hợp lệ → coi như hỏng, về fallback.
         if (nodes.length === 0 && r.nodes.length > 0) throw new Error("learning-path: node không hợp lệ");
@@ -475,6 +484,8 @@ export default function TutorApp() {
     setInteractiveAns(null);
     setRubricResult(null);
     setWorkFile(null);
+    setAiPassed(false);
+    setStepAns({});
     setVerdict(null);
     setAttempts(0);
   }
@@ -549,6 +560,8 @@ export default function TutorApp() {
     setInteractiveAns(null);
     setRubricResult(null);
     setWorkFile(null);
+    setAiPassed(false);
+    setStepAns({});
     setAttempts(0);
   }
 
@@ -642,7 +655,9 @@ export default function TutorApp() {
     const attemptNo = attempts + 1;
     setAttempts(attemptNo);
     setPicked(ans);
-    setText("");
+    // Đề nhiều bước: phần KẾT LUẬN em gõ phải còn nguyên khi thử lại (các nút
+    // Có/Không cũng giữ nguyên) — xoá đi là bắt em gõ lại cả đoạn từ đầu.
+    if (!stepParsed) setText("");
     // Widget đã hiện rõ lựa chọn → không nhại lại chuỗi máy thành bong bóng.
     if (!isWidgetAnswer(q)) setMsgs((m) => [...m, { role: "student", text: ans }]);
     setBusy(true);
@@ -661,15 +676,37 @@ export default function TutorApp() {
     }
   }
 
-  /** Nộp bài làm ngoài: tải tệp lên storage rồi ghi vết cho giáo viên chấm.
-   *  KHÔNG chấm ở đây — nộp xong là được đi tiếp, mastery chờ giáo viên. */
+  /** Nộp bài tự luận dài. Bài GÕ là đường chính — AI chấm NGAY theo Ý (đúng thì
+   *  mastery + XP liền, không phải đợi thầy cô rảnh mới qua bài); ảnh/tệp là
+   *  kèm thêm hoặc thay thế khi bài phải VẼ (hình, bảng biến thiên). */
   async function submitWorkFile() {
-    if (!ses || !q || busy || !workFile) return;
+    if (!ses || !q || busy || (!text.trim() && !workFile)) return;
     setBusy(true);
     setLoading(true);
     try {
-      const path = await uploadWork(workFile);
-      await submitWork(ses.sessionId, q.id, path, workFile.type, workFile.size);
+      const path = workFile ? await uploadWork(workFile) : undefined;
+      // KHÔNG gửi attemptNo: server tự đếm từ bảng attempts. Đếm ở client thì
+      // rớt mạng giữa chừng cũng cộng, mà vào lại bài hôm sau là về 0.
+      const res = await submitWork(ses.sessionId, q.id, {
+        ...(text.trim() ? { text: text.trim() } : {}),
+        ...(path ? { filePath: path, mime: workFile!.type, size: workFile!.size } : {}),
+      });
+      setAttempts((n) => n + 1);
+      if (res.xp) {
+        if (res.xp.gained > 0) setEarned((e) => e + res.xp!.gained);
+        setProgress(G.syncFromServer(res.xp));
+      }
+      if (res.correct === false) {
+        // AI thấy thiếu ý → như một lần TRẢ LỜI SAI: giữ nguyên bài gõ cho em
+        // sửa tiếp, kèm gợi ý thiếu gì (không phải đáp án).
+        wrongRef.current.add(q.id);
+        if (res.feedback) setMsgs((m) => [...m, { role: "hint", text: res.feedback! }]);
+        setVerdict("retry");
+        return;
+      }
+      if (res.correct === true) setAiPassed(true);
+      const okFb = res.correct === true ? res.feedback : undefined;
+      if (okFb) setMsgs((m) => [...m, { role: "tutor", text: okFb }]);
       setVerdict("submitted");
     } catch (e) {
       setError(errText(e));
@@ -1142,16 +1179,63 @@ export default function TutorApp() {
     q.options.every((o) => /^[A-DĐ]$/.test(o.trim()))
       ? parseLetterMCQ(q.prompt, q.options)
       : null;
+  // Đề NHIỀU BƯỚC ("Bước 1: … (Có/Không) Bước 2: …"): tách thành thẻ từng bước.
+  // Bước (Có/Không) → nút chọn, hiện DẦN từng bước (trả lời bước này mới mở bước
+  // sau); bước kết luận → ô gõ như cũ. Chỉ áp cho câu GÕ ĐÁP ÁN — câu có lưới
+  // phương án giữ nguyên. Đáp án gửi đi được RÁP LẠI đúng khuôn "Bước 1: Có; …"
+  // nên server chấm y như học sinh tự gõ cả chuỗi.
+  const stepParsed =
+    q && q.kind === "objective" && !q.options && !interactiveShown && !isTrueFalse
+      ? parseSteps(q.prompt)
+      : null;
+  const yesNoIdx = stepParsed ? stepParsed.steps.flatMap((s, i) => (s.yesNo ? [i] : [])) : [];
+  // Chỉ chuyển sang nút bấm khi MỌI bước đều là Có/Không, trừ đúng bước cuối
+  // (bước kết luận em gõ). Có bước tính toán xen GIỮA thì trả về ô gõ tự do:
+  // bước xen giữa không có nút nào để trả lời, mà đáp án ráp lại cũng thiếu
+  // hẳn bước đó — em không có cách nào làm đúng dù hiểu bài.
+  const stepInteractive =
+    yesNoIdx.length > 0 &&
+    !!stepParsed &&
+    stepParsed.steps.every((s, i) => s.yesNo || i === stepParsed.steps.length - 1);
+  // Hiện tới bước (Có/Không) đầu tiên CHƯA trả lời; xong hết thì mở cả phần còn lại.
+  let stepReveal = stepParsed ? stepParsed.steps.length : 0;
+  if (stepParsed && stepInteractive) {
+    const firstOpen = yesNoIdx.find((i) => !stepAns[i]);
+    stepReveal = firstOpen == null ? stepParsed.steps.length : firstOpen + 1;
+  }
+  const stepsDone = !stepInteractive || yesNoIdx.every((i) => !!stepAns[i]);
+  // Bước cuối không phải Có/Không → cần em gõ kết luận.
+  const stepNeedsText = !!stepParsed && !stepParsed.steps[stepParsed.steps.length - 1]!.yesNo;
+  // Lời trích trong đề ('bạn ấy nói…') → thẻ riêng. Chỉ môn Toán: đề tiếng Anh
+  // đầy nháy đơn hợp lệ (don't, it's) nên tách kiểu này là vỡ.
+  const quoteParsed =
+    q && subject === "Toan" && !letterMCQ && !stepParsed && !interactiveShown
+      ? splitQuote(q.prompt)
+      : null;
+
   const canCheck =
     q?.kind === "objective" &&
     (interactiveShown
       ? interactiveAns != null
       : isTrueFalse || q.options
         ? picked != null
-        : text.trim().length > 0);
+        : stepParsed && stepInteractive
+          ? stepsDone && (!stepNeedsText || text.trim().length > 0)
+          : text.trim().length > 0);
   const check = () => {
     if (!q || q.kind !== "objective") return;
-    const ans = interactiveShown ? interactiveAns : isTrueFalse || q.options ? picked : text.trim();
+    let ans = interactiveShown ? interactiveAns : isTrueFalse || q.options ? picked : text.trim();
+    if (!interactiveShown && stepParsed && stepInteractive) {
+      const lastIdx = stepParsed.steps.length - 1;
+      ans = stepParsed.steps
+        .map((st, i) => {
+          if (st.yesNo) return `${st.label}: ${stepAns[i]}`;
+          if (i === lastIdx && text.trim()) return `${st.label}: ${text.trim()}`;
+          return null; // bước hướng dẫn xen giữa (hiếm) — không có gì để gửi
+        })
+        .filter(Boolean)
+        .join("; ");
+    }
     if (ans) void submitObjective(ans);
   };
 
@@ -1207,7 +1291,51 @@ export default function TutorApp() {
         <>
           <p className="eyebrow lesson-kind">{kindEyebrow(q)}</p>
           {/* Dạng tương tác tự dựng đề (câu dẫn + các mục) → ẩn qcard mặc định. */}
-          {!interactiveShown && (
+          {!interactiveShown && stepParsed ? (
+            /* ── Đề NHIỀU BƯỚC: câu dẫn + thẻ từng bước. Bước (Có/Không) hiện
+                DẦN — trả lời bước này mới mở bước sau — để em đi đúng nhịp suy
+                luận thay vì đọc một câu văn dài nghẹt thở. ── */
+            <>
+              {stepParsed.intro && (
+                <div className="qcard">
+                  <div className="qcard-text"><MathText block cap>{stepParsed.intro}</MathText></div>
+                </div>
+              )}
+              <ol className="steps">
+                {stepParsed.steps.slice(0, stepReveal).map((st, i) => (
+                  <li
+                    key={i}
+                    className="step-card"
+                    data-answered={(st.yesNo && !!stepAns[i]) || undefined}
+                  >
+                    <span className="step-num num" aria-hidden>{i + 1}</span>
+                    <div className="step-body">
+                      <div className="step-text"><MathText cap>{st.text}</MathText></div>
+                      {st.yesNo && (
+                        <div className="step-yn" role="group" aria-label={`${st.label}: chọn Có hoặc Không`}>
+                          {["Có", "Không"].map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              className="step-pill"
+                              aria-pressed={stepAns[i] === v}
+                              disabled={busy || verdict != null}
+                              onClick={() => setStepAns((a) => ({ ...a, [i]: v }))}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {stepInteractive && stepReveal < stepParsed.steps.length && (
+                <p className="step-more muted">Chọn Có hoặc Không để mở bước tiếp theo…</p>
+              )}
+            </>
+          ) : !interactiveShown ? (
             <div className="qcard">
               {/* Đề có công thức → cỡ chữ lớn hơn; câu chữ thường (tiếng Anh,
                   đọc hiểu) giữ sans 15/1.5. Chữ nghiêng serif của hi-fi cũ đã
@@ -1215,13 +1343,28 @@ export default function TutorApp() {
                   suốt dòng thì rất khó đọc. */}
               {letterMCQ ? (
                 <div className="qcard-stem"><MathText block cap>{letterMCQ.stem}</MathText></div>
+              ) : quoteParsed ? (
+                /* Đề có LỜI TRÍCH ('bạn ấy nói/viết…') → lời trích đứng thẻ
+                   riêng, đề bao quanh — em phân biệt được ĐÂU là lời cần soi
+                   lỗi, đâu là yêu cầu của đề. */
+                <>
+                  {quoteParsed.pre && (
+                    <div className="qcard-text"><MathText block cap>{quoteParsed.pre}</MathText></div>
+                  )}
+                  <blockquote className="qquote">
+                    <MathText block>{quoteParsed.quote}</MathText>
+                  </blockquote>
+                  {quoteParsed.post && (
+                    <div className="qcard-text qq-post"><MathText block cap>{quoteParsed.post}</MathText></div>
+                  )}
+                </>
               ) : mathy(q.prompt) ? (
                 <div className="qcard-expr"><MathText block cap>{q.prompt}</MathText></div>
               ) : (
                 <div className="qcard-text"><MathText block cap>{q.prompt}</MathText></div>
               )}
             </div>
-          )}
+          ) : null}
           {orderParsed && (
             <OrderQuestion key={q.id} parsed={orderParsed} disabled={busy || verdict != null} onChange={setInteractiveAns} />
           )}
@@ -1272,10 +1415,15 @@ export default function TutorApp() {
           ),
         )}
         {loading && (
-          /* Chờ guide agent: sư tử chống cằm ngẫm nghĩ, bong bóng ba chấm
-             là fx có sẵn của mood `think` (lion-motion). */
-          <div style={{ padding: "6px 0 14px" }}>
+          /* Chờ chấm/gợi ý: sư tử chống cằm ngẫm nghĩ. Câu do AI chấm (viết/nói/
+             tự luận/gõ đáp án mở) mất vài giây thật → nói thẳng "Đang suy nghĩ…"
+             thay vì im lặng như treo máy. Câu CAS chấm tức thì hiếm khi kịp thấy. */
+          <div className="think-wrap">
             <Lion mood="think" size={64} decorative />
+            {(q?.kind === "writing" || q?.kind === "speaking" || q?.kind === "nop_bai" ||
+              (q?.kind === "objective" && !q.options && !interactiveShown && !isTrueFalse)) && (
+              <span className="think-label">Đang suy nghĩ<i className="think-dots" aria-hidden /></span>
+            )}
           </div>
         )}
       </div>
@@ -1336,7 +1484,10 @@ export default function TutorApp() {
         </div>
       )}
 
-      {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" && (
+      {/* Đề nhiều bước tương tác: ô gõ CHỈ mở khi đã trả lời hết các bước
+          Có/Không (và bước cuối là bước cần viết kết luận). */}
+      {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" &&
+        (!stepParsed || !stepInteractive || (stepsDone && stepNeedsText)) && (
         /* Ô TỰ CAO DẦN, không phải ô một dòng: cùng một dạng "nhập đáp án" có câu
            chỉ điền một cụm từ, có câu đòi giải thích cả đoạn (đáp án mẫu dài trên
            200 chữ). Ô một dòng làm học sinh gõ đoạn dài mà không thấy mình viết
@@ -1346,7 +1497,7 @@ export default function TutorApp() {
           key={q.id} /* câu mới → dựng lại ô, xoá chiều cao đã nới của câu trước */
           className="ans-input"
           rows={1}
-          placeholder="Nhập đáp án của bạn…"
+          placeholder={stepParsed && stepInteractive ? "Kết luận của em…" : "Nhập đáp án của bạn…"}
           value={text}
           disabled={busy || verdict === "retry"}
           autoFocus
@@ -1393,30 +1544,57 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* NỘP BÀI — câu tự luận dài: làm ngoài (giấy hoặc Word) rồi tải bài lên.
-          App KHÔNG chấm; nộp xong là đi tiếp được ngay, thầy cô chấm sau. */}
-      {q && q.kind === "nop_bai" && verdict == null && (
+      {/* NỘP BÀI — câu tự luận dài. GÕ là đường chính (AI chấm ngay, thầy cô
+          xem lại sau); ảnh/tệp cho phần phải VẼ hoặc em thích viết tay. Hiện cả
+          khi verdict='retry' để em sửa bài theo góp ý rồi nộp lại. */}
+      {q && q.kind === "nop_bai" && verdict !== "ok" && verdict !== "submitted" && (
         <div className="submit-box">
-          <p className="submit-how">
-            Bài này em làm ra <b>giấy hoặc file Word</b>, rồi <b>chụp ảnh / chọn tệp</b> nộp lên đây.
-            Nộp xong em học tiếp bài khác luôn — thầy cô chấm sau.
+          <textarea
+            key={q.id}
+            className="ans-input work-input"
+            rows={3}
+            placeholder="Viết bài làm của em ở đây — giải thích như đang nói với bạn…"
+            value={text}
+            disabled={busy}
+            onChange={(e) => {
+              setText(e.target.value);
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
+            }}
+            autoCapitalize="sentences"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <div className="submit-row">
+            <label className="submit-attach">
+              <input
+                className="sr-only"
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                disabled={busy}
+                onChange={(e) => {
+                  setWorkFile(e.target.files?.[0] ?? null);
+                  setError(null);
+                }}
+              />
+              <Paperclip aria-hidden strokeWidth={2.25} />
+              <span>
+                {workFile
+                  ? `${workFile.name} (${Math.round(workFile.size / 1024)} KB)`
+                  : "Đính kèm ảnh bài làm (nếu có hình vẽ)"}
+              </span>
+            </label>
+            {workFile && (
+              <button type="button" className="submit-unattach" onClick={() => setWorkFile(null)} aria-label="Gỡ tệp">
+                <X aria-hidden strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+          <p className="muted submit-note">
+            Em gõ bài làm là hay nhất — trợ lý đọc được ngay. Bài có hình vẽ thì chụp ảnh đính kèm.
+            Thầy cô luôn xem lại sau.
           </p>
-          <label className="submit-pick">
-            <input
-              className="sr-only"
-              type="file"
-              accept="image/*,.pdf,.doc,.docx"
-              disabled={busy}
-              onChange={(e) => {
-                setWorkFile(e.target.files?.[0] ?? null);
-                setError(null);
-              }}
-            />
-            <span>{workFile ? workFile.name : "Chọn ảnh bài làm hoặc tệp…"}</span>
-          </label>
-          {workFile && (
-            <p className="muted submit-size">{Math.round(workFile.size / 1024)} KB</p>
-          )}
         </div>
       )}
 
@@ -1478,30 +1656,49 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* Nộp bài: nút NỘP BÀI chỉ sáng khi đã chọn tệp. */}
-      {q && q.kind === "nop_bai" && verdict == null && (
+      {/* Nộp bài: sáng khi có bài GÕ hoặc có tệp đính kèm. Hiện CẢ khi AI bảo
+          còn thiếu ý (verdict='retry') — bài gõ vẫn nguyên trong ô, em bổ sung
+          rồi nộp lại ngay. Thiếu nhánh này là em kẹt: ô nhập còn đó mà không
+          còn nút nào để nộp. */}
+      {q && q.kind === "nop_bai" && (verdict == null || verdict === "retry") && (
         <div className="lfoot">
           <div className="lfoot-inner">
+            {verdict === "retry" && (
+              <div className="lfoot-says">
+                <Lion mood="thinking" size={48} decorative />
+                <b className="lfoot-title">Bổ sung thêm ý rồi nộp lại nhé!</b>
+              </div>
+            )}
             <button
               className="btn btn-block btn-check"
-              disabled={busy || !workFile}
+              disabled={busy || (!text.trim() && !workFile)}
               data-loading={busy || undefined}
               onClick={submitWorkFile}
             >
-              NỘP BÀI
+              {verdict === "retry" ? "NỘP LẠI" : "NỘP BÀI"}
             </button>
           </div>
         </div>
       )}
 
-      {/* Đã nộp — chưa chấm. Nói thẳng để học sinh không tưởng mình đã "qua bài". */}
+      {/* Đã nộp. AI chấm ĐẠT bài gõ → nói thẳng là ổn (mastery đã tính); chỉ
+          nộp tệp → nói thật là còn chờ thầy cô, kẻo em tưởng đã "qua bài". */}
       {verdict === "submitted" && (
-        <div className="lfoot" data-verdict="done" role="status">
+        <div className="lfoot" data-verdict={aiPassed ? "ok" : "done"} role="status">
           <div className="lfoot-inner">
             <div className="lfoot-says">
               <Lion mood="cheer" size={48} decorative />
-              <b className="lfoot-title">Đã nộp bài — thầy cô sẽ chấm sau</b>
-              <span className="muted">Chưa tính là làm chủ bài này; chấm xong em sẽ thấy kết quả ở lộ trình.</span>
+              {aiPassed ? (
+                <>
+                  <b className="lfoot-title">Bài viết ổn rồi — được tính điểm luôn!</b>
+                  <span className="muted">Thầy cô sẽ xem lại bài của em sau.</span>
+                </>
+              ) : (
+                <>
+                  <b className="lfoot-title">Đã nộp bài — thầy cô sẽ chấm sau</b>
+                  <span className="muted">Chưa tính là làm chủ bài này; chấm xong em sẽ thấy kết quả ở lộ trình.</span>
+                </>
+              )}
             </div>
             <button className="btn btn-block" data-loading={busy || undefined} onClick={advance}>
               {last ? "HOÀN THÀNH" : "HỌC TIẾP"}
@@ -1540,7 +1737,7 @@ export default function TutorApp() {
         </div>
       )}
 
-      {verdict === "retry" && (
+      {verdict === "retry" && q?.kind !== "nop_bai" && (
         <div className="lfoot" data-verdict="retry" role="status">
           <div className="lfoot-inner">
             {/* Dạng thao tác không có bong bóng đối thoại → sư tử đứng ngay đây,
@@ -1581,7 +1778,7 @@ export default function TutorApp() {
 
 /** Eyebrow trên thẻ câu hỏi — lệnh làm bài theo dạng câu (hi-fi 3b). */
 function kindEyebrow(q: DiagnoseQuestion): string {
-  if (q.kind === "nop_bai") return "Làm ra giấy rồi nộp bài";
+  if (q.kind === "nop_bai") return "Bài tự luận — gõ bài làm hoặc nộp ảnh";
   if (q.kind === "writing") return "Viết câu trả lời";
   if (q.kind === "speaking") return "Luyện nói tiếng Anh";
   if (q.dangCauHoi === "dung_sai") return "Đúng hay Sai?";
@@ -1609,6 +1806,67 @@ const mathy = (s: string) => /[=^_\\$±≤≥√²³]/.test(s ?? "");
  */
 const isWidgetAnswer = (x: DiagnoseQuestion | null | undefined) =>
   !!(x?.interactive?.order || x?.interactive?.match || x?.interactive?.checklist || x?.interactive?.blanks);
+
+/** Một bước trong đề nhiều bước. `yesNo` = bước chọn Có/Không (có "(Có/Không)"). */
+interface StepItem { label: string; text: string; yesNo: boolean }
+
+/** Tách đề "Bước 1: … Bước 2: …" (hoặc "B1: … B2: …") thành thẻ từng bước.
+ *  Nhét cả chuỗi suy luận vào MỘT câu văn là đề khó đọc nhất app (phản hồi
+ *  27/07) — bày từng bước mới dạy được cách NGHĨ tuần tự. Đòi dãy số tăng dần
+ *  bắt đầu từ 1 để không vồ nhầm "B2" là tên điểm hình học giữa câu. */
+function parseSteps(prompt: string): { intro: string; steps: StepItem[] } | null {
+  const text = prompt ?? "";
+  const re = /(?:Bước|B)\s?(\d)\s*:\s*/g;
+  const marks: { num: number; start: number; textStart: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (marks.length === 0 && Number(m[1]) !== 1) continue; // dãy phải mở bằng 1
+    if (marks.length > 0 && Number(m[1]) !== marks[marks.length - 1]!.num + 1) continue;
+    marks.push({ num: Number(m[1]), start: m.index, textStart: re.lastIndex });
+  }
+  if (marks.length < 2) return null;
+  const steps: StepItem[] = marks.map((mk, i) => {
+    const raw = text.slice(mk.textStart, marks[i + 1]?.start).trim();
+    return {
+      label: `Bước ${mk.num}`,
+      // "(Có/Không)" là chỉ dẫn trả lời — nút bấm thay nó, khỏi hiện chữ thừa.
+      text: raw.replace(/\(\s*Có\s*\/\s*Không\s*\)/gi, "").replace(/\s{2,}/g, " ").trim(),
+      yesNo: /\(\s*Có\s*\/\s*Không\s*\)/i.test(raw),
+    };
+  });
+  if (steps.some((s) => !s.text)) return null;
+  return { intro: text.slice(0, marks[0]!.start).trim(), steps };
+}
+
+/** Tách LỜI TRÍCH ('câu bạn ấy nói/viết') ra khỏi đề — hiện thành thẻ riêng cho
+ *  dễ đọc.
+ *
+ *  Bản đầu chỉ đòi "đoạn nháy đơn ≥20 ký tự" và vồ nhầm hàng loạt: đề Toán 10
+ *  dùng nháy đơn cho ĐỘ PHÚT (25°30'), cho ĐIỂM PHẨY (A', B'), và cho từ nhấn
+ *  mạnh ('lớn', 'có số') — hai dấu nháy bất kỳ cách nhau ≥20 ký tự là đề bị xé
+ *  đôi, phần GIỮA (thật ra là thân đề) thành "lời trích" vô nghĩa.
+ *
+ *  Bản này đòi đủ bốn dấu hiệu của một câu được trích thật:
+ *    · đề có ĐÚNG một cặp nháy (số dấu nháy = 2) — nhiều hơn là ký hiệu toán;
+ *    · dấu mở không dính chữ/số phía trước (chặn A', 30°15', don't);
+ *    · nội dung trích có khoảng trắng và KHÔNG mở đầu bằng chữ thường hay dấu
+ *      câu (dấu hiệu cắt trúng giữa câu). Mở bằng ∀, ∃, số… thì vẫn nhận —
+ *      58/410 lời trích của ngân hàng là mệnh đề toán mở đầu bằng ký hiệu;
+ *    · phần đề còn lại (trước hoặc sau) không rỗng — trích mà nuốt cả đề thì
+ *      chẳng còn gì để tách. */
+function splitQuote(prompt: string): { pre: string; quote: string; post: string } | null {
+  const p = prompt ?? "";
+  if ((p.match(/'/g) ?? []).length !== 2) return null;
+  const m = /(^|[\s(:—-])'([^']{20,500})'/.exec(p);
+  if (!m) return null;
+  const quote = m[2]!.trim();
+  if (!/\s/.test(quote) || /^[\p{Ll}.,;:)]/u.test(quote)) return null;
+  const at = m.index + m[1]!.length;
+  const pre = p.slice(0, at).trim();
+  const post = p.slice(at + m[2]!.length + 2).trim().replace(/^[.,;]\s*/, "");
+  if (!pre && !post) return null;
+  return { pre, quote, post };
+}
 
 /** Đáp án dài (một câu, một mệnh đề) thì xếp 1 cột cho dễ đọc; đáp án ngắn
  *  ("Elip", "12 cm") xếp 2 cột cân đối — 4 phương án thành ô vuông 2×2, không
