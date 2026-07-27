@@ -4,6 +4,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can, hasActiveConsent } from "../_shared/auth.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
+import { orderedOptions } from "../_shared/options.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { parseInteractive } from "../_shared/interactive.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit } from "../_shared/overrides.ts";
@@ -14,15 +15,6 @@ const FIRST_LOAD_LIMIT = 20;
 const RL_MAX = 20; // tối đa 20 lượt diagnose
 const RL_WINDOW_SEC = 60; // mỗi 60 giây / user
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const jdx = Math.floor(Math.random() * (i + 1));
-    [a[i], a[jdx]] = [a[jdx]!, a[i]!];
-  }
-  return a;
-}
-
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
   if (pre) return pre;
@@ -31,9 +23,15 @@ Deno.serve(async (req: Request) => {
     if (!ctx) return json({ error: "unauthorized" }, 401);
     if (!can(ctx, "learn:tutor:chat")) return json({ error: "forbidden" }, 403);
 
-    // Chỉ nhận `subject` từ client; mọi thứ còn lại (tenant, version, giới hạn)
-    // đều CHỐT server-side để không thể điều khiển hành vi qua tham số client.
-    const { subject } = await req.json();
+    // Nhận `subject` + `nodeKey` (BÀI HỌC đang mở) từ client; mọi thứ còn lại
+    // (tenant, version, giới hạn) CHỐT server-side. `nodeKey` không được tin
+    // thẳng — phải tra lại trong đúng version đang publish rồi mới dùng.
+    //
+    // Trước đây tham số này bị VỨT: bấm bài nào cũng ra cùng 20 câu đầu của CẢ
+    // MÔN, rải trên 19 bài khác nhau (đo trên dữ liệu sống 27/07). Lộ trình vẽ
+    // từng bài, mastery tính theo từng bài, mà nội dung học lại không thuộc bài
+    // nào — học sinh không thể làm chủ nổi bài mình đang mở.
+    const { subject, nodeKey } = await req.json();
     if (!subject || typeof subject !== "string") return json({ error: "subject required" }, 400);
 
     const studentId = ctx.userId;
@@ -65,18 +63,39 @@ Deno.serve(async (req: Request) => {
     const version = versionRes.data;
     if (!version) return json({ error: `no published KG for ${subject}` }, 404);
 
-    const { data: questions } = await supa
+    // Bài học đang mở: chỉ lấy câu CỦA BÀI ĐÓ. Tra node trong đúng version đang
+    // publish — chuỗi lạ / node của version khác thì bỏ qua, rơi về chế độ CHẨN
+    // ĐOÁN (quét cả môn) như lúc vào học lần đầu chưa chọn bài.
+    let onlyNode: string | null = null;
+    if (typeof nodeKey === "string" && nodeKey.trim()) {
+      const { data: nodeRow } = await supa
+        .from("kg_nodes")
+        .select("node_key")
+        .eq("kg_version_id", version.id)
+        .eq("node_key", nodeKey.trim())
+        .eq("status", "active")
+        .maybeSingle();
+      onlyNode = nodeRow?.node_key ?? null;
+    }
+
+    let qy = supa
       .from("questions")
       // KHÔNG select `tham_so`: schema hiện KHÔNG có cột đó (chỉ `tham_so_hoa`) →
       // select nó làm query LỖI → rỗng → "bài chưa có câu hỏi". Câu tham-số-hóa
       // cũng CHƯA có spec (content-sync không kéo về) nên sẽ hiện {b},{c} thô →
       // LỌC BỎ (chỉ phục vụ câu tĩnh). Bật lại khi có cột tham_so + spec từ Studio.
-      .select("id, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, rubric, tham_so_hoa")
+      .select("id, question_key, node_key, tier, dok, do_kho, loai_danh_gia, dang_cau_hoi, noi_dung, dap_an, distractors, rubric, tham_so_hoa")
       .eq("kg_version_id", version.id)
       .eq("trang_thai", "active")
-      .eq("tham_so_hoa", false)
+      .eq("tham_so_hoa", false);
+    if (onlyNode) qy = qy.eq("node_key", onlyNode);
+    const { data: questions } = await qy
       .order("tier", { ascending: true })
       .order("dok", { ascending: true })
+      // Tiêu chí phụ CỐ ĐỊNH: có 531 câu cùng (tier 1, dok 1), thiếu nó thì
+      // Postgres trả thứ tự tuỳ lúc → mỗi lần vào bài lại thấy câu khác, không
+      // ai làm nổi bảng đáp án và học sinh không quay lại đúng chỗ đang dở.
+      .order("question_key", { ascending: true })
       // Giới hạn lượt đầu — không kéo cả ngân hàng câu về client.
       .limit(FIRST_LOAD_LIMIT);
 
@@ -143,7 +162,9 @@ Deno.serve(async (req: Request) => {
         // Checklist: distractors là biến thể lật một ý → KHÔNG dựng thành 4 nút
         // (client đã có UI tick từng ý). Xem ghi chú ở chat-turn/pickQuestion.
         if (distractors.length > 0 && !inter?.checklist) {
-          const opts = shuffle([fill(String(q.dap_an)), ...distractors.map((d) => fill(d.phuong_an))]);
+          // Thứ tự TẤT ĐỊNH theo mã câu (options.ts): cùng câu → muôn đời cùng
+          // thứ tự, nên in được bảng đáp án; nhưng đáp án đúng KHÔNG dồn về ô đầu.
+          const opts = orderedOptions(q.id, fill(String(q.dap_an)), distractors.map((d) => fill(d.phuong_an)));
           return { ...base, options: opts };
         }
         return base;

@@ -22,6 +22,7 @@ import { recomputeNodeState } from "../_shared/mastery-state.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
 import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
+import { orderedOptions } from "../_shared/options.ts";
 
 // Studio ghi độ khó bằng CHỮ ("dễ/trung bình/khó"); cột enum do_kho ở DB là de/TB/kho.
 // questions.do_kho (text) giữ chữ cho hiển thị; CHỈ đổi sang mã enum khi ghi mastery.
@@ -58,15 +59,6 @@ interface QuestionItem {
 }
 
 const REMEDIATION_MAX_DEPTH = 4;
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
-  }
-  return a;
-}
 
 /**
  * Chất lượng suy nghĩ tính từ NỘI DUNG lời học sinh viết (0..1) — TÍNH Ở SERVER,
@@ -246,10 +238,13 @@ async function pickQuestion(
   // Sai") — vô nghĩa khi hiện thành 4 nút, và chính là nguồn màn hình "loạn" cũ.
   // KHÔNG gửi options → client dựng UI tick từng ý.
   if (!inter?.checklist && q.dap_an && Array.isArray(q.distractors) && q.distractors.length > 0) {
-    item.options = shuffle([
+    // Thứ tự TẤT ĐỊNH theo mã câu — khớp y hệt diagnose, để câu vá nền hiện ra
+    // giống hệt lúc gặp ở luồng chính (options.ts).
+    item.options = orderedOptions(
+      q.id,
       fill(String(q.dap_an)),
-      ...(q.distractors as Array<{ phuong_an: string }>).map((d) => fill(d.phuong_an)),
-    ]);
+      (q.distractors as Array<{ phuong_an: string }>).map((d) => fill(d.phuong_an)),
+    );
   }
   return item;
 }

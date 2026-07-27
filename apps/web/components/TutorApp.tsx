@@ -479,7 +479,10 @@ export default function TutorApp() {
     setAttempts(0);
   }
 
-  async function start() {
+  /** `node`: bài học sinh vừa bấm trên lộ trình. PHẢI gửi lên server — thiếu nó
+   *  thì diagnose rơi về chế độ chẩn đoán và trả 20 câu đầu của CẢ MÔN (rải trên
+   *  19 bài khác nhau), tức bấm bài nào cũng ra cùng một rổ. */
+  async function start(node?: PathNode) {
     if (busy) return; // double-tap: tap 2 tới trước khi disabled kịp commit
     // Môn XEM TRƯỚC (chưa live): lộ trình hiện đầy đủ nhưng chưa có ngân hàng
     // câu hỏi → KHÔNG gọi diagnose (tránh buổi học rỗng). Lời sư tử đã báo.
@@ -487,7 +490,7 @@ export default function TutorApp() {
     setError(null);
     setBusy(true);
     try {
-      const d = await diagnose(subject);
+      const d = await diagnose(subject, node?.key);
       // Bài chưa có câu hỏi (đang cắm nội dung) → KHÔNG vào buổi rỗng/kẹt; giữ học
       // sinh ở lộ trình + báo nhẹ nhàng.
       if (!d.questions || d.questions.length === 0) {
