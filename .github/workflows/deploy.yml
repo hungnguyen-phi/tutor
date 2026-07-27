@@ -57,8 +57,25 @@ jobs:
     # Chưa đặt DEPLOY_ON=true → chỉ build+push, BỎ QUA deploy (không đỏ workflow).
     if: ${{ vars.DEPLOY_ON == 'true' }}
     steps:
+      # THỬ LẠI 4 LƯỢT. Ảnh đã nằm trên GHCR rồi; hỏng ở đây chỉ là "chưa gọi
+      # được VPS". Coolify đứng sau Cloudflare nên hay gặp 5xx thoáng qua khi
+      # panel đang bận/khởi động lại (27/07: 525 = bắt tay TLS Cloudflare↔origin
+      # hỏng, build xanh mà web vẫn là bản cũ, không ai biết cho tới lúc mở web).
+      # In HTTP code ra để lần sau nhìn log là biết ngay lỗi mạng hay lỗi token.
       - name: Kích hoạt platform deploy (Coolify)
         run: |
-          curl -fsS -X POST \
-            "${{ secrets.DEPLOY_HOOK_URL }}/api/v1/deploy?uuid=${{ secrets.DEPLOY_APP_ID }}&force=true" \
-            -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}"
+          url="${{ secrets.DEPLOY_HOOK_URL }}/api/v1/deploy?uuid=${{ secrets.DEPLOY_APP_ID }}&force=true"
+          for i in 1 2 3 4; do
+            code=$(curl -sS -o /tmp/deploy.out -w '%{http_code}' --max-time 60 \
+              -X POST "$url" -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}" || echo 000)
+            echo "lượt $i → HTTP $code"
+            if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+              cat /tmp/deploy.out; echo; exit 0
+            fi
+            # 401/403/404 là sai secret/uuid — thử lại vô ích, dừng ngay.
+            case "$code" in 401|403|404) cat /tmp/deploy.out; echo; exit 1;; esac
+            sleep 20
+          done
+          echo "::error::Không gọi được deploy hook sau 4 lượt (HTTP $code). Ảnh ĐÃ có trên GHCR — vào Coolify bấm Redeploy, hoặc chạy lại job này."
+          cat /tmp/deploy.out || true
+          exit 1
