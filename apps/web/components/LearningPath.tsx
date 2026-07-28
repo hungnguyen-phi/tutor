@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Hourglass, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 
@@ -28,6 +28,8 @@ export type PathNode = {
   totalCount?: number;
   /** Số bài nộp đang chờ giáo viên chấm. */
   pending?: number;
+  /** Kho báu học liệu đứng CẠNH bài — mức nào có, em đã đi tới mức mấy. */
+  khoBau?: { mucCoSan: number[]; mucDaQua: number };
 };
 
 const HINT: Record<NodeState, string> = {
@@ -120,6 +122,7 @@ export default function LearningPath({
   busy = false,
   preview = false,
   onStart,
+  onOpenKhoBau,
 }: {
   unit: string;
   subtitle: string;
@@ -133,6 +136,8 @@ export default function LearningPath({
    *  thay "BẮT ĐẦU"; bấm không mở buổi học (TutorApp.start tự chặn). */
   preview?: boolean;
   onStart: (node: PathNode) => void;
+  /** Bấm dấu chân KHO BÁU cạnh một bài. Bỏ trống thì không vẽ kho báu. */
+  onOpenKhoBau?: (node: PathNode) => void;
 }) {
   // Chặng đã xong / còn khoá đang được mở xem trước (bấm thẻ chặng).
   const [openLegs, setOpenLegs] = useState<Set<string>>(new Set());
@@ -271,6 +276,25 @@ export default function LearningPath({
             <Hourglass aria-hidden strokeWidth={2.25} />
             chờ chấm
           </span>
+        )}
+        {/* KHO BÁU: học liệu đứng CẠNH bài, không nằm trong bài — bấm được cả
+            khi bài còn khoá (xem trước cho dễ vào bài). Ngả về phía đối diện
+            với hướng dấu chân đang lệch để không chồng lên nhãn/sư tử. */}
+        {n.khoBau && onOpenKhoBau && (
+          <button
+            type="button"
+            className="node-treasure"
+            data-side={shiftedLeft ? "r" : "l"}
+            data-done={n.khoBau.mucDaQua >= Math.max(...n.khoBau.mucCoSan) || undefined}
+            onClick={(e) => { e.stopPropagation(); onOpenKhoBau(n); }}
+            aria-label={`Kho báu học liệu của bài ${n.label} — đã mở ${n.khoBau.mucDaQua}/${n.khoBau.mucCoSan.length} mức`}
+            title={`Học liệu · mức ${Math.min(n.khoBau.mucDaQua + 1, n.khoBau.mucCoSan.length)}/${n.khoBau.mucCoSan.length}`}
+          >
+            <Gift aria-hidden strokeWidth={2.25} />
+            <span className="num">
+              {Math.min(n.khoBau.mucDaQua, n.khoBau.mucCoSan.length)}/{n.khoBau.mucCoSan.length}
+            </span>
+          </button>
         )}
         {n.state === "current" && (
           <span className={"path-lion" + (shiftedLeft ? " path-lion-r" : "")} aria-hidden>

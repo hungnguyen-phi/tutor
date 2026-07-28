@@ -20,8 +20,7 @@ import {
   ShieldAlert,
   Undo2,
   UploadCloud,
-  Users,
-} from "lucide-react";
+  Users, Gift,} from "lucide-react";
 import {
   teacherStats,
   teacherReview,
@@ -39,6 +38,7 @@ import { useAuth, signOut, isAllowed, roleHome } from "../lib/auth";
 import RedirectToLogin from "./RedirectToLogin";
 import StudioIntake from "./StudioIntake";
 import QuestionIntake from "./QuestionIntake";
+import HocLieuTab from "./HocLieuTab";
 
 /** Top bar hi-fi 4f: crest 34 + wordmark + tên GV thật từ profile + avatar chữ cái. */
 function TopBar({ name, initial }: { name: string; initial: string }) {
@@ -119,7 +119,7 @@ function FlagChips({ flags }: { flags: string[] }) {
 
 const initialOf = (name: string) => (name.split(/\s+/).pop() ?? "?").charAt(0).toUpperCase();
 
-type Tab = "overview" | "students" | "topics" | "grading" | "content";
+type Tab = "overview" | "students" | "topics" | "hoclieu" | "grading" | "content";
 
 export default function TeacherDashboard() {
   const { session, profile, roles, ready } = useAuth();
@@ -323,6 +323,7 @@ function Console({
     { id: "overview", label: "Tổng quan", icon: <LayoutGrid aria-hidden strokeWidth={2} /> },
     { id: "students", label: "Học sinh", icon: <Users aria-hidden strokeWidth={2} />, badge: roster?.total },
     { id: "topics", label: "Chủ đề", icon: <BookOpen aria-hidden strokeWidth={2} />, badge: topics.length || undefined },
+    { id: "hoclieu", label: "Học liệu", icon: <Gift aria-hidden strokeWidth={2} /> },
     { id: "grading", label: "Chấm bài", icon: <ClipboardCheck aria-hidden strokeWidth={2} />, badge: gradingCount || undefined },
     { id: "content", label: "Duyệt & nội dung", icon: <Inbox aria-hidden strokeWidth={2} />, badge: pendingReview || undefined },
   ];
@@ -389,6 +390,7 @@ function Console({
       )}
       {tab === "students" && <StudentsTab roster={roster} studentNodes={data.studentNodes} />}
       {tab === "topics" && <TopicsTab topics={topics} />}
+      {tab === "hoclieu" && <HocLieuTab />}
       {tab === "grading" && <GradingTab onCount={setGradingCount} />}
       {tab === "content" && (
         <ContentTab

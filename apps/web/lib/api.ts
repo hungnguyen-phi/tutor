@@ -423,6 +423,8 @@ export interface LearningPathNode {
   totalCount?: number;
   /** Số bài nộp đang chờ giáo viên chấm trên node này. */
   pending?: number;
+  /** Kho báu học liệu đứng CẠNH bài (không nằm trong bài). */
+  khoBau?: { mucCoSan: number[]; mucDaQua: number };
 }
 
 export interface LearningPathResult {
@@ -476,6 +478,9 @@ export type ResourceFormat =
 
 export interface NodeResource {
   id: string;
+  /** Khoá gom NHÓM: nhiều định dạng của cùng một học liệu dùng chung khoá này. */
+  nhom?: string;
+  tieuDe?: string | null;
   format: ResourceFormat;
   tier?: 1 | 2 | 3;
   uri?: string;
@@ -483,8 +488,86 @@ export interface NodeResource {
   dual_coding?: boolean;
 }
 
+export interface KhoBauResult {
+  resources: NodeResource[];
+  /** Đã đi qua tới mức mấy (0..3) · mức đang mở = mucDaQua + 1. */
+  mucDaQua: number;
+  mucDangMo: number;
+  /** Các mức THẬT SỰ có học liệu — bài chỉ có mức 1 thì đừng vẽ ba bậc. */
+  mucCoSan: number[];
+  conMucSau: boolean;
+}
+
 export const nodeResources = (subject: Subject, nodeKey: string) =>
-  callFn<{ resources: NodeResource[] }>("resources", { subject, node_key: nodeKey });
+  callFn<KhoBauResult>("resources", { subject, node_key: nodeKey });
+
+/** Ghi nhận "đã xong mức này" — server chỉ cộng ĐÚNG MỘT mức và chỉ khi hợp lệ. */
+export const khoBauXong = (subject: Subject, nodeKey: string, muc: number) =>
+  callFn<KhoBauResult>("resources", { subject, node_key: nodeKey, action: "done", muc });
+
+// ── Học liệu: phía GIÁO VIÊN ────────────────────────────────────────────────
+export interface TeacherNode {
+  key: string;
+  label: string;
+  chapter: string;
+  soCau: number;
+  soHocLieu: number;
+  soHien: number;
+}
+export interface TeacherResourceItem {
+  id: string;
+  resource_key: string | null;
+  tieu_de: string | null;
+  format: ResourceFormat;
+  tier: number | null;
+  uri: string;
+  ly_do_chon_format: string | null;
+  hien_thi: boolean;
+  status: string;
+  created_at: string;
+}
+export const teacherNodes = (subject: Subject = "Toan") =>
+  callFn<{
+    version: { id: string; label: string; subject: string } | null;
+    classes: Array<{ id: string; name: string; grade: string }>;
+    phamVi: string;
+    nodes: TeacherNode[];
+  }>("teacher-resources", { action: "nodes", subject });
+
+export const teacherNodeResources = (nodeKey: string, subject: Subject = "Toan") =>
+  callFn<{ node: { key: string; label: string; chapter: string }; items: TeacherResourceItem[] }>(
+    "teacher-resources", { action: "list", nodeKey, subject });
+
+export const teacherResourceSave = (opts: {
+  id?: string; nodeKey: string; resourceKey?: string; tieuDe?: string;
+  format: ResourceFormat; tier: number; uri: string; goiY?: string; hienThi?: boolean;
+  subject?: Subject;
+}) => callFn<{ ok: boolean; id: string }>("teacher-resources", { action: "save", subject: "Toan", ...opts });
+
+export const teacherResourceToggle = (id: string, hienThi: boolean) =>
+  callFn<{ ok: boolean }>("teacher-resources", { action: "toggle", id, hienThi });
+
+export const teacherResourceRemove = (id: string) =>
+  callFn<{ ok: boolean }>("teacher-resources", { action: "remove", id });
+
+/** Tải tệp học liệu lên đúng thư mục của trường: hoc-lieu/<trường>/<bài>/… */
+export async function uploadHocLieu(file: File, nodeKey: string): Promise<string> {
+  const { data: sess } = await supabase.auth.getSession();
+  const uid = sess.session?.user?.id;
+  if (!uid) throw new Error("Bạn cần đăng nhập lại.");
+  const { data: prof } = await supabase.from("profiles").select("tenant_id").eq("id", uid).single();
+  const tenant = prof?.tenant_id;
+  if (!tenant) throw new Error("Không đọc được thông tin trường.");
+  const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-60);
+  const path = `hoc-lieu/${tenant}/${nodeKey}/${Date.now()}-${safe}`;
+  const { error } = await supabase.storage.from("learning-assets").upload(path, file, {
+    // Content-type ĐÚNG là điều kiện để quiz .html hiện ra thay vì bị tải về.
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(`Tải tệp lên không được: ${error.message}`);
+  return path;
+}
 
 // ── Role dashboards (one role-gated endpoint) ─────────────────────────────────
 export type DashAction = "coach" | "parent" | "buddy" | "leadership" | "admin" | "dpo" | "counselor";

@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
     // (LearningPath.tsx có sẵn màn "Chưa có bài học nào").
     if (!version) return json({ version_id: null, version_label: null, nodes: [] });
 
-    const [nodesRes, edgesRes, statesRes, subRes, qRes, attRes] = await Promise.all([
+    const [nodesRes, edgesRes, statesRes, subRes, qRes, attRes, hlRes, hlProgRes] = await Promise.all([
       supa
         .from("kg_nodes")
         .select("node_key, label, chapter, cluster, revision")
@@ -148,6 +148,19 @@ Deno.serve(async (req: Request) => {
         .select("node_id, question_id")
         .eq("student_id", ctx.userId)
         .limit(5000), // trần an toàn: một học sinh pilot làm ~vài trăm câu
+      // KHO BÁU: bài nào có học liệu đang HIỆN → lộ trình vẽ thêm một dấu chân
+      // đặc biệt cạnh bài đó (học liệu KHÔNG nằm trong bài, đứng riêng bên cạnh).
+      supa
+        .from("resources")
+        .select("node_key, tier")
+        .eq("kg_version_id", version.id)
+        .eq("status", "active")
+        .eq("hien_thi", true),
+      supa
+        .from("resource_progress")
+        .select("node_key, muc_da_qua")
+        .eq("student_id", ctx.userId)
+        .eq("kg_version_id", version.id),
     ]);
 
     const rawNodes = nodesRes.data ?? [];
@@ -172,6 +185,16 @@ Deno.serve(async (req: Request) => {
       if (!k) continue;
       (doneQs.get(k) ?? doneQs.set(k, new Set()).get(k)!).add(String(a.question_id));
     }
+    // Kho báu: mức nào CÓ học liệu, và em đã đi tới mức mấy.
+    const mucCoSan = new Map<string, Set<number>>();
+    for (const r of hlRes.data ?? []) {
+      const k = String(r.node_key ?? "");
+      if (!k) continue;
+      (mucCoSan.get(k) ?? mucCoSan.set(k, new Set()).get(k)!).add(Math.min(3, Math.max(1, Number(r.tier) || 1)));
+    }
+    const mucDaQua = new Map<string, number>(
+      (hlProgRes.data ?? []).map((p) => [String(p.node_key), Math.min(3, Math.max(0, Number(p.muc_da_qua) || 0))]),
+    );
 
     // "Đã học" gồm cả xanh lẫn vàng — dấu đã học không bao giờ bị xoá (§4).
     // Vàng = đã học nhưng nội dung đã đổi NGHĨA sau đó: vẫn mở khoá node sau,
@@ -235,6 +258,8 @@ Deno.serve(async (req: Request) => {
       totalCount?: number;
       /** Số bài nộp đang chờ giáo viên chấm trên node này. */
       pending?: number;
+      /** Kho báu học liệu cạnh bài: có mức nào, em đã đi tới mức mấy. */
+      khoBau?: { mucCoSan: number[]; mucDaQua: number };
     }
 
     // Bước 1: trạng thái cơ bản theo thứ tự tô-pô (chưa gán "current").
@@ -267,6 +292,14 @@ Deno.serve(async (req: Request) => {
         }
       }
       if (pendingCount.has(n.node_key)) item.pending = pendingCount.get(n.node_key)!;
+      // Kho báu đứng CẠNH bài, không nằm trong bài: mở được cả khi bài còn khoá
+      // (học liệu là để chuẩn bị trước, chặn lại thì mất ý nghĩa).
+      if (mucCoSan.has(n.node_key)) {
+        item.khoBau = {
+          mucCoSan: [...mucCoSan.get(n.node_key)!].sort(),
+          mucDaQua: mucDaQua.get(n.node_key) ?? 0,
+        };
+      }
       return item;
     });
 

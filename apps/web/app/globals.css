@@ -6295,6 +6295,275 @@ html[data-motion="reduce"] .think-dots::after {
   height: 12px;
 }
 
+/* ── TAB HỌC LIỆU (giáo viên): trái = mọi bài của môn, phải = kho báu bài đó ─ */
+.hl-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .hl-grid { grid-template-columns: 1fr; }
+  .hl-list { max-height: 320px; }
+}
+.hl-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.hl-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.hl-search svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.hl-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+.hl-scope { font-size: 0.75rem; }
+.hl-list {
+  max-height: 620px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.hl-chapter {
+  position: sticky;
+  top: 0;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--canvas-flat);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.hl-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.hl-node:hover { background: var(--canvas-flat); }
+.hl-node[aria-current] { background: var(--gold); color: var(--navy); }
+.hl-node-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  min-width: 0;
+}
+.hl-node-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+  font-size: 0.75rem;
+}
+.hl-has { display: inline-flex; align-items: center; gap: 4px; }
+.hl-has svg { width: 13px; height: 13px; }
+.hl-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.hl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.hl-empty svg { width: 40px; height: 40px; }
+.hl-detail-head { display: flex; flex-direction: column; gap: 2px; }
+.hl-tier {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+}
+.hl-tier h4 { margin: 0 0 8px; font-size: 0.9375rem; }
+.hl-tier h4 small { font-weight: 400; }
+.hl-tier-empty { font-size: 0.8125rem; margin: 0; }
+.hl-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--canvas-flat);
+}
+/* Đang ẩn khỏi học sinh: mờ đi nhưng KHÔNG giấu — cô phải thấy để bật lại. */
+.hl-item[data-off] { opacity: 0.55; }
+.hl-item-main { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.hl-item-main b { font-size: 0.875rem; }
+.hl-item-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hl-eye,
+.hl-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.hl-eye[aria-pressed="true"] { border-color: var(--ok, #2f9e6b); color: var(--ok, #2f9e6b); }
+.hl-del:hover { color: var(--danger, #c0392b); border-color: currentColor; }
+.hl-eye svg, .hl-del svg { width: 16px; height: 16px; }
+.hl-add {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hl-add h4 { margin: 0; font-size: 0.9375rem; }
+.hl-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.hl-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
+.hl-field-sm { flex: 0 0 120px; min-width: 120px; }
+.hl-field > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.hl-field > span svg { width: 13px; height: 13px; }
+.hl-field input,
+.hl-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--canvas-flat);
+  font: inherit;
+  color: inherit;
+}
+.hl-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-end;
+  padding: 9px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.hl-upload:hover { border-color: var(--navy); color: var(--navy); }
+.hl-upload:focus-within { outline: 3px solid var(--navy); outline-offset: 2px; }
+.hl-upload svg { width: 16px; height: 16px; flex: none; }
+.hl-hint { font-size: 0.75rem; line-height: 1.5; margin: 0; }
+
+/* ── KHO BÁU: học liệu đứng CẠNH dấu chân bài, không nằm trong bài ────────── */
+.node-treasure {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 2px solid var(--gold);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--gold);
+}
+.node-treasure[data-side="l"] { left: 8px; }
+.node-treasure[data-side="r"] { right: 8px; }
+.node-treasure svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold-ink, #8a6d00);
+}
+.node-treasure:hover { border-color: var(--navy); box-shadow: 0 2px 0 var(--navy); }
+.node-treasure:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+/* Mở hết mức thì thôi nhấp nháy mời gọi — đổi sang dáng "đã lấy". */
+.node-treasure[data-done] {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  opacity: 0.75;
+}
+
+/* Màn KHO BÁU (mở từ lộ trình) */
+.kb-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kb-head svg { width: 30px; height: 30px; color: var(--gold-ink, #8a6d00); flex: none; }
+.kb-steps {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.kb-step {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.kb-step[data-state="done"] { border-color: var(--ok, #2f9e6b); color: var(--ok, #2f9e6b); }
+.kb-step[data-state="now"] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--navy);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+}
+.kb-note {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
 /* ── NỘP BÀI: câu tự luận dài, làm ngoài rồi tải ảnh/tệp lên ──────────────── */
 .submit-box {
   display: flex;

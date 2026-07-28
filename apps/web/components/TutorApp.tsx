@@ -28,6 +28,7 @@ import PresenceStrip from "./PresenceStrip";
 import LearningPath, { type PathNode } from "./LearningPath";
 import Lion from "./Lion";
 import LessonView from "./LessonView";
+import KhoBauView from "./KhoBauView";
 import ReviewView from "./ReviewView";
 import QuestsView from "./QuestsView";
 import ProfileView from "./ProfileView";
@@ -179,6 +180,8 @@ export default function TutorApp() {
   // đẩy history — nút Back của trình duyệt vẫn thoát app như mong đợi).
   // "settings" không có trên nav — vào từ bánh răng ở Hồ sơ (hi-fi 4d).
   const [view, setView] = useState<NavKey | "settings">("learn");
+  // Kho báu học liệu đang mở (bấm dấu chân đặc biệt cạnh một bài).
+  const [khoBau, setKhoBau] = useState<{ key: string; label: string } | null>(null);
   useEffect(() => {
     // Đọc hash lúc mount (deep-link) VÀ nghe hashchange (điều hướng chỉ-đổi-hash
     // không reload trang — assign/link #review từ nơi khác vẫn phải ăn).
@@ -383,7 +386,16 @@ export default function TutorApp() {
             // Tiến trình dang dở (0..1) + số bài chờ thầy cô chấm — để lộ trình
             // NÓI được "em đã đi 75% bài này" thay vì đứng im như chưa học.
             progress: typeof n.progress === "number" ? n.progress : undefined,
+            // doneCount/totalCount là thứ HIỆN RA trên bàn chân ("3/8"). Thiếu
+            // hai dòng này thì huy hiệu luôn đọc là 0/0 dù server trả đúng số.
+            doneCount: typeof n.doneCount === "number" ? n.doneCount : undefined,
+            totalCount: typeof n.totalCount === "number" ? n.totalCount : undefined,
             pending: typeof n.pending === "number" && n.pending > 0 ? n.pending : undefined,
+            // Kho báu học liệu cạnh bài — chỉ nhận khi server nói rõ có mức nào.
+            khoBau:
+              n.khoBau && Array.isArray(n.khoBau.mucCoSan) && n.khoBau.mucCoSan.length > 0
+                ? { mucCoSan: n.khoBau.mucCoSan, mucDaQua: Number(n.khoBau.mucDaQua) || 0 }
+                : undefined,
           }));
         // Có node nhưng không node nào hợp lệ → coi như hỏng, về fallback.
         if (nodes.length === 0 && r.nodes.length > 0) throw new Error("learning-path: node không hợp lệ");
@@ -1016,6 +1028,28 @@ export default function TutorApp() {
       );
     }
 
+    // KHO BÁU mở đè lên lộ trình (không phải một mục ở thanh dưới): nó thuộc về
+    // đúng bài đó, xem xong bấm "Về lộ trình" là quay lại đúng chỗ cũ.
+    if (khoBau) {
+      return (
+        <AppShell current="learn" onNavigate={switchView}>
+          <div className="learn-layout view-in" data-dir={viewDir}>
+            <div className="learn-main">
+              <KhoBauView
+                subject={subject}
+                nodeKey={khoBau.key}
+                nodeLabel={khoBau.label}
+                onBack={() => {
+                  setKhoBau(null);
+                  setPathVersion((v) => v + 1); // mức vừa mở phải hiện ngay trên dấu chân
+                }}
+              />
+            </div>
+          </div>
+        </AppShell>
+      );
+    }
+
     return (
       <AppShell current="learn" onNavigate={switchView}>
         <div className="learn-layout view-in" data-dir={viewDir}>
@@ -1070,6 +1104,7 @@ export default function TutorApp() {
               }
               busy={busy}
               onStart={start}
+              onOpenKhoBau={(n) => setKhoBau({ key: n.key, label: n.label })}
             />
 
             {/* Đồng bộ lộ trình chạy NGẦM — không báo chữ (tránh nhấp nháy/giật);
