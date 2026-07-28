@@ -3990,6 +3990,61 @@ html[data-motion="reduce"] .spin {
   color: var(--navy);
   border-color: var(--sky);
 }
+/* Ảnh (sơ đồ tư duy, infographic): bày trọn khung, bấm để phóng to ở tab mới. */
+.lsv-img-wrap {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas-flat);
+  overflow: hidden;
+}
+.lsv-img {
+  display: block;
+  width: 100%;
+  min-height: 120px; /* ảnh hỏng/đang tải vẫn có hộp, không sập thành vạch mỏng */
+  max-height: 440px;
+  object-fit: contain;
+}
+/* Tệp trình duyệt không mở tại chỗ (docx, pptx, xlsx, zip): thẻ TẢI VỀ rõ ràng
+   thay cho khung trắng — học sinh biết ngay phải làm gì. */
+.lsv-file {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: var(--canvas-flat);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.lsv-file:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+.lsv-file svg {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--sky);
+}
+.lsv-file span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.lsv-file b {
+  font-size: 0.9375rem;
+}
+.lsv-file small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .lsv-audio-wrap {
   display: flex;
   align-items: center;
