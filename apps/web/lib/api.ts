@@ -496,6 +496,8 @@ export interface KhoBauResult {
   /** Các mức THẬT SỰ có học liệu — bài chỉ có mức 1 thì đừng vẽ ba bậc. */
   mucCoSan: number[];
   conMucSau: boolean;
+  /** Server chặn vì bài chưa mở (còn bài tiên quyết chưa thành thạo). */
+  khoa?: boolean;
 }
 
 export const nodeResources = (subject: Subject, nodeKey: string) =>

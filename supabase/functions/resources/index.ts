@@ -42,6 +42,28 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (!version) return json({ resources: [] });
 
+    // ── CỔNG KHOÁ: bài chưa mở thì kho báu cũng chưa mở ────────────────────
+    // Chặn ở client là chưa đủ — gọi thẳng API vẫn lấy được học liệu của bài xa
+    // tít phía sau. Ở đây kiểm ĐIỀU KIỆN TIÊN QUYẾT (cạnh prerequisite_hard):
+    // còn bài tiên quyết chưa thành thạo → khoá. (Không mô phỏng thêm luật "khoá
+    // mọi bài sau bài đang học" của lộ trình: luật đó cần topo-sort toàn đồ thị,
+    // và phần chênh chỉ là học liệu của bài kế tiếp — client đã ẩn.)
+    const [{ data: canh }, { data: daHoc }] = await Promise.all([
+      supa.from("kg_edges").select("from_key")
+        .eq("kg_version_id", version.id)
+        .eq("relation", "prerequisite_hard")
+        .eq("to_key", node_key),
+      supa.from("student_node_state").select("node_id")
+        .eq("student_id", ctx.userId)
+        .eq("kg_version_id", version.id)
+        .eq("mastered", true),
+    ]);
+    const xong = new Set((daHoc ?? []).map((s) => String(s.node_id)));
+    const thieu = (canh ?? []).map((e) => String(e.from_key)).filter((k) => !xong.has(k));
+    if (thieu.length > 0 && !xong.has(String(node_key))) {
+      return json({ resources: [], mucDaQua: 0, mucDangMo: 0, mucCoSan: [], conMucSau: false, khoa: true });
+    }
+
     const { data: prog } = await supa
       .from("resource_progress")
       .select("muc_da_qua")

@@ -277,20 +277,31 @@ export default function LearningPath({
             chờ chấm
           </span>
         )}
-        {/* KHO BÁU: học liệu đứng CẠNH bài, không nằm trong bài — bấm được cả
-            khi bài còn khoá (xem trước cho dễ vào bài). Ngả về phía đối diện
-            với hướng dấu chân đang lệch để không chồng lên nhãn/sư tử. */}
+        {/* KHO BÁU: học liệu đứng CẠNH bài, không nằm trong bài. KHOÁ THEO BÀI —
+            bài chưa mở thì kho báu cũng chưa mở, đúng lối đi tuần tự của lộ
+            trình; mở trước thì em nhảy cóc bằng đường học liệu. Ngả về phía đối
+            diện hướng dấu chân đang lệch để không chồng lên nhãn/sư tử. */}
         {n.khoBau && onOpenKhoBau && (
           <button
             type="button"
             className="node-treasure"
             data-side={shiftedLeft ? "r" : "l"}
-            data-done={n.khoBau.mucDaQua >= Math.max(...n.khoBau.mucCoSan) || undefined}
+            data-locked={locked || undefined}
+            data-done={(!locked && n.khoBau.mucDaQua >= Math.max(...n.khoBau.mucCoSan)) || undefined}
+            disabled={locked || busy}
             onClick={(e) => { e.stopPropagation(); onOpenKhoBau(n); }}
-            aria-label={`Kho báu học liệu của bài ${n.label} — đã mở ${n.khoBau.mucDaQua}/${n.khoBau.mucCoSan.length} mức`}
-            title={`Học liệu · mức ${Math.min(n.khoBau.mucDaQua + 1, n.khoBau.mucCoSan.length)}/${n.khoBau.mucCoSan.length}`}
+            aria-label={
+              locked
+                ? `Kho báu của bài ${n.label} — chưa mở, cần học xong bài trước`
+                : `Kho báu học liệu của bài ${n.label} — đã mở ${n.khoBau.mucDaQua}/${n.khoBau.mucCoSan.length} mức`
+            }
+            title={
+              locked
+                ? "Học xong bài phía trước là mở được kho báu này"
+                : `Học liệu · mức ${Math.min(n.khoBau.mucDaQua + 1, n.khoBau.mucCoSan.length)}/${n.khoBau.mucCoSan.length}`
+            }
           >
-            <Gift aria-hidden strokeWidth={2.25} />
+            {locked ? <Lock aria-hidden strokeWidth={2.5} /> : <Gift aria-hidden strokeWidth={2.25} />}
             <span className="num">
               {Math.min(n.khoBau.mucDaQua, n.khoBau.mucCoSan.length)}/{n.khoBau.mucCoSan.length}
             </span>

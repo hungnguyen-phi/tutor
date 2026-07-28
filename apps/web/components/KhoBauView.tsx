@@ -2,7 +2,8 @@
 
 /**
  * KHO BÁU — học liệu của một bài, đứng CẠNH bài trên lộ trình chứ không nằm
- * trong bài. Mở được cả khi bài còn khoá: học liệu là để chuẩn bị trước.
+ * trong bài, nhưng KHOÁ THEO BÀI: bài chưa mở thì kho báu cũng chưa mở (server
+ * chặn theo điều kiện tiên quyết, client làm mờ nút — không mời gọi rồi từ chối).
  *
  * BA MỨC MỞ DẦN (bậc thang, không đổ ập một lần): mỗi lượt vào chỉ ăn THÊM MỘT
  * mức rồi phải quay lại — kho báu là lý do trở lại bài cũ. Mức đang mở hiện
@@ -84,7 +85,15 @@ export default function KhoBauView({
       {loi && <div className="banner err">{loi}</div>}
       {!data && !loi && <p className="muted">Đang mở kho…</p>}
 
-      {data && soMuc > 0 && (
+      {/* Server chặn (bài chưa mở) — nói rõ vì sao, đừng để màn hình trống. */}
+      {data?.khoa && (
+        <div className="lfoot-says" role="status">
+          <Lion mood="thinking" size={48} decorative />
+          <b className="lfoot-title">Kho báu này còn khoá — học xong bài phía trước là mở được nhé!</b>
+        </div>
+      )}
+
+      {data && !data.khoa && soMuc > 0 && (
         <>
           {/* Bậc thang: chỉ vẽ đúng số mức bài này THẬT SỰ có — bài chỉ có một
               mức thì đừng vẽ ba bậc rồi để em chờ mức không bao giờ tới. */}
@@ -135,7 +144,7 @@ export default function KhoBauView({
         </>
       )}
 
-      {data && soMuc === 0 && (
+      {data && !data.khoa && soMuc === 0 && (
         <p className="muted">Bài này chưa có học liệu. Thầy cô sẽ thêm sau nhé!</p>
       )}
     </div>

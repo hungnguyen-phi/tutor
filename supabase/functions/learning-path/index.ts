@@ -292,8 +292,9 @@ Deno.serve(async (req: Request) => {
         }
       }
       if (pendingCount.has(n.node_key)) item.pending = pendingCount.get(n.node_key)!;
-      // Kho báu đứng CẠNH bài, không nằm trong bài: mở được cả khi bài còn khoá
-      // (học liệu là để chuẩn bị trước, chặn lại thì mất ý nghĩa).
+      // Kho báu đứng CẠNH bài chứ không nằm trong bài, nhưng KHOÁ THEO BÀI:
+      // client tự chặn khi state = locked (bài chưa mở thì kho báu cũng chưa),
+      // giữ đúng lối đi tuần tự của mastery learning.
       if (mucCoSan.has(n.node_key)) {
         item.khoBau = {
           mucCoSan: [...mucCoSan.get(n.node_key)!].sort(),

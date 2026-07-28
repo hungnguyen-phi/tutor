@@ -6526,6 +6526,18 @@ html[data-motion="reduce"] .think-dots::after {
   box-shadow: none;
   opacity: 0.75;
 }
+/* Bài chưa mở → kho báu cũng chưa mở. Vẫn HIỆN (để em biết phía trước có gì đợi)
+   nhưng xám và không bấm được — không mời gọi rồi từ chối. */
+.node-treasure[data-locked] {
+  border-color: var(--line);
+  background: var(--locked-bg, var(--canvas-flat));
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.node-treasure[data-locked] svg { color: var(--muted); }
+.node-treasure[data-locked]:hover { border-color: var(--line); box-shadow: none; }
 
 /* Màn KHO BÁU (mở từ lộ trình) */
 .kb-head {
