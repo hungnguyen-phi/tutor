@@ -552,8 +552,21 @@ export const teacherResourceToggle = (id: string, hienThi: boolean) =>
 export const teacherResourceRemove = (id: string) =>
   callFn<{ ok: boolean }>("teacher-resources", { action: "remove", id });
 
+/** Trần một tệp tải lên, theo cấu hình kho của dự án (đo 28/07: 50 MB).
+ *  Video quay màn hình/hoạt hình rất dễ vượt — chặn TỪ TRƯỚC kèm lời khuyên,
+ *  thay vì để kho ném ra "The object exceeded the maximum allowed size". */
+export const TRAN_TEP_MB = 50;
+
 /** Tải tệp học liệu lên đúng thư mục của trường: hoc-lieu/<trường>/<bài>/… */
 export async function uploadHocLieu(file: File, nodeKey: string): Promise<string> {
+  const mb = file.size / (1024 * 1024);
+  if (mb > TRAN_TEP_MB) {
+    throw new Error(
+      `Tệp nặng ${mb.toFixed(1)} MB — kho chỉ nhận tối đa ${TRAN_TEP_MB} MB. ` +
+      "Với video, cách gọn nhất là tải lên YouTube (để 'không công khai') hoặc Google Drive " +
+      "rồi DÁN LINK vào ô bên cạnh — app tự nhúng, học sinh xem ngay trong bài và không tốn kho của trường.",
+    );
+  }
   const { data: sess } = await supabase.auth.getSession();
   const uid = sess.session?.user?.id;
   if (!uid) throw new Error("Bạn cần đăng nhập lại.");

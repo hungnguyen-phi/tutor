@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, FileUp, Gift, Link2, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import {
   teacherNodes, teacherNodeResources, teacherResourceSave, teacherResourceToggle,
-  teacherResourceRemove, uploadHocLieu,
+  teacherResourceRemove, uploadHocLieu, TRAN_TEP_MB,
   type ResourceFormat, type TeacherNode, type TeacherResourceItem,
 } from "../lib/api";
 
@@ -283,8 +283,9 @@ export default function HocLieuTab() {
                   {dangLuu ? "Đang lưu…" : "Thêm vào bài"}
                 </button>
                 <p className="muted hl-hint">
-                  Slide PowerPoint nên xuất PDF (xem được ngay trên điện thoại) — .pptx thì học sinh phải tải về mới mở được.
-                  Podcast phải là tệp .mp3 mới nghe tại chỗ.
+                  <b>Video</b> nên đưa lên YouTube (chọn &laquo;không công khai&raquo;) hoặc Drive rồi dán link — tệp tải thẳng
+                  lên kho tối đa {TRAN_TEP_MB} MB, video thường vượt xa mức đó. <b>Slide PowerPoint</b> nên xuất PDF (xem
+                  được ngay trên điện thoại); .pptx thì học sinh phải tải về mới mở. <b>Podcast</b> phải là tệp .mp3 mới nghe tại chỗ.
                 </p>
               </section>
             </>

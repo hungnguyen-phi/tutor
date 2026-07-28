@@ -17,7 +17,7 @@
  *   đơn giản không tồn tại, không khung trống.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   Clapperboard,
@@ -115,6 +115,23 @@ function Viewer({ r, label }: { r: NodeResource; label: string }) {
   const uri = r.uri!;
   const kind = renderKind(uri);
   const tai_ve = kind === "pdf" || kind === "file";
+
+  // TỆP .html TRONG KHO: bỏ thẳng vào src thì học sinh nhìn thấy MÃ NGUỒN —
+  // kho trả tệp về dưới dạng chữ (text/plain) chứ không phải trang web, cố ý
+  // để không ai biến kho thành nơi chạy web lạ. Cách đi được: tự tải nội dung
+  // rồi dựng vào khung bằng srcDoc. Tải hỏng (link ngoài chặn CORS) → giữ src
+  // như cũ, không làm hỏng đường đang chạy được.
+  const laHtml = /\.html?($|[?#])/i.test(uri);
+  const [noiDung, setNoiDung] = useState<string | null>(null);
+  useEffect(() => {
+    if (kind !== "frame" || !laHtml) return;
+    let alive = true;
+    fetch(uri)
+      .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))))
+      .then((t) => { if (alive) setNoiDung(t); })
+      .catch(() => { if (alive) setNoiDung(null); });
+    return () => { alive = false; };
+  }, [uri, kind, laHtml]);
   return (
     <div className="lsv-stage">
       <div className="lsv-stage-bar">
@@ -166,8 +183,11 @@ function Viewer({ r, label }: { r: NodeResource; label: string }) {
         // Cùng origin với app thì TUYỆT ĐỐI không cấp: đó là đường thoát sandbox.
         <iframe
           className="lsv-frame"
-          sandbox={sandboxFor(embedUrl(uri))}
-          src={embedUrl(uri)}
+          /* srcDoc chạy trong CHÍNH origin của app → TUYỆT ĐỐI không cấp
+             allow-same-origin (đó là đường thoát sandbox). Nội dung tải từ kho
+             là do thầy cô đăng, nhưng luật vẫn là luật. */
+          sandbox={noiDung != null ? "allow-scripts allow-popups allow-forms" : sandboxFor(embedUrl(uri))}
+          {...(noiDung != null ? { srcDoc: noiDung } : { src: embedUrl(uri) })}
           title={label}
         />
       )}
@@ -188,7 +208,9 @@ export default function LessonView({
   );
   // -1 = chưa mở gì (không nạp iframe cho tới khi học sinh chọn) → đặt ở đầu
   // node vẫn nhẹ, không cản đường tới câu hỏi đầu tiên.
-  const [active, setActive] = useState(-1);
+  // Chỉ có MỘT mục thì mở luôn — bắt bấm thêm một nhát để xem đúng một thứ là
+  // vô nghĩa (màn kho báu hiện ra một khung trống với dòng "chọn một mục ở trên").
+  const [active, setActive] = useState(usable.length === 1 ? 0 : -1);
   if (usable.length === 0) return null;
 
   const cur = active >= 0 ? usable[Math.min(active, usable.length - 1)] : null;
@@ -242,7 +264,7 @@ export default function LessonView({
 
       <p className="lsv-foot">
         <Sparkles aria-hidden strokeWidth={2} />
-        Học liệu do Xưởng Học liệu AI của trường biên soạn — đã được giáo viên duyệt.
+        Học liệu do thầy cô của trường chọn cho đúng bài này.
       </p>
     </section>
   );

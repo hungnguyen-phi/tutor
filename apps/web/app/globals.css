@@ -6496,8 +6496,6 @@ html[data-motion="reduce"] .think-dots::after {
 /* ── KHO BÁU: học liệu đứng CẠNH dấu chân bài, không nằm trong bài ────────── */
 .node-treasure {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -6511,8 +6509,13 @@ html[data-motion="reduce"] .think-dots::after {
   cursor: pointer;
   box-shadow: 0 2px 0 var(--gold);
 }
-.node-treasure[data-side="l"] { left: 8px; }
-.node-treasure[data-side="r"] { right: 8px; }
+/* Đặt HẲN RA NGOÀI đĩa dấu chân (đĩa rộng 74–86px, nửa đĩa ~43px) — neo theo
+   tâm <li> chứ không theo mép, vì mép <li> co theo nội dung nên trước đây hộp
+   quà nằm ĐÈ LÊN bàn chân. Neo đỉnh theo đĩa, không theo cả ô (ô của bài đang
+   học còn chứa cờ BẮT ĐẦU + nhãn nên cao hơn hẳn). */
+.node-treasure[data-side="l"] { right: calc(50% + 58px); }
+.node-treasure[data-side="r"] { left: calc(50% + 58px); }
+.node-treasure { top: 34px; transform: none; }
 .node-treasure svg {
   width: 16px;
   height: 16px;
@@ -6539,7 +6542,17 @@ html[data-motion="reduce"] .think-dots::after {
 .node-treasure[data-locked] svg { color: var(--muted); }
 .node-treasure[data-locked]:hover { border-color: var(--line); box-shadow: none; }
 
-/* Màn KHO BÁU (mở từ lộ trình) */
+/* Màn KHO BÁU (mở từ lộ trình). Cột Học trên desktop rộng gần 1.500px — thả
+   nội dung chạy hết chiều ngang là chữ dài hết cỡ, khung xem méo, nút to như
+   cái biển. Kẹp lại đúng bề ngang đọc được rồi căn giữa. */
+.kb {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
 .kb-head {
   display: flex;
   align-items: center;
@@ -6550,10 +6563,10 @@ html[data-motion="reduce"] .think-dots::after {
 .kb-steps {
   display: flex;
   gap: 8px;
-  margin: 10px 0 14px;
+  margin: 2px 0 6px;
 }
 .kb-step {
-  flex: 1;
+  flex: 0 1 160px;
   padding: 8px 6px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -6571,9 +6584,25 @@ html[data-motion="reduce"] .think-dots::after {
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
 }
 .kb-note {
-  margin-top: 10px;
+  margin-top: 2px;
   font-size: 0.8125rem;
   line-height: 1.55;
+}
+/* Nút "xem xong mức" đứng vừa người, căn trái theo nội dung — không phải một
+   dải chạy hết chiều ngang màn hình như nút KIỂM TRA trong bài. */
+.kb-done {
+  align-self: flex-start;
+  min-width: 240px;
+}
+/* Khung xem trong kho báu thấp hơn trong bài: màn này còn phải chứa bậc thang,
+   nút và lời nhắc — 440px đẩy mọi thứ khác xuống dưới màn hình. */
+.kb .lsv-frame,
+.kb .lsv-img {
+  height: 360px;
+  max-height: 360px;
+}
+.kb .lsv {
+  margin: 0;
 }
 
 /* ── NỘP BÀI: câu tự luận dài, làm ngoài rồi tải ảnh/tệp lên ──────────────── */
@@ -7360,7 +7389,10 @@ body:has(.lfoot-says) .lesson-pad {
   .learn-main .scene {
     display: grid;
     grid-template-columns: 340px minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr;
+    /* 4 hàng: banner · báo bài bị trả · lời chào · cổng (hàng 1fr đẩy cổng xuống
+       đáy). MỌI thẻ cột trái phải có grid-area riêng — thiếu một cái là nó tự
+       rơi vào hàng 1fr rồi GIÃN CAO HẾT CỘT (đúng lỗi thẻ "cần làm lại" to đùng). */
+    grid-template-rows: auto auto auto 1fr;
     column-gap: 28px;
   }
   .learn-main .scene-banner {
@@ -7369,18 +7401,24 @@ body:has(.lfoot-says) .lesson-pad {
     margin: 0 0 14px;
     align-self: start;
   }
-  .learn-main .scene-greeting {
+  .learn-main .redo-notice {
     grid-area: 2 / 1 / 3 / 2;
+    width: auto;
+    margin: 0 0 12px;
+    align-self: start;
+  }
+  .learn-main .scene-greeting {
+    grid-area: 3 / 1 / 4 / 2;
     width: auto;
     margin: 0;
     align-self: start;
   }
   .learn-main .path {
-    grid-area: 1 / 2 / 4 / 3;
+    grid-area: 1 / 2 / 5 / 3;
     min-height: 0;
   }
   .learn-main .gate {
-    grid-area: 3 / 1 / 4 / 2;
+    grid-area: 4 / 1 / 5 / 2;
     width: auto;
     margin: 14px 0 16px;
     align-self: end;

@@ -68,7 +68,7 @@ export default function KhoBauView({
   const daXongHet = !!data && data.mucDaQua >= Math.max(1, ...(mucCoSan.length ? mucCoSan : [1]));
 
   return (
-    <div className="stack">
+    <div className="kb">
       <button className="btn btn-ghost" onClick={onBack} style={{ alignSelf: "flex-start" }}>
         <ArrowLeft aria-hidden strokeWidth={2.5} />
         Về lộ trình
@@ -95,8 +95,9 @@ export default function KhoBauView({
 
       {data && !data.khoa && soMuc > 0 && (
         <>
-          {/* Bậc thang: chỉ vẽ đúng số mức bài này THẬT SỰ có — bài chỉ có một
-              mức thì đừng vẽ ba bậc rồi để em chờ mức không bao giờ tới. */}
+          {/* Bậc thang chỉ có nghĩa khi bài có TỪ HAI MỨC trở lên. Một mức mà
+              vẫn vẽ một dải vàng chạy hết chiều ngang thì vừa thừa vừa xấu. */}
+          {mucCoSan.length > 1 && (
           <div className="kb-steps" role="list">
             {mucCoSan.map((m) => (
               <div
@@ -109,6 +110,7 @@ export default function KhoBauView({
               </div>
             ))}
           </div>
+          )}
 
           {cuaMucNay.length > 0 ? (
             <LessonView
@@ -132,7 +134,7 @@ export default function KhoBauView({
 
           {!daXongHet && cuaMucNay.length > 0 && (
             <>
-              <button className="btn btn-block btn-check" disabled={busy} data-loading={busy || undefined} onClick={xongMuc}>
+              <button className="btn btn-check kb-done" disabled={busy} data-loading={busy || undefined} onClick={xongMuc}>
                 XEM XONG MỨC {data.mucDangMo}
               </button>
               <p className="muted kb-note">
