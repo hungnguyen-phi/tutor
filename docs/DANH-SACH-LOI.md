@@ -550,19 +550,39 @@ KHÔNG phải React gỡ mất khối câu hỏi. Bằng chứng: chính dòng c
 được, mà dòng đó nằm CÙNG khối `.submit-box` với ô gõ bài — nếu khối bị gỡ thì
 dòng đó cũng mất theo.
 
-**Hai giả thuyết còn lại, chưa phân định được:**
-1. **Trang bị cuộn** — trình duyệt trả tiêu điểm sau khi đóng hộp thoại và nhảy
-   vị trí cuộn; nội dung vẫn còn, chỉ nằm ngoài tầm nhìn.
-2. **Khung học liệu mới cao 78vh** (`.lsv-frame`, sửa ở đợt này cho lỗi 1) —
-   nếu bài này có học liệu PDF đứng trên câu hỏi, khung đó giờ cao gần hết màn;
-   PDF chưa tải xong thì đúng là một mảng trắng lớn.
+**Chủ dự án bổ sung 29/07:** *không cuộn lên được*, và bài đó **có học liệu PDF
++ link YouTube**.
 
-**Cần chủ dự án cho thêm để chốt** (một trong hai là đủ):
-- Lúc đó **cuộn lên trên** thì đề bài + ô gõ có hiện lại không? (→ giả thuyết 1)
-- Bài đó có **kho báu / học liệu PDF** không? (→ giả thuyết 2)
+**Suy ra được gì từ hai chi tiết đó.**
+- "Không cuộn được" + footer nằm đúng đáy màn ⇒ **tài liệu NGẮN HƠN viewport**,
+  nên trang vốn không có gì để cuộn. KHÔNG phải bị chặn cuộn, cũng không phải
+  nhảy vị trí cuộn.
+- Mảng trắng lớn vì thế chỉ là **nền trang** giữa đáy tài liệu và `.lfoot` (cố
+  định ở đáy) — không phải một khung iframe trắng.
+- Đã đọc hết vùng mã SAU ô nộp bài: chỉ có `.lesson-pad` cao 128px, không có gì
+  sinh ra ~660px. ⇒ thứ thiếu nằm **PHÍA TRÊN** dòng chú thích.
 
-Chưa sửa. Nếu là giả thuyết 2 thì cách sửa khác hẳn giả thuyết 1, đoán bừa là
-vá nhầm chỗ.
+⇒ **Kết luận mới: mọi thứ đáng lẽ đứng trên dòng chú thích đều không chiếm chỗ**
+— khung học liệu, đề bài, ô gõ bài, hàng đính kèm. Đây là lỗi **dựng lại giao
+diện**, KHÔNG phải lỗi chiều cao khung học liệu (`.lsv-frame` 78vh) như suy đoán
+ban đầu. Giả thuyết đó đã bị loại.
+
+**Nghi can hàng đầu:** `LessonView` là component có `useEffect` + `useRef` +
+Fullscreen API mới thêm đợt này. Hộp chọn tệp của Windows làm trang **mất rồi
+lấy lại tiêu điểm**; nếu lúc đó có một lần dựng lại làm `Viewer` ném lỗi thì
+React gỡ cả cây con — mà `LessonView` đứng ĐẦU khối, nên đổ theo cả phần dưới.
+
+**Còn thiếu để chốt (hỏi chủ dự án):**
+1. Bấm **F5** tải lại thì màn hình có về bình thường không?
+2. Vào **đúng bài đó** mà KHÔNG bấm nút đính kèm — có bị trắng luôn không?
+3. Mở **Console** (F12) lúc màn trắng: có dòng đỏ nào không, chép giúp dòng đầu.
+
+Câu 3 gần như chốt được ngay: nếu có `Error` kèm tên component thì đúng là cây
+con bị gỡ, và sửa là bọc `LessonView` trong error boundary + tìm chỗ ném.
+
+*(Đã thử tự tái hiện bằng bản mô phỏng dùng chính CSS live — Browser pane hết
+thời gian chờ, không đo được. Không đăng nhập hộ được nên không vào thẳng màn
+đó.)*
 
 ---
 
