@@ -31,6 +31,17 @@ export function applyParams(expr: string, params?: Record<string, number | strin
   return expr.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
 }
 
+/**
+ * Số kiểu VIỆT → kiểu máy: "0,2"→"0.2", "1.234,5"→"1234.5" (lỗi 16, 29/07).
+ * Học sinh lớp 10 viết thập phân bằng DẤU PHẨY còn CAS chỉ hiểu dấu chấm.
+ * GIỮ ĐỒNG BỘ với supabase/functions/_shared/cas.ts.
+ */
+export function normalizeVnNumbers(s: string): string {
+  return (s ?? "").replace(/\d{1,3}(?:\.\d{3})+,\d+|\d+,\d+/g, (m) =>
+    m.replace(/\./g, "").replace(",", "."),
+  );
+}
+
 export function checkAnswer(
   student: string,
   correct: string,
@@ -39,7 +50,23 @@ export function checkAnswer(
   const a = applyParams((student ?? "").trim(), params);
   const b = applyParams((correct ?? "").trim(), params);
   if (!a) return { correct: false, method: "text", detail: "empty" };
+  const first = gradeExpr(a, b);
+  if (first.correct) return first;
+  // LƯỢT HAI — chuẩn hoá số kiểu Việt rồi chấm lại. Chỉ chạy khi lượt nguyên
+  // bản đã SAI nên chỉ MỞ RỘNG chấp nhận. ĐÁP ÁN MẪU bị bọc ngoặc thì KHÔNG
+  // đụng: ở đó dấu phẩy là dấu NGĂN của bộ/tập ("(1,2)"), đổi đi là biến điểm
+  // thành số rồi học sinh gõ "1,2" lại được tính đúng cho một toạ độ.
+  const refWrapped = /^\s*[([{][\s\S]*[)\]}]\s*$/.test(b);
+  const a2 = normalizeVnNumbers(a);
+  const b2 = refWrapped ? b : normalizeVnNumbers(b);
+  if (a2 !== a || b2 !== b) {
+    const second = gradeExpr(a2, b2);
+    if (second.correct) return second;
+  }
+  return first;
+}
 
+function gradeExpr(a: string, b: string): CasResult {
   // 0) KHỚP CHỮ chính xác (đã chuẩn hoá) → ĐÚNG NGAY, KHÔNG đưa qua CAS. Cứu câu
   //    trắc nghiệm có đáp án là NHÃN chữ cái (A/B/C/D) hay chữ nghĩa: 'A','B','C'
   //    trùng tên ĐƠN VỊ của mathjs (Ampere/Byte/Coulomb) nên CAS hiểu nhầm thành

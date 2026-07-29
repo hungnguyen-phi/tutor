@@ -539,7 +539,12 @@ Deno.serve(async (req: Request) => {
         const matchesOption =
           na.length > 0 &&
           (nq(String(q.dap_an ?? "")) === na ||
-            ((q.distractors ?? []) as Array<{ phuong_an: string }>).some((d) => nq(d.phuong_an) === na));
+            // Array.isArray BẮT BUỘC: `distractors` là jsonb không ràng buộc kiểu.
+            // Chỗ này chạy TRƯỚC khi chấm nên một dòng dữ liệu méo sẽ ném
+            // "some is not a function" cho MỌI câu trả lời, kể cả câu đúng —
+            // rộng hơn hẳn lối cũ (chỉ chạy khi trả lời sai).
+            (Array.isArray(q.distractors) &&
+              (q.distractors as Array<{ phuong_an: string }>).some((d) => nq(d?.phuong_an ?? "") === na)));
         if (!matchesOption && isHelpRequest(studentAnswer)) {
           // Mở đúng BẬC 1 của thang Socratic (siêu nhận thức) nếu node có thang —
           // xin giúp là tín hiệu tốt, phải được đáp bằng câu dẫn, không phải im lặng.
@@ -845,8 +850,14 @@ Deno.serve(async (req: Request) => {
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
 
-      // Hết thang + vẫn sai (đã qua bottom_out ít nhất một lần) → lan truyền ngược.
-      const pastBottomOut = attemptNo >= minAttempts + totalRungs;
+      // Hết thang + vẫn sai (ĐÃ NHẬN gợi mở ở đáy ít nhất một lượt) → lan truyền ngược.
+      // ⚠️ Phải đứng SAU lượt bottom_out đầu tiên. Trước đây điều kiện là
+      // `>= minAttempts + totalRungs`, trùng ĐÚNG lượt mà cổng bắt đầu trả
+      // bottom_out ⇒ nhánh gợi mở của thang (socratic_ladders.bottom_out.noi_dung)
+      // trở thành MÃ CHẾT, và học sinh nhảy thẳng sang lời giải ĐẦY ĐỦ — hé
+      // nhiều hơn hẳn thiết kế. +3 để mọi kiểu học sinh (kể cả em im lặng, vốn
+      // chỉ chạm đáy nhờ van `exhausted`) đều nhận gợi mở trước khi thấy lời giải.
+      const pastBottomOut = attemptNo >= minAttempts + totalRungs + 3;
       if (gate.action === "bottom_out" && pastBottomOut) {
         const rem = await findRemediation(supa, s, q.node_key);
         if (rem) {
@@ -1013,6 +1024,28 @@ Deno.serve(async (req: Request) => {
         feedback: ai ? { ai: { dung: ai.correct, thieu: ai.detail ?? "" } } : null,
       });
       if (insErr) return json({ error: insErr.message }, 500);
+
+      // GHI LƯỢT THỬ (KHÔNG ghi mastery_evidence — đó là việc của giáo viên).
+      // Bỏ dòng này là lộ trình đếm thiếu: `learning-path` dựng "đã làm mấy câu"
+      // TỪ BẢNG attempts, còn mẫu số đếm cả câu [NOPBAI] ⇒ bài 8 câu có 1 câu
+      // nộp bài sẽ đứng mãi ở 7/8, kể cả sau khi thầy cô chấm Đạt. Đúng cái
+      // triệu chứng "app nuốt bài" mà đợt này sinh ra để dẹp.
+      const { count: prevW } = await supa.from("attempts")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", s.id).eq("question_id", q.id);
+      await supa.from("attempts").insert({
+        tenant_id: s.tenant_id,
+        session_id: s.id,
+        student_id: s.student_id,
+        question_id: q.id,
+        node_id: q.node_key,
+        attempt_no: (prevW ?? 0) + 1,
+        raw_answer: workText || `[tệp] ${filePath.split("/").pop() ?? ""}`,
+        // AI chỉ đọc SƠ BỘ: chưa có bài nộp nào được coi là đúng cho tới khi
+        // giáo viên duyệt, nên cột này ghi false — mastery không đọc bảng này.
+        is_correct: false,
+      });
+
       persist("student", workText || `[nộp tệp] ${filePath.split("/").pop()}`, undefined, {
         questionId: q.id, kind: "upload", aiGraded: !!ai,
       });

@@ -48,3 +48,21 @@ describe("CAS — text fallback (non-quantitative)", () => {
   });
   it("rejects đường thẳng ≠ parabol", () => expect(ok("đường thẳng", "parabol")).toBe(false));
 });
+
+// ── Số kiểu VIỆT (lỗi 16, 29/07) — giữ đồng bộ với tools/grading-matrix.mjs ──
+describe("số thập phân kiểu Việt", () => {
+  it("chấp nhận dấu phẩy thập phân", () => {
+    expect(ok("0,2", "0.2")).toBe(true);
+    expect(ok("-0,2", "-0.2")).toBe(true);
+    expect(ok("1.234,5", "1234.5")).toBe(true);
+    expect(ok("sqrt(0,25)", "0.5")).toBe(true);
+  });
+  it("KHÔNG biến toạ độ/tập thành số", () => {
+    expect(ok("1,2", "(1,2)")).toBe(false);
+    expect(ok("1.3", "{1,3}")).toBe(false);
+  });
+  it("không lật kết quả đúng thành sai", () => {
+    expect(ok("(1,2)", "(1,2)")).toBe(true);
+    expect(ok("0,2", "0.3")).toBe(false);
+  });
+});

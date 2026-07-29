@@ -54,7 +54,12 @@ run("KỂ 1 lần ở lượt 2 rồi thôi", (n) => (n === 2 ? 0.6 : 0.03));
 run("GÕ CỤT ('1 vì') mỗi lượt", () => 0.3);
 
 console.log("\n── Nếu THIẾU .order('attempt_no') ở truy vấn attempts ──");
-run("KỂ mỗi lượt, hàng bị xáo thứ tự", () => 0.6, { shuffle: true });
+// PHẢI dùng tín hiệu KHÔNG ĐỀU: với tín hiệu hằng thì đảo mảng là phép đồng
+// nhất, ca thử hoá ra chẳng chứng minh được gì. Kể đúng MỘT lần ở lượt 2 là
+// ca lộ rõ nhất — đảo thứ tự thì lượt "có kể" rơi ra ngoài lát cắt.
+run("KỂ 1 lần ở lượt 2 — thứ tự ĐÚNG", (n) => (n === 2 ? 0.6 : 0.03));
+run("KỂ 1 lần ở lượt 2 — hàng bị XÁO", (n) => (n === 2 ? 0.6 : 0.03), { shuffle: true });
+console.log("   ↑ hai dòng này LỆCH nhau ⇒ đó là lý do truy vấn bắt buộc .order()");
 
 console.log(`
 Đọc bảng:

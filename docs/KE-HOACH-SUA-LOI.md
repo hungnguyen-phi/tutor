@@ -1,7 +1,33 @@
 # KẾ HOẠCH SỬA LỖI — phân nhóm & phương án
 
 > Lập 29/07/2026, từ [DANH-SACH-LOI.md](DANH-SACH-LOI.md) (19 lỗi + 1 vấn đề vận hành
-> + 2 đề xuất). **Đây là kế hoạch, chưa sửa gì.** Chờ lệnh từng đợt.
+> + 2 đề xuất).
+>
+> ## ✅ ĐÃ THỰC HIỆN XONG — 29/07/2026
+>
+> Toàn bộ 7 nhóm A–G đã code xong, kèm 3 vòng **rà đối kháng** (mỗi vòng tìm lỗi
+> trong chính bản vá của vòng trước) cho tới khi hội tụ. Xem lịch sử commit:
+>
+> | Commit | Nội dung |
+> |---|---|
+> | `4506fb7` | Nhóm A — tầng chấm: cổng ý định, fail-closed, số kiểu Việt, AI hết quyền ghi mastery |
+> | `85bdf77` | Nhóm B — lượt của học sinh, nút xin gợi ý, đối thoại hai phía |
+> | `f32efd7` | Nhóm C — lời nhắn giáo viên + bấm vào đúng câu bị trả |
+> | `1e76d65` | Nhóm D — mở cửa hàng đợi ôn tập, màn rỗng nói đúng sự thật |
+> | `03dd981` | Nhóm F — bỏ giao diện tối, sư tử reo, ô kết luận trong bước cuối |
+> | `e51a2ac` | Nhóm E — khung xem cao theo màn + nộp bài từ kho báu |
+> | `629db66` | Nhóm G — hâm nóng edge function (cold start đo được ~1,7s) |
+> | `b7e0eb2` | Bảo mật — rate-limit chat/viết/nói, cache chấm, gọt quan niệm sai |
+> | `342ef72` | SQL dọn dữ liệu pilot (**chủ dự án chạy**) |
+> | `318310f` · `e4a8b73` · `a87089d` | Ba vòng vá theo rà đối kháng |
+>
+> **Kiểm chứng:** `tools/grading-matrix.mjs` 78/78 · `tools/gate-trace.mjs` đạt 4
+> điều kiện · `vitest packages/pedagogy` 6/6 · `tsc --noEmit` sạch · `next build`
+> xanh · 43 tệp edge function đúng cú pháp.
+>
+> **Còn lại (không chặn deploy):** `effort-gate` là mã chết (không ai gọi, logic
+> thật chạy inline trong `chat-turn`) — nên xoá hoặc nối vào để khỏi trôi lệch;
+> `matchesOption` chưa xử được câu tham-số-hoá (438 câu, hiện chưa ảnh hưởng).
 
 ---
 
