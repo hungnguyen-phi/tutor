@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
       (versions ?? []).find((v) => v.status === "published") ?? (versions ?? [])[0];
     if (!version) {
       return json({
-        error: `không tìm thấy phiên bản «${b.version_label}» môn ${b.subject}. ` +
+        error: `không tìm thấy phiên bản "${b.version_label}" môn ${b.subject}. ` +
           "Nhãn phải khớp đúng một bản đã nạp khung (bàn cờ node).",
       }, 404);
     }
@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
       const form = s(q.dang_cau_hoi) ?? "";
       const group = FORM_GROUP[form];
       if (!node_key) { rejected.push({ id, reason: "thiếu node_id" }); continue; }
-      if (!nodeKeys.has(node_key)) { rejected.push({ id, reason: `node «${node_key}» không có trong phiên bản` }); continue; }
+      if (!nodeKeys.has(node_key)) { rejected.push({ id, reason: `node "${node_key}" không có trong phiên bản` }); continue; }
       if (!group) { rejected.push({ id, reason: `dạng câu hỏi lạ: ${form || "(trống)"}` }); continue; }
       if (seenKey.has(id)) { rejected.push({ id, reason: "question_key trùng trong gói" }); continue; }
       seenKey.add(id);
@@ -220,7 +220,7 @@ Deno.serve(async (req: Request) => {
       coverage: { nodesWithQuestions: nodesWithQ, totalNodes: nodeKeys.size },
       ...(rejected.length ? { rejectedSample: rejected.slice(0, 8) } : {}),
       message:
-        `Đã nạp ${rows.length} câu vào hàng chờ duyệt cho «${b.version_label}»` +
+        `Đã nạp ${rows.length} câu vào hàng chờ duyệt cho "${b.version_label}"` +
         (rejected.length ? ` (${rejected.length} câu bị loại).` : ".") +
         ` Bàn cờ: ${nodesWithQ}/${nodeKeys.size} node đã có câu hỏi.`,
     });

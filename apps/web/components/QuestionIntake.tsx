@@ -113,7 +113,7 @@ export default function QuestionIntake() {
         ok: true,
         text:
           r.message ??
-          `Đã nạp ${r.accepted ?? a.total} câu vào hàng chờ duyệt cho «${r.version ?? a.versionLabel}».`,
+          `Đã nạp ${r.accepted ?? a.total} câu vào hàng chờ duyệt cho "${r.version ?? a.versionLabel}".`,
       });
     } catch (e) {
       setSendMsg({

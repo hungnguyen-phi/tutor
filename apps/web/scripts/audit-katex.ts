@@ -78,7 +78,7 @@ async function main() {
   console.log(`Câu hỏi: ${q.strings} chuỗi kiểm · ${q.rows.length} công thức FAIL (rơi về text thô).`);
   console.log("\n— Top loại lỗi —"); Object.entries(byErr).sort((a, b) => b[1] - a[1]).slice(0, 8).forEach(([e, n]) => console.log(`  ${n}×  ${e}`));
   console.log("\n— Theo môn —"); Object.entries(bySubject).sort((a, b) => b[1] - a[1]).slice(0, 12).forEach(([s, n]) => console.log(`  ${n}×  ${s}`));
-  console.log("\n— 8 ví dụ fail —"); q.rows.slice(0, 8).forEach((r) => console.log(`  [${r.subject}] ${r.field}: «${r.latex.slice(0, 55)}» → ${r.err}`));
+  console.log("\n— 8 ví dụ fail —"); q.rows.slice(0, 8).forEach((r) => console.log(`  [${r.subject}] ${r.field}: "${r.latex.slice(0, 55)}" → ${r.err}`));
   console.log(`\n(Danh sách sửa đầy đủ → docs/katex-fixlist.csv — ${q.rows.length} dòng cho Studio)`);
 }
 main().catch((e) => { console.error(e); process.exit(1); });

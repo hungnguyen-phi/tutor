@@ -82,7 +82,12 @@ export function anonymize(input: string, knownNames: string[] = []): AnonymizeRe
 export function rehydrate(text: string, map: Record<string, string>): string {
   let out = text;
   for (const [ph, real] of Object.entries(map)) out = out.split(ph).join(real);
-  return out;
+  // NGOẶC KÉP KIỂU PHÁP « » → nháy thẳng (chủ dự án yêu cầu bỏ 29/07: trên màn
+  // hình chúng đọc ra thành "<<" và ">>", trông như lỗi hiển thị). Đã dọn hết
+  // trong mã, nhưng MÔ HÌNH vẫn có thể tự viết ra — nên chặn ở đây, chỗ MỌI lời
+  // do AI sinh đều đi qua trước khi tới mắt học sinh. Chặn bằng lời dặn trong
+  // prompt thì vừa tốn token vừa không chắc; đổi ký tự thì chắc và miễn phí.
+  return out.replace(/[«»]/g, '"');
 }
 
 export interface LlmCallArgs {

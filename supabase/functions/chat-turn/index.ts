@@ -867,7 +867,7 @@ Deno.serve(async (req: Request) => {
         if (state.newlyMastered) {
           msg = en
             ? `Correct! You've just MASTERED "${nodeLabel}" — that persistence paid off!`
-            : `Chính xác! Bạn vừa làm chủ «${nodeLabel}» rồi đó — nỗ lực bền bỉ của bạn được đền đáp!`;
+            : `Chính xác! Bạn vừa làm chủ "${nodeLabel}" rồi đó — nỗ lực bền bỉ của bạn được đền đáp!`;
         } else {
           msg = en
             ? "Correct — nice work! I can see your effort paying off. Ready for the next one?"
@@ -989,7 +989,7 @@ Deno.serve(async (req: Request) => {
         // Xoay vòng lời mời (lỗi 19): nhánh này có thể lặp vài lượt liền, nói y
         // hệt một câu là nghe như máy hỏng — mà đây đúng là chỗ cần em mở lời.
         const ASK_VI = [
-          "Trước khi mình gợi ý, bạn kể xem đã nghĩ thế nào để ra kết quả đó nhé? Gõ vào ô «Kể cách em nghĩ» bên dưới.",
+          'Trước khi mình gợi ý, bạn kể xem đã nghĩ thế nào để ra kết quả đó nhé? Gõ vào ô "Kể cách em nghĩ" bên dưới.',
           "Bạn nói mình nghe bước đầu tiên bạn làm là gì? Nói sai cũng không sao — mình cần biết bạn đang nghĩ theo hướng nào.",
           "Trong đề, dữ kiện nào bạn thấy quan trọng nhất? Kể ra là mình dẫn tiếp ngay.",
         ];
@@ -1082,7 +1082,7 @@ Deno.serve(async (req: Request) => {
             .eq("id", s.id);
           const msg = en
             ? `I think the real gap is one level deeper: "${rem.label}". Let's patch that foundation first — once it's solid, this problem will feel much easier!`
-            : `Mình để ý chỗ vướng thật sự có thể nằm sâu hơn một tầng: «${rem.label}». Mình cùng quay lại vá nền đó trước nhé — nền chắc rồi, bài này sẽ dễ hơn nhiều!`;
+            : `Mình để ý chỗ vướng thật sự có thể nằm sâu hơn một tầng: "${rem.label}". Mình cùng quay lại vá nền đó trước nhé — nền chắc rồi, bài này sẽ dễ hơn nhiều!`;
           persist("tutor", msg, "engine", { gate: "remediate", from: q.node_key, to: rem.nodeKey, matched });
           return json({
             correct: false,
