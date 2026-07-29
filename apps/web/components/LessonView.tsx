@@ -17,7 +17,7 @@
  *   đơn giản không tồn tại, không khung trống.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Clapperboard,
@@ -30,6 +30,8 @@ import {
   Image as ImageIcon,
   Layers,
   ListChecks,
+  Maximize2,
+  Minimize2,
   MousePointerClick,
   PenLine,
   Presentation,
@@ -115,6 +117,21 @@ function Viewer({ r, label }: { r: NodeResource; label: string }) {
   const uri = r.uri!;
   const kind = renderKind(uri);
   const tai_ve = kind === "pdf" || kind === "file";
+  // Toàn màn hình cho khung xem — PDF/slide đọc trên khung nhúng vẫn chật so với
+  // một trang A4; nút này là lối thoát tại chỗ, không phải rời app sang tab khác.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const onChange = () => setFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const toggleFull = () => {
+    const el = stageRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void el.requestFullscreen?.().catch(() => {/* trình duyệt chặn — bỏ qua */});
+  };
 
   // TỆP .html TRONG KHO: bỏ thẳng vào src thì học sinh nhìn thấy MÃ NGUỒN —
   // kho trả tệp về dưới dạng chữ (text/plain) chứ không phải trang web, cố ý
@@ -133,9 +150,17 @@ function Viewer({ r, label }: { r: NodeResource; label: string }) {
     return () => { alive = false; };
   }, [uri, kind, laHtml]);
   return (
-    <div className="lsv-stage">
+    <div className="lsv-stage" ref={stageRef} data-full={full || undefined}>
       <div className="lsv-stage-bar">
         <span className="lsv-stage-title">{label}</span>
+        {/* Toàn màn hình đứng TRƯỚC "mở tab mới": đọc tại chỗ là lựa chọn đúng
+            hơn cho học sinh (không lạc khỏi bài), tab mới chỉ là đường lui. */}
+        {kind !== "audio" && (
+          <button type="button" className="lsv-stage-act" onClick={toggleFull}>
+            {full ? <Minimize2 aria-hidden strokeWidth={2} /> : <Maximize2 aria-hidden strokeWidth={2} />}
+            {full ? "Thu nhỏ" : "Toàn màn hình"}
+          </button>
+        )}
         {tai_ve && (
           <a className="lsv-stage-act" href={uri} download target="_blank" rel="noopener noreferrer">
             <Download aria-hidden strokeWidth={2} />
@@ -173,7 +198,15 @@ function Viewer({ r, label }: { r: NodeResource; label: string }) {
           </span>
         </a>
       ) : kind === "pdf" ? (
-        <embed className="lsv-frame" src={uri} type="application/pdf" />
+        /* #view=FitH = vừa CHIỀU NGANG: hết cuộn ngang trong khung nhúng — thanh
+           trượt ngang chính là thứ người thử kêu "xem không hết" (lỗi 1).
+           <iframe> thay <embed>: nhận được tham số #view trên nhiều trình duyệt
+           hơn, và nằm trong luồng fullscreen của thẻ cha. */
+        <iframe
+          className="lsv-frame"
+          src={`${uri}${uri.includes("#") ? "&" : "#"}view=FitH&toolbar=1`}
+          title={label}
+        />
       ) : (
         // HTML tự chứa (quiz, flashcard, mindmap tương tác, slide dạng web) —
         // chạy trong hộp cách ly. `allow-same-origin` chỉ cấp khi nội dung nằm ở

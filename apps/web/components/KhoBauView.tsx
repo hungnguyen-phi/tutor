@@ -18,6 +18,7 @@ import { ArrowLeft, Gift, Check, Sparkles } from "lucide-react";
 import { nodeResources, khoBauXong, type KhoBauResult, type NodeResource, type Subject } from "../lib/api";
 import Lion from "./Lion";
 import LessonView from "./LessonView";
+import NopBaiBox from "./NopBaiBox";
 
 export default function KhoBauView({
   subject,
@@ -113,10 +114,18 @@ export default function KhoBauView({
           )}
 
           {cuaMucNay.length > 0 ? (
-            <LessonView
-              resources={cuaMucNay}
-              subtitle="Xem, nghe, làm thử — phần này không tính điểm, cứ thoải mái khám phá."
-            />
+            <>
+              <LessonView
+                resources={cuaMucNay}
+                subtitle="Xem, nghe, làm thử — phần này không tính điểm, cứ thoải mái khám phá."
+              />
+              {/* Có PHIẾU BÀI TẬP ở mức đang mở + bài có câu nộp → mở đường NỘP
+                  ngay tại đây (lỗi 1). Trước đây em tải phiếu về, làm xong rồi
+                  không có chỗ nào gửi lại cho thầy cô. */}
+              {data.nopBaiQuestionId && cuaMucNay.some((r) => r.format === "worksheet") && (
+                <NopBaiBox subject={subject} nodeKey={nodeKey} questionId={data.nopBaiQuestionId} />
+              )}
+            </>
           ) : (
             <p className="muted">Mức này chưa có học liệu nào. Thầy cô sẽ bổ sung sau nhé!</p>
           )}

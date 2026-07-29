@@ -544,6 +544,9 @@ export interface KhoBauResult {
   conMucSau: boolean;
   /** Server chặn vì bài chưa mở (còn bài tiên quyết chưa thành thạo). */
   khoa?: boolean;
+  /** Câu [NOPBAI] của cùng bài — có thì kho báu mở được đường NỘP bài đã làm
+   *  ngoài (phiếu bài tập tải về rồi làm giấy). Vắng = bài này chưa có câu nộp. */
+  nopBaiQuestionId?: string;
 }
 
 export const nodeResources = (subject: Subject, nodeKey: string) =>

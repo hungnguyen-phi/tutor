@@ -3977,6 +3977,10 @@ html[data-motion="reduce"] .spin {
   margin-bottom: 8px;
 }
 .lsv-stage-title {
+  /* Co giãn: đẩy cụm nút hành động về mép phải của thanh (thay margin-left:auto
+     cũ, vốn bám :first-of-type nên hỏng khi phần tử đầu là <button>). */
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--ink);
@@ -3985,24 +3989,42 @@ html[data-motion="reduce"] .spin {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  /* Nút toàn-màn-hình dùng chung lớp này với các <a> → reset nền/viền của button. */
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--sky);
   text-decoration: none;
 }
-.lsv-stage-act:first-of-type {
-  margin-left: auto;
+.lsv-stage-act:hover { text-decoration: underline; }
+/* Toàn màn hình: khung chiếm trọn màn, nền tối dịu để nội dung nổi lên. */
+.lsv-stage[data-full] {
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas-flat);
+  padding: 12px;
+}
+.lsv-stage[data-full] .lsv-frame,
+.lsv-stage[data-full] .lsv-img {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
 }
 .lsv-stage-act svg {
   width: 14px;
   height: 14px;
 }
-.lsv-stage-act:hover {
-  text-decoration: underline;
-}
+/* Khung xem học liệu — cao theo MÀN HÌNH, không phải con số cứng (lỗi 1).
+   440px cố định trên laptop 1080p là ~1/3 trang A4 → PDF sinh cuộn-trong-cuộn,
+   người thử phải kéo hai tầng thanh trượt mới đọc hết một phiếu bài tập. */
 .lsv-frame {
   width: 100%;
-  height: 440px;
+  height: min(78vh, 900px);
+  min-height: 380px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--canvas-flat);
@@ -4124,8 +4146,10 @@ html[data-motion="reduce"] .spin {
   color: var(--gold-icon);
 }
 @media (max-width: 560px) {
+  /* Điện thoại: bàn phím + thanh địa chỉ ăn mất chiều cao, nên nhường một nhịp. */
   .lsv-frame {
-    height: 380px;
+    height: 68vh;
+    min-height: 320px;
   }
 }
 
@@ -6643,12 +6667,14 @@ html[data-motion="reduce"] .think-dots::after {
   align-self: flex-start;
   min-width: 240px;
 }
-/* Khung xem trong kho báu thấp hơn trong bài: màn này còn phải chứa bậc thang,
-   nút và lời nhắc — 440px đẩy mọi thứ khác xuống dưới màn hình. */
+/* Kho báu cũng cao theo màn: trước đây kẹp cứng 360px để chừa chỗ cho bậc thang
+   + nút, nhưng đổi lại là PDF đọc không nổi (lỗi 1, người thử báo 29/07). Nay
+   thấp hơn màn bài học một nhịp (70vh) — vẫn thấy nút mà đọc được ra hồn. */
 .kb .lsv-frame,
 .kb .lsv-img {
-  height: 360px;
-  max-height: 360px;
+  height: min(70vh, 820px);
+  max-height: min(70vh, 820px);
+  min-height: 360px;
 }
 .kb .lsv {
   margin: 0;
@@ -11420,4 +11446,57 @@ textarea {
 .step-input {
   margin-top: 10px;
   width: 100%;
+}
+
+/* ═══ NỘP BÀI TỪ KHO BÁU (lỗi 1 + Đ1) ═══
+   Khối đứng ngay dưới phiếu bài tập: em tải phiếu về, làm giấy, chụp ảnh nộp
+   lại — không phải quay vào luồng câu hỏi mới tìm được nút nộp. */
+.nb-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 2px solid var(--gold);
+  border-radius: var(--r);
+  background: var(--gold-tint);
+}
+.nb-box[data-done] {
+  border-color: var(--ok, #2f8f4e);
+  background: var(--ok-tint, #eef7f0);
+}
+.nb-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.nb-head svg { flex: 0 0 auto; width: 20px; height: 20px; color: var(--navy); }
+.nb-head b { display: block; color: var(--ink); }
+.nb-head .muted { display: block; margin-top: 2px; font-size: 0.8125rem; line-height: 1.5; }
+.nb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.nb-cam-btn { flex: 0 0 auto; }
+.nb-send { align-self: flex-start; min-width: 260px; }
+.nb-msg { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--ink-2); }
+.nb-err { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--err); }
+.nb-done { display: flex; align-items: center; gap: 12px; }
+.nb-done b { display: block; color: var(--ink); }
+.nb-done .muted { margin: 2px 0 0; font-size: 0.875rem; line-height: 1.5; }
+/* Khung ngắm webcam — 16:9, nền tối để bài trên giấy nổi lên khi canh khung. */
+.nb-cam { display: flex; flex-direction: column; gap: 8px; }
+.nb-cam-view {
+  width: 100%;
+  max-height: 46vh;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #111;
+}
+.nb-cam-row { display: flex; gap: 8px; }
+@media (max-width: 480px) {
+  .nb-send { width: 100%; min-width: 0; }
 }

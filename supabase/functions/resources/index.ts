@@ -137,6 +137,25 @@ Deno.serve(async (req: Request) => {
     // mức 1 thì không vẽ ba bậc rồi để em chờ mãi mức không bao giờ tới).
     const mucCoSan = [...new Set(all.map((r) => Number(r.tier) || 1))].sort();
 
+    // CÂU NỘP BÀI của cùng bài — để kho báu có đường NỘP LẠI ngay dưới phiếu
+    // bài tập (lỗi 1: "tải về làm xong thì không có chỗ nào nộp lên").
+    // Không đổi schema: bài nộp vẫn gắn vào một câu [NOPBAI] có thật của node,
+    // nên nó chảy đúng vào hàng đợi chấm của giáo viên như mọi bài khác.
+    let nopBaiQuestionId: string | null = null;
+    if (all.some((r) => r.format === "worksheet")) {
+      const { data: nb } = await supa
+        .from("questions")
+        .select("id, noi_dung")
+        .eq("kg_version_id", version.id)
+        .eq("node_key", node_key)
+        .eq("trang_thai", "active")
+        .ilike("noi_dung", "[NOPBAI]%")
+        .order("question_key", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      nopBaiQuestionId = nb?.id ?? null;
+    }
+
     return json({
       resources,
       mucDaQua,
@@ -144,6 +163,7 @@ Deno.serve(async (req: Request) => {
       mucCoSan,
       // Còn mức nào phía sau chưa mở → client mời quay lại.
       conMucSau: mucCoSan.some((m) => m > mucDangMo),
+      ...(nopBaiQuestionId ? { nopBaiQuestionId } : {}),
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
