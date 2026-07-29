@@ -11533,3 +11533,17 @@ textarea {
   flex-direction: column;
   gap: 14px;
 }
+
+/* Màn HẾT PHIÊN (lỗi 20) — thay cho trang trống câm khi mọi lệnh gọi trả 401. */
+.expired-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 28px 20px;
+  max-width: 520px;
+  margin: 40px auto;
+}
+.expired-panel .muted { line-height: 1.6; }
+.expired-panel .btn { margin-top: 6px; min-width: 220px; }

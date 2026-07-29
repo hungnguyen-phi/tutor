@@ -53,9 +53,24 @@ export function warmUpFunctions(fns: string[] = ["learning-path", "diagnose", "r
   }
 }
 
+/** Phiên đăng nhập đã hết hạn / không còn — mọi nơi gọi bắt mã này để mời đăng
+ *  nhập lại, thay vì để màn hình chết câm. */
+export const SESSION_EXPIRED = "session_expired";
+
 async function callFn<T>(fn: string, body: unknown): Promise<T> {
   const { data: sess } = await supabase.auth.getSession();
-  const token = sess.session?.access_token ?? SUPABASE_ANON_KEY;
+  const token = sess.session?.access_token;
+  // ⚠️ TUYỆT ĐỐI KHÔNG rơi về khoá anon khi hết phiên (lỗi 20, 29/07).
+  // Đường cũ `?? SUPABASE_ANON_KEY` gửi khoá publishable làm token người dùng →
+  // server không giải được ra userId → 401 cho MỌI lệnh gọi. Học sinh thấy màn
+  // trống câm (học liệu 401 → LessonView rỗng; chat-turn 401 → không chấm được)
+  // mà không câu nào nói cho biết là đã hết phiên. Thà dừng ngay và nói thật.
+  if (!token) {
+    throw new ApiError("Phiên đăng nhập đã hết hạn — bạn đăng nhập lại nhé.", {
+      status: 401,
+      code: SESSION_EXPIRED,
+    });
+  }
   const res = await fetch(`${FUNCTIONS_BASE}/${fn}`, {
     method: "POST",
     headers: {
@@ -84,6 +99,14 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
         status: 429,
         code: "rate_limited",
         retryAfter,
+      });
+    }
+    // Token còn nhưng server từ chối (hết hạn giữa chừng, khoá bị thu hồi) —
+    // cũng là hết phiên. Gắn CÙNG mã để UI chỉ cần xử một trường hợp.
+    if (res.status === 401) {
+      throw new ApiError("Phiên đăng nhập đã hết hạn — bạn đăng nhập lại nhé.", {
+        status: 401,
+        code: SESSION_EXPIRED,
       });
     }
     throw new ApiError(data?.message ?? data?.error ?? `${fn} failed (${res.status})`, {

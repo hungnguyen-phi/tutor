@@ -53,6 +53,7 @@ import {
   getScoreboard,
   warmUpFunctions,
   ApiError,
+  SESSION_EXPIRED,
   type Scoreboard,
   type DiagnoseResult,
   type DiagnoseQuestion,
@@ -76,6 +77,10 @@ function errText(e: unknown): string {
   }
   return e instanceof Error ? e.message : String(e);
 }
+
+/** Hết phiên đăng nhập — lỗi này phải xử RIÊNG: mọi lệnh gọi server đều hỏng
+ *  nên vá từng chỗ là vô ích, phải mời đăng nhập lại một lần cho cả màn. */
+const isExpired = (e: unknown) => e instanceof ApiError && e.code === SESSION_EXPIRED;
 
 type Msg =
   | { role: "student"; text: string }
@@ -159,6 +164,8 @@ export default function TutorApp() {
   const [earned, setEarned] = useState(0);
   const [finished, setFinished] = useState<EndResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Hết phiên: banner riêng, đứng trên mọi thứ, có nút đăng nhập lại.
+  const [expired, setExpired] = useState(false);
 
   const [progress, setProgress] = useState<G.Progress>(G.load);
   const [bump, setBump] = useState(false);
@@ -494,8 +501,10 @@ export default function TutorApp() {
       .then((r) => {
         if (alive) setResources(Array.isArray(r?.resources) ? r.resources : []);
       })
-      .catch(() => {
-        /* im lặng — pipeline học liệu chưa sẵn sàng */
+      .catch((e) => {
+        // Nuốt im lặng CHỈ khi pipeline học liệu chưa sẵn sàng. Hết phiên thì
+        // phải nói — nuốt là đúng cái làm màn hình trống câm (lỗi 20).
+        if (alive && isExpired(e)) setExpired(true);
       });
     return () => {
       alive = false;
@@ -556,7 +565,7 @@ export default function TutorApp() {
         window.setTimeout(() => setBump(false), 700);
       }
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setBusy(false);
     }
@@ -709,7 +718,7 @@ export default function TutorApp() {
       // Ghi nhớ câu từng sai — nguồn số liệu "chính xác x/y" và "xem lại câu sai".
       if (!res.correct && res.graded !== false) wrongRef.current.add(q.id);
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setLoading(false);
       setBusy(false);
@@ -752,7 +761,7 @@ export default function TutorApp() {
       if (res.feedback) setMsgs((m) => [...m, { role: "tutor", text: res.feedback! }]);
       setVerdict("submitted");
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setLoading(false);
       setBusy(false);
@@ -774,7 +783,7 @@ export default function TutorApp() {
       const res = await answerReflect(ses.sessionId, q.id, msg);
       if (res.message) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setLoading(false);
       setBusy(false);
@@ -797,7 +806,7 @@ export default function TutorApp() {
       // chính thức, KHÔNG XP, KHÔNG đụng mastery (mastery chỉ tính câu khách quan).
       setVerdict("done");
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setLoading(false);
       setBusy(false);
@@ -816,7 +825,7 @@ export default function TutorApp() {
       // Nói là FORMATIVE: chấm rubric để tự tiến bộ, KHÔNG XP (xem submitWriting).
       setVerdict("done");
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setLoading(false);
       setBusy(false);
@@ -854,7 +863,7 @@ export default function TutorApp() {
       setFinished(r);
       setPathVersion((v) => v + 1); // mastery vừa đổi — nạp lại lộ trình server
     } catch (e) {
-      setError(errText(e));
+      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setBusy(false);
     }
@@ -900,6 +909,34 @@ export default function TutorApp() {
   // Lần mở app đầu VÀ mỗi lần ĐỔI MÔN: giữ intro tới khi lộ trình môn hiện tại
   // settle (hoặc hết 1.4s) — cảnh + banner lộ MỘT LẦN đã đúng trạng thái, không
   // tráo fallback→tĩnh→server (world nền sáng→tối, banner nhảy) trước mắt học sinh.
+  // HẾT PHIÊN — chặn TRƯỚC khi vẽ bất cứ gì. Đây là lỗi 20: trước đây mọi lệnh
+  // gọi server trả 401 mà giao diện vẫn vẽ tiếp một màn không có dữ liệu, học
+  // sinh nhìn thấy trang trống và không hiểu vì sao.
+  if (expired) {
+    return (
+      <AppShell current="learn" onNavigate={switchView}>
+        <div className="ws-panel expired-panel" role="alert">
+          <Lion mood="thinking" size={72} decorative />
+          <h2 className="ws-panel-title">Phiên đăng nhập đã hết hạn</h2>
+          <p className="muted">
+            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Đăng nhập lại là học tiếp
+            được ngay — bài đang dở vẫn còn nguyên.
+          </p>
+          <button
+            className="btn btn-gold"
+            onClick={() => {
+              void signOut().finally(() => {
+                window.location.href = "/login/";
+              });
+            }}
+          >
+            Đăng nhập lại
+          </button>
+        </div>
+      </AppShell>
+    );
+  }
+
   if (!firstReady) return <Splash text={`Đang mở ${active.short}…`} />;
 
   // ── Hoàn thành buổi học (hi-fi 4a) ────────────────────────────────────
