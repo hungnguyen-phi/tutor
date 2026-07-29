@@ -51,6 +51,7 @@ import {
   learningPath,
   nodeResources,
   getScoreboard,
+  warmUpFunctions,
   ApiError,
   type Scoreboard,
   type DiagnoseResult,
@@ -321,9 +322,13 @@ export default function TutorApp() {
   useEffect(() => {
     setProgress(G.load());
     setMastered(G.loadMastered());
-    // Tuỳ chọn Cài đặt (sáng/tối, cỡ chữ…) — bootstrap ở layout đã áp trước
-    // khi vẽ; gọi lại đề phòng script bị chặn (CSP/ẩn danh).
+    // Tuỳ chọn Cài đặt (cỡ chữ, giảm chuyển động) — bootstrap ở layout đã áp
+    // trước khi vẽ; gọi lại đề phòng script bị chặn (CSP/ẩn danh).
     Prefs.applyToHtml();
+    // Hâm nóng các function sẽ dùng NGAY sau đây (lỗi 12): học sinh đang xem
+    // lộ trình thì chat-turn/resources/end-session còn ngủ — cú gọi đầu mất
+    // ~1,7s dựng isolate, rơi đúng vào lần trả lời đầu tiên của em.
+    warmUpFunctions(["chat-turn", "resources", "end-session"]);
   }, []);
 
   // Chốt chặn intro: LẦN ĐẦU và MỖI LẦN ĐỔI MÔN, nếu learning-path treo/mạng

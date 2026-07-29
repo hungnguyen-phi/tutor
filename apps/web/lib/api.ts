@@ -20,6 +20,30 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * HÂM NÓNG edge function (lỗi 12 — đăng nhập chậm, có ca hơn 1 phút).
+ *
+ * Đo 29/07 trên prod: lượt gọi ĐẦU vào một function đang ngủ mất ~1,7s chỉ để
+ * dựng isolate; lượt sau còn ~120-200ms. Học sinh mở app → đăng nhập → mới gọi
+ * learning-path, nên cú cold start rơi đúng vào lúc em chờ màn lộ trình.
+ *
+ * Gọi lúc MỞ MÀN ĐĂNG NHẬP: trong lúc em gõ email/mật khẩu (vài giây) thì các
+ * function đã tỉnh. Request cố ý KHÔNG kèm token → server trả 401 ngay, chưa
+ * chạm DB, nhưng isolate đã dựng xong. Mọi lỗi nuốt im lặng: đây là tối ưu,
+ * không phải chức năng.
+ */
+export function warmUpFunctions(fns: string[] = ["learning-path", "diagnose", "review-queue"]): void {
+  if (typeof fetch === "undefined") return;
+  for (const fn of fns) {
+    void fetch(`${FUNCTIONS_BASE}/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+      body: "{}",
+      keepalive: true,
+    }).catch(() => {});
+  }
+}
+
 async function callFn<T>(fn: string, body: unknown): Promise<T> {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token ?? SUPABASE_ANON_KEY;

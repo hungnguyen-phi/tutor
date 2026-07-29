@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, GraduationCap, IdCard, Mail, Presentation, Users } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { PILOT_DEMO_ACCOUNTS, PILOT_PASSWORD_LOGIN, SCHOOL_EMAIL_DOMAIN } from "../lib/config";
+import { warmUpFunctions } from "../lib/api";
 import Lion from "./Lion";
 
 /**
@@ -55,6 +56,13 @@ export default function Login() {
       emailRef.current?.focus();
     }
   }, [step]);
+
+  // HÂM NÓNG edge function ngay khi mở màn đăng nhập (lỗi 12): cold start đo
+  // được ~1,7s/function, và nó rơi đúng vào lúc học sinh chờ lộ trình hiện ra.
+  // Gọi ở đây thì vài giây em gõ mật khẩu là đủ để function tỉnh.
+  useEffect(() => {
+    warmUpFunctions();
+  }, []);
 
   // SSO lỗi bounce về /login/ với error_description ở query hoặc hash → hiện rõ,
   // rồi dọn URL để refresh không lặp lại thông báo.
