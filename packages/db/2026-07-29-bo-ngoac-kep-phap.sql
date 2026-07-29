@@ -4,27 +4,50 @@
 -- trông như lỗi hiển thị. Đã dọn hết trong mã và chặn ở đường ra của AI
 -- (_shared/llm.ts → rehydrate); còn lại là phần nằm trong DỮ LIỆU.
 --
--- Rà toàn bộ nội dung học sinh đọc, chỉ thấy ĐÚNG MỘT chỗ:
---   questions.noi_dung     0     questions.dap_an   0
---   questions.loi_giai     0     kg_nodes.label     0
---   socratic_ladders       0     resources          0
---   questions.distractors  1  ← câu feb29d0f, node KC-9609209, đang hoạt động
--- Chuỗi dính là lời chẩn đoán quan niệm sai của một phương án nhiễu — học sinh
--- chọn đúng phương án đó là đọc thấy ngay.
+-- Quét MỌI CỘT của 8 bảng nội dung (to_jsonb(t.*)), thấy đúng hai chỗ:
+--   questions          1 dòng — trong `distractors` (jsonb)
+--   session_turns      7 dòng — trong `content` (text)
+--   kg_nodes · socratic_ladders · resources · kc_registry · kg_versions
+--   · submissions      0
+--
+-- ⚠️ BẪY ĐÃ TRẢ GIÁ MỘT LẦN (bản đầu của file này hỏng vì nó):
+-- `"` là KÝ TỰ CÚ PHÁP của JSON. Đổi thẳng trên chuỗi `distractors::text` là vỡ
+-- JSON ngay ("«Không đều...»" thành ""Không đều..."" — Postgres báo
+-- 22P02 invalid input syntax for type json). Phải đụng vào GIÁ TRỊ: bóc từng
+-- chuỗi ra dạng text, thay, rồi để `to_jsonb` tự lo phần thoát ký tự.
 --
 -- Chạy: node packages/db/run-sql.mjs packages/db/2026-07-29-bo-ngoac-kep-phap.sql
 -- (thêm --dry để xem trước). Chạy lại nhiều lần vô hại.
 
--- Đổi trên CHUỖI JSON rồi ép về jsonb: distractors là mảng object, sửa từng
--- phần tử bằng jsonb_set thì phải biết trước chỉ số và tên khoá. Cách này gọn
--- và đúng cho mọi hình dạng — replace chỉ đụng ĐÚNG hai ký tự đó, không ký tự
--- nào khác của JSON bị chạm (« » không nằm trong cú pháp JSON).
-update questions
-set distractors = replace(replace(distractors::text, '«', '"'), '»', '"')::jsonb
-where distractors::text like '%«%' or distractors::text like '%»%';
+-- ── 1) distractors (jsonb: mảng các object) ────────────────────────────────
+-- Dựng lại mảng, thay trong TỪNG giá trị kiểu chuỗi. Khoá và các giá trị không
+-- phải chuỗi giữ nguyên. jsonb vốn không giữ thứ tự khoá nên không mất gì.
+update questions q
+set distractors = (
+  select jsonb_agg(
+    (
+      select coalesce(
+        jsonb_object_agg(
+          k,
+          case when jsonb_typeof(v) = 'string'
+            then to_jsonb(replace(replace(v #>> '{}', '«', '"'), '»', '"'))
+            else v
+          end
+        ),
+        '{}'::jsonb
+      )
+      from jsonb_each(elem) as e(k, v)
+    )
+    order by ord
+  )
+  from jsonb_array_elements(q.distractors) with ordinality as t(elem, ord)
+)
+where jsonb_typeof(distractors) = 'array'
+  and (distractors::text like '%«%' or distractors::text like '%»%');
 
--- Quét nốt các cột chữ khác cho chắc — hiện đếm ra 0, nhưng nội dung còn được
--- nạp thêm từ Xưởng nên để sẵn ở đây, chạy lại lúc nào cũng an toàn.
+-- ── 2) Các cột CHỮ THUẦN — thay thẳng, không có cú pháp nào để vỡ ──────────
+-- Hiện `questions` chỉ dính ở distractors và `kg_nodes` sạch, nhưng nội dung
+-- còn được nạp thêm từ Xưởng nên để sẵn: chạy lại lúc nào cũng an toàn.
 update questions set noi_dung = replace(replace(noi_dung, '«', '"'), '»', '"')
   where noi_dung like '%«%' or noi_dung like '%»%';
 update questions set dap_an = replace(replace(dap_an, '«', '"'), '»', '"')
@@ -34,10 +57,22 @@ update questions set loi_giai = replace(replace(loi_giai, '«', '"'), '»', '"')
 update kg_nodes set label = replace(replace(label, '«', '"'), '»', '"')
   where label like '%«%' or label like '%»%';
 
--- ── Kiểm sau khi chạy: cả bốn cột phải ra 0 ────────────────────────────────
-select
-  (select count(*) from questions where distractors::text like '%«%' or distractors::text like '%»%') as con_distractors,
-  (select count(*) from questions where noi_dung like '%«%' or noi_dung like '%»%')                   as con_noi_dung,
-  (select count(*) from questions where dap_an like '%«%' or dap_an like '%»%'
-       or loi_giai like '%«%' or loi_giai like '%»%')                                                 as con_dap_an_loi_giai,
-  (select count(*) from kg_nodes where label like '%«%' or label like '%»%')                          as con_nhan_bai;
+-- ── 3) Lời sư tử đã nói trong quá khứ ──────────────────────────────────────
+-- KHÔNG chỉ là dọn cho đẹp: từ 29/07 các lượt cũ được nạp lại vào prompt làm
+-- <lich_su>, nên mô hình ĐỌC THẤY lối viết « » và có thể bắt chước. Chặn ở
+-- rehydrate là lưới cuối; dọn nguồn mới là gốc.
+update session_turns set content = replace(replace(content, '«', '"'), '»', '"')
+  where content like '%«%' or content like '%»%';
+
+-- ── Kiểm sau khi chạy: MỌI dòng phải ra 0 ──────────────────────────────────
+select 'questions' as bang, count(*) as con_dinh from questions t
+  where to_jsonb(t.*)::text like '%«%' or to_jsonb(t.*)::text like '%»%'
+union all select 'session_turns', count(*) from session_turns t
+  where to_jsonb(t.*)::text like '%«%' or to_jsonb(t.*)::text like '%»%'
+union all select 'kg_nodes', count(*) from kg_nodes t
+  where to_jsonb(t.*)::text like '%«%' or to_jsonb(t.*)::text like '%»%'
+union all select 'socratic_ladders', count(*) from socratic_ladders t
+  where to_jsonb(t.*)::text like '%«%' or to_jsonb(t.*)::text like '%»%'
+union all select 'resources', count(*) from resources t
+  where to_jsonb(t.*)::text like '%«%' or to_jsonb(t.*)::text like '%»%'
+order by con_dinh desc, bang;
