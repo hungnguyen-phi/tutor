@@ -21,6 +21,8 @@ import {
   Undo2,
   UploadCloud,
   Users, Gift,} from "lucide-react";
+import { MathText } from "../lib/mathrender";
+import "katex/dist/katex.min.css";
 import {
   teacherStats,
   teacherReview,
@@ -782,18 +784,27 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
               <span className="muted">{it.nodeLabel}</span>
               <span className="muted num">{new Date(it.submittedAt).toLocaleDateString("vi-VN")}</span>
             </div>
-            <p className="grade-prompt">{it.prompt}</p>
+            {/* Toán 10 nên đề bài ĐẦY công thức — hiện thô $Delta=b^2-4ac$ là bắt cô
+                tự dịch LaTeX trong đầu. Render KaTeX y như phía học sinh. */}
+            <div className="grade-prompt"><MathText block cap>{it.prompt}</MathText></div>
             {/* Bài GÕ của em — đọc ngay tại chỗ, khỏi mở tệp. */}
-            {it.text && <blockquote className="grade-text">{it.text}</blockquote>}
+            {it.text && (
+              <blockquote className="grade-text"><MathText>{it.text}</MathText></blockquote>
+            )}
             {/* Sơ khảo của AI: chỉ là THAM KHẢO — giáo viên là người quyết cuối. */}
             {it.aiVerdict && (
               <p className="grade-ai" data-ok={it.aiVerdict.dung || undefined}>
-                AI sơ khảo: {it.aiVerdict.dung ? "đủ ý chính" : `chưa đạt${it.aiVerdict.thieu ? ` — thiếu: ${it.aiVerdict.thieu}` : ""}`}
+                AI sơ khảo:{" "}
+                {it.aiVerdict.dung ? (
+                  "đủ ý chính"
+                ) : (
+                  <>chưa đạt{it.aiVerdict.thieu ? <> — thiếu: <MathText>{it.aiVerdict.thieu}</MathText></> : null}</>
+                )}
               </p>
             )}
             <details className="grade-ref">
               <summary>Đáp án mẫu để đối chiếu</summary>
-              <p>{it.reference}</p>
+              <div><MathText block>{it.reference}</MathText></div>
             </details>
             <div className="grade-actions">
               {it.hasFile && (
@@ -803,11 +814,27 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
               )}
               {status === "pending" && (
                 <>
-                  <input
-                    placeholder="Lời nhắn cho em (không bắt buộc)…"
+                  {/* Ô nhắn: cô môn Toán cần gõ công thức. Ô một dòng thì đoạn
+                      nhắn dài bị cuộn ngang không đọc được, nên cho nó tự cao
+                      dần; và hiện XEM TRƯỚC ngay bên dưới để cô thấy công thức
+                      mình gõ ra thành gì trước khi bấm gửi. */}
+                  <textarea
+                    className="grade-note-input"
+                    rows={1}
+                    placeholder="Lời nhắn cho em (không bắt buộc) — gõ công thức trong $…$, ví dụ $\Delta = b^2-4ac$"
                     value={notes[it.id] ?? ""}
-                    onChange={(e) => setNotes((n) => ({ ...n, [it.id]: e.target.value }))}
+                    onChange={(e) => {
+                      setNotes((n) => ({ ...n, [it.id]: e.target.value }));
+                      const el = e.currentTarget;
+                      el.style.height = "auto";
+                      el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+                    }}
                   />
+                  {(notes[it.id] ?? "").includes("$") && (
+                    <p className="grade-note-preview">
+                      Em sẽ thấy: <MathText>{notes[it.id] ?? ""}</MathText>
+                    </p>
+                  )}
                   <button
                     className="btn"
                     disabled={busyId === it.id}
@@ -825,7 +852,9 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
                   </button>
                 </>
               )}
-              {status !== "pending" && it.note && <span className="muted">Lời nhắn: {it.note}</span>}
+              {status !== "pending" && it.note && (
+                <span className="muted">Lời nhắn: <MathText>{it.note}</MathText></span>
+              )}
             </div>
           </li>
         ))}

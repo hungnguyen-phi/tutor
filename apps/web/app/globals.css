@@ -6152,7 +6152,8 @@ html[data-motion="reduce"] .spin {
   font-size: 0.8125rem;
   color: var(--muted);
 }
-.grade-ref p {
+.grade-ref p,
+.grade-ref > div {
   margin-top: 6px;
   padding: 10px 12px;
   background: var(--navy-tint);
@@ -6167,10 +6168,29 @@ html[data-motion="reduce"] .spin {
   flex-wrap: wrap;
   margin-top: 10px;
 }
-.grade-actions input {
+.grade-actions input,
+.grade-note-input {
   flex: 1 1 220px;
   min-height: 40px;
   padding: 8px 12px;
+}
+/* Ô nhắn tự cao dần (JS đặt height, trần 160px) — đoạn nhắn dài không bị cuộn
+   ngang trong một dòng như <input> cũ. */
+.grade-note-input {
+  resize: vertical;
+  line-height: 1.5;
+  font: inherit;
+}
+/* Xem trước công thức cô vừa gõ — hiện ngay dưới ô, chiếm trọn hàng. */
+.grade-note-preview {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-sm, 10px);
+  background: var(--gold-tint);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-2);
 }
 .grade-redo {
   color: var(--err);

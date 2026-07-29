@@ -535,6 +535,37 @@ nhiều thông tin hơn 32 chặng tick cộng lại.
 
 ---
 
+# ĐỢT SAU DEPLOY 29/07 — lỗi mới
+
+## 20. ❓ Màn NỘP BÀI trắng trơn sau khi bấm Huỷ ở hộp chọn tệp
+
+**Triệu chứng** (chủ dự án, 29/07 sau khi deploy): ở câu nộp bài, bấm nút đính
+kèm → hộp chọn tệp của Windows mở → bấm **Cancel** → màn hình còn mỗi dòng
+*"Em gõ bài làm là hay nhất…"* ở trên, một khoảng trắng rất lớn ở giữa, và nút
+NỘP BÀI ở đáy. Đề bài + ô gõ bài biến mất khỏi tầm nhìn.
+
+**Đã loại trừ được gì (đọc mã).** `onChange` của input tệp khi bấm Huỷ chỉ chạy
+`setWorkFile(null)` + `setError(null)` — không đụng `q`, không đổi `verdict`, nên
+KHÔNG phải React gỡ mất khối câu hỏi. Bằng chứng: chính dòng chú thích còn hiện
+được, mà dòng đó nằm CÙNG khối `.submit-box` với ô gõ bài — nếu khối bị gỡ thì
+dòng đó cũng mất theo.
+
+**Hai giả thuyết còn lại, chưa phân định được:**
+1. **Trang bị cuộn** — trình duyệt trả tiêu điểm sau khi đóng hộp thoại và nhảy
+   vị trí cuộn; nội dung vẫn còn, chỉ nằm ngoài tầm nhìn.
+2. **Khung học liệu mới cao 78vh** (`.lsv-frame`, sửa ở đợt này cho lỗi 1) —
+   nếu bài này có học liệu PDF đứng trên câu hỏi, khung đó giờ cao gần hết màn;
+   PDF chưa tải xong thì đúng là một mảng trắng lớn.
+
+**Cần chủ dự án cho thêm để chốt** (một trong hai là đủ):
+- Lúc đó **cuộn lên trên** thì đề bài + ô gõ có hiện lại không? (→ giả thuyết 1)
+- Bài đó có **kho báu / học liệu PDF** không? (→ giả thuyết 2)
+
+Chưa sửa. Nếu là giả thuyết 2 thì cách sửa khác hẳn giả thuyết 1, đoán bừa là
+vá nhầm chỗ.
+
+---
+
 # VẤN ĐỀ VẬN HÀNH (không phải lỗi phần mềm)
 
 ## V1. 🔴 Hai bộ tài khoản trùng tiền tố — người thử đã đăng nhập NHẦM

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
+import { MathText } from "../lib/mathrender";
 
 /**
  * Trạng thái một điểm kiến thức trên lộ trình.
@@ -413,8 +414,11 @@ export default function LearningPath({
                       {items.length > 1 ? ` (câu ${i + 1}/${items.length})` : ""}
                     </button>
                     {r.note && (
+                      /* Lời nhắn của cô môn Toán gần như chắc chắn có công thức
+                         ("thiếu bước tính $\Delta$") — render KaTeX y như mọi
+                         chỗ khác trong app, đừng bắt học sinh đọc LaTeX thô. */
                       <p className="redo-note">
-                        <b>Thầy cô nhắn:</b> {r.note}
+                        <b>Thầy cô nhắn:</b> <MathText>{r.note}</MathText>
                       </p>
                     )}
                   </div>
