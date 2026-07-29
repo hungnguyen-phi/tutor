@@ -11282,3 +11282,54 @@ textarea {
   line-height: 1.5;
   color: var(--muted);
 }
+
+/* ═══ B0/B1 (29/07) — LƯỢT CỦA HỌC SINH: kể cách nghĩ + xin gợi ý ═══
+   Kênh nói chuyện TÁCH KHỎI ô đáp án. Nằm trong footer "thử lại" (retry) và
+   một nút mồi nhỏ dưới KIỂM TRA. Input thấp, bo tròn, không tranh vai với
+   nút hành động chính. */
+.reflect-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0 12px;
+}
+.reflect-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+.reflect-input:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+}
+.reflect-send,
+.reflect-hint {
+  flex: 0 0 auto;
+  height: 40px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+/* Nút mồi dưới KIỂM TRA: chữ nhỏ, không viền — một lối thoát, không phải CTA. */
+.reflect-early {
+  display: block;
+  margin: 8px auto 0;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reflect-early:hover { color: var(--ink); text-decoration: underline; }
+/* Điện thoại hẹp: hàng nói chuyện xuống dòng, input chiếm trọn hàng đầu. */
+@media (max-width: 480px) {
+  .reflect-row { flex-wrap: wrap; }
+  .reflect-input { flex-basis: 100%; }
+}

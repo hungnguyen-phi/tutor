@@ -438,6 +438,67 @@ Deno.serve(async (req: Request) => {
       const qParams = qSpec ? genParams(qSpec, seedFrom(s.id, q.id)) : undefined;
 
       const studentAnswer = String(body.studentAnswer ?? "").slice(0, 6000);
+
+      // ── B0 · LƯỢT "KỂ CÁCH EM NGHĨ" (29/07, chủ dự án chỉ ra lỗ hổng gốc):
+      // client gửi `reasoning` KHÔNG kèm đáp án → đây là lượt ĐỐI THOẠI, không
+      // phải lượt thử. Không chấm, không ghi attempt mới; chất lượng suy nghĩ
+      // được LƯU vào lần thử gần nhất để cổng nỗ lực đọc ở các lượt sau — thay
+      // cho vế "cộng theo số lần bấm" đã bỏ (cổng không còn là cái đếm click).
+      const reasoning = String(body.reasoning ?? "").trim().slice(0, 2000);
+      if (!studentAnswer.trim() && reasoning) {
+        persist("student", reasoning, undefined, { questionId: q.id, kind: "reflect" });
+        const signal = thinkingContentSignal(reasoning);
+        const [attRes, { data: ladders }] = await Promise.all([
+          supa.from("attempts").select("id, thinking_quality", { count: "exact" })
+            .eq("session_id", s.id).eq("question_id", q.id)
+            .order("attempt_no", { ascending: false }).limit(1),
+          supa.from("socratic_ladders").select("rungs, bottom_out, cong_no_luc")
+            .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
+            .eq("status", "active").limit(1),
+        ]);
+        const attempts = attRes.count ?? 0;
+        const lastAtt = (attRes.data ?? [])[0] as { id: string; thinking_quality: number | null } | undefined;
+        const best = Math.max(signal, Number(lastAtt?.thinking_quality ?? 0));
+        if (lastAtt && best > Number(lastAtt.thinking_quality ?? 0)) {
+          await supa.from("attempts").update({ thinking_quality: best }).eq("id", lastAtt.id);
+        }
+        const ladder = (ladders ?? [])[0] ?? null;
+        const rungs = (ladder?.rungs ?? []) as Array<{ cau_hoi?: string; goi_y?: string }>;
+        const totalRungs = rungs.length > 0 ? rungs.length : 4;
+        const minAtt =
+          (ladder?.cong_no_luc as { so_lan_thu_toi_thieu?: number } | null)?.so_lan_thu_toi_thieu ?? 2;
+        const gate = evaluateEffortGate({
+          attempts,
+          thinkingQuality: best,
+          currentRung: Math.max(0, attempts - minAtt),
+          totalRungs,
+          minAttempts: minAtt,
+        });
+        let msg: string;
+        if (gate.action === "require_attempt") {
+          msg = en
+            ? "Thanks for sharing your thinking! Now pick or type an answer first — trying is how we learn. I'm right here."
+            : "Cảm ơn bạn đã kể! Giờ bạn chọn hoặc điền một đáp án trước nhé — thử mới biết mình vướng ở đâu, mình ở ngay đây.";
+        } else if (gate.action === "require_thinking") {
+          msg = en
+            ? "Tell me a bit more — which step did you take first, and why?"
+            : "Bạn kể cụ thể hơn chút nữa nhé — bạn làm bước nào trước, và vì sao chọn bước đó?";
+        } else {
+          // advance_rung / bottom_out: QUA ĐƯỜNG ĐỐI THOẠI không bao giờ mở đáy
+          // (B4 — chặn moi đáp án bằng cách chat nhiều); sâu nhất chỉ tới bậc cuối.
+          const idx = Math.min(Math.max(0, attempts - minAtt), rungs.length - 1);
+          const rung = rungs[idx];
+          const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
+          msg = rungText
+            ? `${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
+            : en
+              ? "Which piece of the question have you not used yet?"
+              : "Trong đề bài còn dữ kiện nào bạn chưa dùng đến?";
+        }
+        persist("tutor", msg, "engine", { gate: "reflect" });
+        return json({ correct: false, gate: "reflect", graded: false, message: msg });
+      }
+
       persist("student", studentAnswer, undefined, { questionId: q.id, nodeKey: q.node_key });
 
       // ── A1 · CỔNG Ý ĐỊNH (29/07, lỗi 14): lời XIN TRỢ GIÚP gõ vào ô đáp án
@@ -475,11 +536,18 @@ Deno.serve(async (req: Request) => {
 
       // Đếm lần thử + đọc node (revision/label) độc lập → SONG SONG. nodeRow
       // đọc MỘT LẦN ở đây rồi truyền xuống recomputeNodeState (không đọc lần hai).
-      const [{ count: prev }, { data: nodeRow }] = await Promise.all([
-        supa.from("attempts").select("id", { count: "exact", head: true }).eq("session_id", s.id).eq("question_id", q.id),
+      // Lấy kèm thinking_quality của lần thử GẦN NHẤT: lượt "kể cách nghĩ" (B0)
+      // đã cộng dồn suy nghĩ thật vào đó — cổng nỗ lực phải nhớ, không bắt kể lại.
+      const [prevRes, { data: nodeRow }] = await Promise.all([
+        supa.from("attempts").select("thinking_quality", { count: "exact" })
+          .eq("session_id", s.id).eq("question_id", q.id)
+          .order("attempt_no", { ascending: false }).limit(1),
         supa.from("kg_nodes").select("revision, label").eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key).maybeSingle(),
       ]);
-      const attemptNo = (prev ?? 0) + 1;
+      const attemptNo = (prevRes.count ?? 0) + 1;
+      const prevThinking = Number(
+        ((prevRes.data ?? [])[0] as { thinking_quality: number | null } | undefined)?.thinking_quality ?? 0,
+      );
 
       // Dạng tương tác (dung_sai/sap_xep/noi_cot) chấm CẤU TRÚC tất định (so dãy /
       // tập cặp / đúng-sai) — CAS không phủ được. Còn lại (mcq/điền/toán) dùng CAS:
@@ -672,10 +740,16 @@ Deno.serve(async (req: Request) => {
         (ladder?.cong_no_luc as { so_lan_thu_toi_thieu?: number } | null)?.so_lan_thu_toi_thieu ?? 2;
       const currentRung = Math.max(0, attemptNo - minAttempts);
 
-      // thinkingQuality cho CỔNG = tín hiệu nội dung + NỖ LỰC theo số lần thử (đã
-      // qua trần số lần). Nhờ vế nỗ lực, giao diện chỉ có ô đáp án (MCQ không nhập
-      // được lời giải thích) KHÔNG kẹt vô hạn ở "require_thinking".
-      const thinkingQuality = Math.min(1, thinkSignal + Math.max(0, attemptNo - minAttempts) * 0.55);
+      // thinkingQuality cho CỔNG (viết lại 29/07 — cổng KHÔNG còn là cái đếm click):
+      //  · tín hiệu nội dung của CHÍNH lượt này, HOẶC
+      //  · suy nghĩ đã kể ở lượt "kể cách nghĩ" trước đó (prevThinking — B0), HOẶC
+      //  · van xả an toàn: sau khi đã quá trần tối thiểu THÊM 2 lần thử mà vẫn im
+      //    lặng thì mới nới dần — em không chịu gõ gì suốt nhiều lần vẫn không bị
+      //    giam vĩnh viễn, nhưng bấm mò 1 nhát không còn mở được cổng như trước.
+      const thinkingQuality = Math.min(
+        1,
+        Math.max(thinkSignal, prevThinking) + Math.max(0, attemptNo - minAttempts - 2) * 0.55,
+      );
 
       const gate = evaluateEffortGate({
         attempts: attemptNo,
@@ -686,9 +760,22 @@ Deno.serve(async (req: Request) => {
       });
 
       if (gate.action === "require_attempt") {
-        const msg = en
+        // Xoay vòng lời nhắc (lỗi 19 — một câu lặp mãi nghe như máy hỏng), và
+        // khi đã bắt được QUAN NIỆM SAI thì nói thẳng vào nó (không lộ đáp án —
+        // chỉ gọi tên cách nghĩ chưa chuẩn mà distractor này được soạn để bắt).
+        const RETRY_VI = [
+          "Chưa đúng — thử thêm một lần nữa nhé. Bạn dựa vào đâu để chọn như vậy?",
+          "Chưa phải rồi. Đọc lại đề chậm một lượt xem — còn dữ kiện nào bạn chưa dùng?",
+          "Sai là não đang tập mà! Thử một hướng khác xem sao?",
+        ];
+        const base = en
           ? "Not quite yet — give it one more try first. What was your reasoning?"
-          : "Chưa đúng — bạn thử lại một lần nữa nhé. Bạn đã suy nghĩ thế nào để ra kết quả đó?";
+          : RETRY_VI[(attemptNo - 1) % RETRY_VI.length]!;
+        const msg = matched
+          ? (en
+              ? `I can see the idea behind that choice — it hides a common trap: ${String(matched).slice(0, 220)} ${base}`
+              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${String(matched).slice(0, 220)} ${base}`)
+          : base;
         persist("tutor", msg, "engine", { gate: gate.action, matched });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
@@ -766,8 +853,13 @@ Deno.serve(async (req: Request) => {
       // advance_rung — trao đúng câu gợi mở đã soạn (nguyên văn, không LLM).
       const rung = rungs[Math.min(currentRung, rungs.length - 1)];
       const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
+      // Bắt được quan niệm sai → GỌI TÊN nó (lỗi 9c: "không giải thích vì sao
+      // bị đánh sai") — dữ liệu quan_niem_sai được soạn đúng cho việc này, không
+      // chứa đáp án cuối.
       const lead = matched
-        ? (en ? `I see where that idea came from. ` : `Mình hiểu vì sao bạn nghĩ vậy. `)
+        ? (en
+            ? `I see where that came from — there's a trap in it: ${String(matched).slice(0, 220)} `
+            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${String(matched).slice(0, 220)} `)
         : "";
       const msg = rungText
         ? `${lead}${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`

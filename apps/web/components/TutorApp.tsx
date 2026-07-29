@@ -42,6 +42,7 @@ import "katex/dist/katex.min.css";
 import {
   diagnose,
   answer,
+  answerReflect,
   writing,
   speaking,
   uploadWork,
@@ -580,6 +581,15 @@ export default function TutorApp() {
   function applyTurn(res: TurnResult, attemptNo: number, wasInjected: boolean) {
     // Dạng trả lời bằng thao tác → im lặng, không dựng bong bóng đối thoại.
     const quiet = isWidgetAnswer(q);
+
+    // CỔNG Ý ĐỊNH (29/07): lượt KHÔNG được chấm (xin gợi ý / bài rác) — hiện lời
+    // dẫn của sư tử như một gợi ý, TUYỆT ĐỐI không hiện trạng thái "sai", không
+    // đổi verdict, không tính lần thử (attempts đã hoàn lại ở nơi gọi).
+    if (res.graded === false) {
+      if (res.message) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
+      return;
+    }
+
     if (res.message && !quiet) setMsgs((m) => [...m, { role: "tutor", text: res.message! }]);
 
     // XP SERVER-AUTHORITATIVE: engine trả res.xp (student_xp) → số server thắng,
@@ -677,9 +687,11 @@ export default function TutorApp() {
     try {
       const wasInjected = injectedStack.length > 0;
       const res = await answer(ses.sessionId, q.id, ans, wasInjected);
+      // Lượt không được chấm (cổng ý định) → hoàn lại bộ đếm lần thử của UI.
+      if (res.graded === false) setAttempts((n) => Math.max(0, n - 1));
       applyTurn(res, attemptNo, wasInjected);
       // Ghi nhớ câu từng sai — nguồn số liệu "chính xác x/y" và "xem lại câu sai".
-      if (!res.correct) wrongRef.current.add(q.id);
+      if (!res.correct && res.graded !== false) wrongRef.current.add(q.id);
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -688,38 +700,63 @@ export default function TutorApp() {
     }
   }
 
-  /** Nộp bài tự luận dài. Bài GÕ là đường chính — AI chấm NGAY theo Ý (đúng thì
-   *  mastery + XP liền, không phải đợi thầy cô rảnh mới qua bài); ảnh/tệp là
-   *  kèm thêm hoặc thay thế khi bài phải VẼ (hình, bảng biến thiên). */
+  /** Nộp bài tự luận dài. Q1 (29/07): AI chỉ đọc SƠ BỘ — điểm/mastery tính khi
+   *  GIÁO VIÊN duyệt. Bài gõ của em hiện thành bong bóng trong khung đối thoại
+   *  (lỗi 15 — trước đây lời em gửi biến mất, chỉ thấy sư tử nói một mình). */
   async function submitWorkFile() {
     if (!ses || !q || busy || (!text.trim() && !workFile)) return;
     setBusy(true);
     setLoading(true);
     try {
       const path = workFile ? await uploadWork(workFile) : undefined;
+      // Bong bóng của EM đứng trước phản hồi — đối thoại phải có hai phía.
+      const shown = text.trim() || (workFile ? `[Đã đính kèm: ${workFile.name}]` : "");
+      if (shown) setMsgs((m) => [...m, { role: "student", text: shown }]);
       // KHÔNG gửi attemptNo: server tự đếm từ bảng attempts. Đếm ở client thì
       // rớt mạng giữa chừng cũng cộng, mà vào lại bài hôm sau là về 0.
       const res = await submitWork(ses.sessionId, q.id, {
         ...(text.trim() ? { text: text.trim() } : {}),
         ...(path ? { filePath: path, mime: workFile!.type, size: workFile!.size } : {}),
       });
-      setAttempts((n) => n + 1);
-      if (res.xp) {
-        if (res.xp.gained > 0) setEarned((e) => e + res.xp!.gained);
-        setProgress(G.syncFromServer(res.xp));
+      if (res.submitted === false) {
+        // Cổng ý định chặn (bài rác / lời xin gợi ý) — bài chưa được nhận,
+        // giữ nguyên ô nhập, KHÔNG đổi trạng thái.
+        if (res.feedback) setMsgs((m) => [...m, { role: "hint", text: res.feedback! }]);
+        return;
       }
-      if (res.correct === false) {
-        // AI thấy thiếu ý → như một lần TRẢ LỜI SAI: giữ nguyên bài gõ cho em
-        // sửa tiếp, kèm gợi ý thiếu gì (không phải đáp án).
+      setAttempts((n) => n + 1);
+      if (res.aiPreview?.dung === false) {
+        // AI đọc sơ thấy thiếu ý → giữ nguyên bài gõ cho em bổ sung rồi NỘP LẠI.
         wrongRef.current.add(q.id);
         if (res.feedback) setMsgs((m) => [...m, { role: "hint", text: res.feedback! }]);
         setVerdict("retry");
         return;
       }
-      if (res.correct === true) setAiPassed(true);
-      const okFb = res.correct === true ? res.feedback : undefined;
-      if (okFb) setMsgs((m) => [...m, { role: "tutor", text: okFb }]);
+      setAiPassed(res.aiPreview?.dung === true);
+      if (res.feedback) setMsgs((m) => [...m, { role: "tutor", text: res.feedback! }]);
       setVerdict("submitted");
+    } catch (e) {
+      setError(errText(e));
+    } finally {
+      setLoading(false);
+      setBusy(false);
+    }
+  }
+
+  // ── B0/B1 (29/07): lượt "KỂ CÁCH EM NGHĨ" + nút Xin gợi ý ───────────────
+  // Kênh nói chuyện TÁCH KHỎI ô đáp án: gửi suy nghĩ → server không chấm, chỉ
+  // dẫn dắt (thang Socratic) và ghi nhớ chất lượng suy nghĩ cho cổng nỗ lực.
+  const [reflectText, setReflectText] = useState("");
+  async function sendReflect(raw?: string) {
+    const msg = (raw ?? reflectText).trim();
+    if (!ses || !q || busy || !msg) return;
+    setMsgs((m) => [...m, { role: "student", text: msg }]);
+    setReflectText("");
+    setBusy(true);
+    setLoading(true);
+    try {
+      const res = await answerReflect(ses.sessionId, q.id, msg);
+      if (res.message) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -1687,6 +1724,16 @@ export default function TutorApp() {
             >
               KIỂM TRA
             </button>
+            {/* B1: bí ngay từ đầu cũng có cửa xin gợi ý — cổng nỗ lực sẽ trả lời
+                đúng luật (chưa thử thì mời thử trước, không phải im lặng). */}
+            <button
+              type="button"
+              className="reflect-early"
+              disabled={busy}
+              onClick={() => void sendReflect("Mình đang bí, gợi ý giúp mình bước đầu với")}
+            >
+              💡 Bí quá? Xin sư tử gợi ý
+            </button>
           </div>
         </div>
       )}
@@ -1716,8 +1763,8 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* Đã nộp. AI chấm ĐẠT bài gõ → nói thẳng là ổn (mastery đã tính); chỉ
-          nộp tệp → nói thật là còn chờ thầy cô, kẻo em tưởng đã "qua bài". */}
+      {/* Đã nộp (Q1 29/07): AI chỉ đọc SƠ BỘ — nói thật là chờ thầy cô duyệt,
+          không hứa "được tính điểm luôn" nữa (AI không còn quyền đó). */}
       {verdict === "submitted" && (
         <div className="lfoot" data-verdict={aiPassed ? "ok" : "done"} role="status">
           <div className="lfoot-inner">
@@ -1725,13 +1772,13 @@ export default function TutorApp() {
               <Lion mood="cheer" size={48} decorative />
               {aiPassed ? (
                 <>
-                  <b className="lfoot-title">Bài viết ổn rồi — được tính điểm luôn!</b>
-                  <span className="muted">Thầy cô sẽ xem lại bài của em sau.</span>
+                  <b className="lfoot-title">Đã nộp — mình đọc sơ thấy bài đủ ý chính!</b>
+                  <span className="muted">Thầy cô duyệt là bài được tính vào lộ trình ngay.</span>
                 </>
               ) : (
                 <>
                   <b className="lfoot-title">Đã nộp bài — thầy cô sẽ chấm sau</b>
-                  <span className="muted">Chưa tính là làm chủ bài này; chấm xong em sẽ thấy kết quả ở lộ trình.</span>
+                  <span className="muted">Chấm xong em sẽ thấy kết quả ngay trên lộ trình.</span>
                 </>
               )}
             </div>
@@ -1791,6 +1838,41 @@ export default function TutorApp() {
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             )}
+            {/* B0/B1 (29/07): LƯỢT CỦA EM — kể cách nghĩ / xin gợi ý, tách hẳn
+                khỏi ô đáp án. Sư tử hỏi "em nghĩ sao?" thì đây là chỗ trả lời;
+                cổng nỗ lực đọc từ đây, không còn đếm số lần bấm. */}
+            <div className="reflect-row">
+              <input
+                className="reflect-input"
+                type="text"
+                value={reflectText}
+                disabled={busy}
+                placeholder="Kể cách em nghĩ cho sư tử nghe…"
+                onChange={(e) => setReflectText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && reflectText.trim() && !busy) void sendReflect();
+                }}
+                autoComplete="off"
+                autoCapitalize="sentences"
+              />
+              <button
+                type="button"
+                className="btn btn-ghost reflect-send"
+                disabled={busy || !reflectText.trim()}
+                onClick={() => void sendReflect()}
+              >
+                Gửi
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost reflect-hint"
+                disabled={busy}
+                title="Xin sư tử một câu gợi mở — phải kể cách nghĩ trước thì gợi ý mới sâu dần"
+                onClick={() => void sendReflect(reflectText.trim() || "Mình đang bí, gợi ý giúp mình bước đầu với")}
+              >
+                💡 Xin gợi ý
+              </button>
+            </div>
             <button
               className="btn btn-block"
               onClick={() => {

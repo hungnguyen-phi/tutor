@@ -136,6 +136,9 @@ export interface RubricResult {
 
 export interface TurnResult {
   correct?: boolean;
+  /** false = lượt này KHÔNG được chấm (cổng ý định: xin gợi ý / bài rác / lượt
+   *  kể-cách-nghĩ) — client hiện lời dẫn, KHÔNG hiện trạng thái sai. */
+  graded?: boolean;
   /** Đợt B: chấm rubric có điểm theo tiêu chí (writing/speaking). */
   rubric?: RubricResult;
   attemptNo?: number;
@@ -181,16 +184,22 @@ export const answer = (
     ...(remediation ? { remediation: true } : {}),
   });
 
+/** B0 (29/07) — lượt "KỂ CÁCH EM NGHĨ": gửi suy nghĩ, KHÔNG phải đáp án.
+ *  Server không chấm, không ghi lượt thử; chỉ đối thoại (thang Socratic) và
+ *  ghi nhớ chất lượng suy nghĩ cho cổng nỗ lực. Cũng là đường của nút Xin gợi ý. */
+export const answerReflect = (sessionId: string, questionId: string, reasoning: string) =>
+  callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, reasoning });
+
 export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
 
 /**
  * Nộp bài tự luận dài. Hai đường trong một:
- *  · `text` — bài em GÕ: server cho AI chấm NGAY theo Ý (đúng → mastery + XP
- *    liền, giáo viên vẫn xem lại sau); đây là đường chính.
+ *  · `text` — bài em GÕ: AI đọc SƠ BỘ để phản hồi ngay + gợi ý cho giáo viên,
+ *    nhưng KHÔNG còn tự tính điểm/mastery (Q1 29/07) — chỉ giáo viên bấm Đạt
+ *    mới tính vào lộ trình.
  *  · `filePath` — ảnh/tệp đã tải thẳng lên storage bằng JWT của học sinh
- *    (policy `student_work_insert` chặn ghi ra ngoài thư mục của mình); chỉ
- *    nộp tệp không kèm chữ thì chờ giáo viên chấm như cũ.
+ *    (policy `student_work_insert` chặn ghi ra ngoài thư mục của mình).
  */
 export const submitWork = (
   sessionId: string,
@@ -201,12 +210,13 @@ export const submitWork = (
 ) =>
   callFn<{
     kind: string;
+    /** false = cổng ý định chặn (bài rác / lời xin trợ giúp) — chưa nhận bài. */
     submitted: boolean;
-    /** Có mặt khi AI chấm được bài gõ; vắng = chỉ nộp tệp, chờ giáo viên. */
-    correct?: boolean;
+    /** true = bài nằm hàng đợi giáo viên; điểm/mastery tính khi thầy cô duyệt. */
+    pendingTeacher?: boolean;
     feedback?: string;
-    mastered?: boolean;
-    xp?: XpState;
+    /** AI đọc sơ bộ (chỉ tham khảo, KHÔNG phải kết quả chấm). */
+    aiPreview?: { dung: boolean; thieu: string };
   }>("chat-turn", {
     sessionId,
     action: "submit-work",
