@@ -126,7 +126,9 @@ Deno.serve(async (req: Request) => {
       // không thì node đỏ vĩnh viễn dù em đã sửa bài.
       supa
         .from("submissions")
-        .select("node_key, question_id, status, created_at")
+        // teacher_note đi kèm: học sinh phải THẤY lời nhắn của thầy cô khi bị
+        // trả bài (lỗi 2 — "làm lại mà không biết mình sai gì").
+        .select("node_key, question_id, status, teacher_note, created_at")
         .eq("student_id", ctx.userId)
         .eq("kind", "upload")
         .order("created_at", { ascending: true }),
@@ -212,18 +214,31 @@ Deno.serve(async (req: Request) => {
 
     // Bài nộp bị trả về: chỉ tính bản MỚI NHẤT của mỗi câu. Nộp lại (pending) đè
     // lên lần bị trả trước đó → dấu đỏ tự tắt, khỏi cần sửa dữ liệu cũ.
-    const latestByQuestion = new Map<string, { node_key: string | null; status: string }>();
+    const latestByQuestion = new Map<
+      string,
+      { node_key: string | null; status: string; teacher_note: string | null }
+    >();
     for (const s of subRes.data ?? []) {
-      latestByQuestion.set(String(s.question_id), { node_key: s.node_key, status: String(s.status) });
+      latestByQuestion.set(String(s.question_id), {
+        node_key: s.node_key,
+        status: String(s.status),
+        teacher_note: (s as { teacher_note?: string | null }).teacher_note ?? null,
+      });
     }
     const redo = new Set<string>();
     const redoCount = new Map<string, number>();
+    // CÂU NÀO bị trả + LỜI NHẮN của giáo viên — trước đây server biết mà vứt đi,
+    // học sinh chỉ được báo "1 bài cần làm lại" rồi tự mò (lỗi 2, cả ba lớp).
+    const redoQuestions = new Map<string, Array<{ questionId: string; note: string | null }>>();
     const pendingCount = new Map<string, number>();
-    for (const s of latestByQuestion.values()) {
+    for (const [qid, s] of latestByQuestion) {
       if (!s.node_key || !byKey.has(s.node_key)) continue;
       if (s.status === "redo") {
         redo.add(s.node_key);
         redoCount.set(s.node_key, (redoCount.get(s.node_key) ?? 0) + 1);
+        const arr = redoQuestions.get(s.node_key) ?? [];
+        arr.push({ questionId: qid, note: s.teacher_note });
+        redoQuestions.set(s.node_key, arr);
       }
       // Bài đang CHỜ THẦY CÔ CHẤM: node phải nói ra điều đó ("⏳ chờ chấm"),
       // không thì học sinh nộp xong thấy lộ trình đứng im, tưởng app nuốt bài.
@@ -258,6 +273,8 @@ Deno.serve(async (req: Request) => {
       totalCount?: number;
       /** Số bài nộp đang chờ giáo viên chấm trên node này. */
       pending?: number;
+      /** Bài bị TRẢ VỀ: đúng những câu cần làm lại + lời nhắn của thầy cô. */
+      redo?: Array<{ questionId: string; note: string | null }>;
       /** Kho báu học liệu cạnh bài: có mức nào, em đã đi tới mức mấy. */
       khoBau?: { mucCoSan: number[]; mucDaQua: number };
     }
@@ -292,6 +309,7 @@ Deno.serve(async (req: Request) => {
         }
       }
       if (pendingCount.has(n.node_key)) item.pending = pendingCount.get(n.node_key)!;
+      if (redoQuestions.has(n.node_key)) item.redo = redoQuestions.get(n.node_key)!;
       // Kho báu đứng CẠNH bài chứ không nằm trong bài, nhưng KHOÁ THEO BÀI:
       // client tự chặn khi state = locked (bài chưa mở thì kho báu cũng chưa),
       // giữ đúng lối đi tuần tự của mastery learning.

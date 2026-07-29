@@ -28,6 +28,8 @@ export type PathNode = {
   totalCount?: number;
   /** Số bài nộp đang chờ giáo viên chấm. */
   pending?: number;
+  /** Bài bị TRẢ VỀ: đúng câu cần làm lại + lời nhắn của thầy cô. */
+  redo?: Array<{ questionId: string; note: string | null }>;
   /** Kho báu học liệu đứng CẠNH bài — mức nào có, em đã đi tới mức mấy. */
   khoBau?: { mucCoSan: number[]; mucDaQua: number };
 };
@@ -123,6 +125,7 @@ export default function LearningPath({
   preview = false,
   onStart,
   onOpenKhoBau,
+  onRedo,
 }: {
   unit: string;
   subtitle: string;
@@ -138,6 +141,8 @@ export default function LearningPath({
   onStart: (node: PathNode) => void;
   /** Bấm dấu chân KHO BÁU cạnh một bài. Bỏ trống thì không vẽ kho báu. */
   onOpenKhoBau?: (node: PathNode) => void;
+  /** Bấm thẻ "cần làm lại" → mở ĐÚNG câu bị trả của bài đó (lỗi 2). */
+  onRedo?: (node: PathNode, questionId?: string) => void;
 }) {
   // Chặng đã xong / còn khoá đang được mở xem trước (bấm thẻ chặng).
   const [openLegs, setOpenLegs] = useState<Set<string>>(new Set());
@@ -380,7 +385,34 @@ export default function LearningPath({
           <Undo2 aria-hidden strokeWidth={2.25} />
           <div className="redo-body">
             <b>Thầy cô đã chấm — {redoNodes.length} bài cần làm lại</b>
-            <span>{redoNodes.map((n) => n.label).join(" · ")}</span>
+            {/* Mỗi bài một NÚT: bấm là vào ĐÚNG câu bị trả, kèm LỜI NHẮN của
+                thầy cô hiện ngay tại đây. Trước đây đây là <div> chết: em biết
+                "có 1 bài cần làm lại" mà không biết bài nào, sai gì, và phải
+                học lại cả bài từ đầu (lỗi 2 — ba lớp). */}
+            <div className="redo-list">
+              {redoNodes.map((n) => {
+                const note = n.redo?.find((r) => r.note)?.note ?? null;
+                const qid = n.redo?.[0]?.questionId;
+                return (
+                  <div key={n.key} className="redo-item">
+                    <button
+                      type="button"
+                      className="redo-go"
+                      disabled={busy}
+                      onClick={() => (onRedo ? onRedo(n, qid) : onStart(n))}
+                    >
+                      <Undo2 aria-hidden strokeWidth={2.5} />
+                      Làm lại: {n.label}
+                    </button>
+                    {note && (
+                      <p className="redo-note">
+                        <b>Thầy cô nhắn:</b> {note}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

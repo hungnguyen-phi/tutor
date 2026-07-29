@@ -1732,7 +1732,9 @@ ul {
 /* Báo trên đầu lộ trình — cùng khuôn thẻ với "cổng chương". */
 .redo-notice {
   display: flex;
-  align-items: center;
+  /* Không còn căn giữa: thẻ giờ chứa danh sách nút + lời nhắn nhiều dòng, căn
+     giữa làm icon trôi xuống giữa khối. */
+  align-items: flex-start;
   gap: 12px;
   margin: 0 0 14px;
   padding: 12px 14px;
@@ -1757,6 +1759,44 @@ ul {
   font-size: 0.875rem;
   color: var(--ink-2);
 }
+/* Danh sách bài bị trả — mỗi bài MỘT NÚT vào thẳng câu cần làm lại, kèm lời
+   nhắn của thầy cô (lỗi 2). Không dùng btn chuẩn: nút này sống trong thẻ đỏ
+   nên mượn màu err, và phải xuống dòng gọn trên điện thoại. */
+.redo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.redo-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--err);
+  background: var(--surface);
+  color: var(--err);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.redo-go svg { width: 18px; height: 18px; flex: 0 0 auto; color: inherit; }
+.redo-go:hover:not(:disabled) { background: var(--err); color: var(--surface); }
+.redo-go:disabled { opacity: 0.6; cursor: default; }
+.redo-note {
+  margin: 0;
+  padding-left: 2px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.redo-note b { color: var(--ink); }
 
 .node[data-state="current"] {
   --paw-face: var(--navy);
@@ -6995,13 +7035,18 @@ html[data-motion="reduce"] .think-dots::after {
   background: var(--track);
   overflow: hidden;
 }
+/* Thanh điểm rubric: chạy bằng TRANSFORM, không phải width — animate width bắt
+   trình duyệt reflow mỗi khung hình (12 thanh trong một thẻ là 12 lần layout).
+   `--v` là số KHÔNG đơn vị 0..1 (xem rubric-card ở TutorApp). */
 .rc-bar i {
   display: block;
   height: 100%;
-  width: var(--v);
+  width: 100%;
+  transform: scaleX(var(--v));
+  transform-origin: left center;
   border-radius: inherit;
   background: var(--gold);
-  transition: width var(--t) var(--ease);
+  transition: transform var(--t) var(--ease);
 }
 .rc-note { color: var(--muted); font-size: 0.875rem; line-height: 1.45; }
 .rc-overall { margin-top: 12px; color: var(--ink-2); line-height: 1.5; }

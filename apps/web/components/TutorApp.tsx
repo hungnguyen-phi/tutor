@@ -392,6 +392,10 @@ export default function TutorApp() {
             doneCount: typeof n.doneCount === "number" ? n.doneCount : undefined,
             totalCount: typeof n.totalCount === "number" ? n.totalCount : undefined,
             pending: typeof n.pending === "number" && n.pending > 0 ? n.pending : undefined,
+            // Câu bị trả + lời nhắn giáo viên — nguồn của thẻ đỏ BẤM ĐƯỢC.
+            redo: Array.isArray(n.redo)
+              ? n.redo.filter((r) => r && typeof r.questionId === "string")
+              : undefined,
             // Kho báu học liệu cạnh bài — chỉ nhận khi server nói rõ có mức nào.
             khoBau:
               n.khoBau && Array.isArray(n.khoBau.mucCoSan) && n.khoBau.mucCoSan.length > 0
@@ -506,7 +510,7 @@ export default function TutorApp() {
   /** `node`: bài học sinh vừa bấm trên lộ trình. PHẢI gửi lên server — thiếu nó
    *  thì diagnose rơi về chế độ chẩn đoán và trả 20 câu đầu của CẢ MÔN (rải trên
    *  19 bài khác nhau), tức bấm bài nào cũng ra cùng một rổ. */
-  async function start(node?: PathNode) {
+  async function start(node?: PathNode, questionId?: string) {
     if (busy) return; // double-tap: tap 2 tới trước khi disabled kịp commit
     // Môn XEM TRƯỚC (chưa live): lộ trình hiện đầy đủ nhưng chưa có ngân hàng
     // câu hỏi → KHÔNG gọi diagnose (tránh buổi học rỗng). Lời sư tử đã báo.
@@ -514,7 +518,7 @@ export default function TutorApp() {
     setError(null);
     setBusy(true);
     try {
-      const d = await diagnose(subject, node?.key);
+      const d = await diagnose(subject, node?.key, questionId);
       // Bài chưa có câu hỏi (đang cắm nội dung) → KHÔNG vào buổi rỗng/kẹt; giữ học
       // sinh ở lộ trình + báo nhẹ nhàng.
       if (!d.questions || d.questions.length === 0) {
@@ -1142,6 +1146,8 @@ export default function TutorApp() {
               busy={busy}
               onStart={start}
               onOpenKhoBau={(n) => setKhoBau({ key: n.key, label: n.label })}
+              /* Làm lại: mở đúng bài + đưa CÂU bị trả lên đầu phiên. */
+              onRedo={(n, qid) => void start(n, qid)}
             />
 
             {/* Đồng bộ lộ trình chạy NGẦM — không báo chữ (tránh nhấp nháy/giật);
@@ -1688,7 +1694,8 @@ export default function TutorApp() {
                   <span className="rc-score num">{sc.diem}/3</span>
                 </div>
                 <div className="rc-bar" aria-hidden>
-                  <i style={{ "--v": `${(sc.diem / 3) * 100}%` } as React.CSSProperties} />
+                  {/* KHÔNG đơn vị: CSS chạy scaleX(var(--v)) thay vì animate width. */}
+                  <i style={{ "--v": sc.diem / 3 } as React.CSSProperties} />
                 </div>
                 {sc.nhan_xet && <p className="rc-note">{sc.nhan_xet}</p>}
               </li>

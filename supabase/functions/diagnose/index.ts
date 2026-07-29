@@ -31,7 +31,9 @@ Deno.serve(async (req: Request) => {
     // MÔN, rải trên 19 bài khác nhau (đo trên dữ liệu sống 27/07). Lộ trình vẽ
     // từng bài, mastery tính theo từng bài, mà nội dung học lại không thuộc bài
     // nào — học sinh không thể làm chủ nổi bài mình đang mở.
-    const { subject, nodeKey } = await req.json();
+    // `questionId` (tuỳ chọn — luồng LÀM LẠI, lỗi 2): đưa đúng CÂU bị giáo viên
+    // trả về lên ĐẦU phiên, học sinh không phải cày lại cả bài để tới nó.
+    const { subject, nodeKey, questionId } = await req.json();
     if (!subject || typeof subject !== "string") return json({ error: "subject required" }, 400);
 
     const studentId = ctx.userId;
@@ -102,9 +104,17 @@ Deno.serve(async (req: Request) => {
     // H5 — lớp phủ GV: bỏ câu bị ẨN, ghép SỬA nội dung/lời giải trước khi phục
     // vụ. Rỗng khi GV chưa chỉnh gì (1 query nhẹ).
     const overrides = await loadQuestionOverrides(supa, ctx.tenantId);
-    const served = (questions ?? [])
+    let served = (questions ?? [])
       .filter((q) => !isHidden(overrides.get(q.id)))
       .map((q) => applyQuestionEdit(q, overrides.get(q.id)));
+
+    // LÀM LẠI ĐÚNG CÂU BỊ TRẢ: câu được yêu cầu nhảy lên đầu danh sách phục vụ.
+    // Chỉ nhận id có thật trong danh sách vừa lọc (đã qua kiểm version + overlay
+    // GV) — id lạ/tenant khác thì lặng lẽ bỏ qua, phiên chạy như thường.
+    if (typeof questionId === "string" && questionId) {
+      const idx = served.findIndex((q) => q.id === questionId);
+      if (idx > 0) served = [served[idx]!, ...served.slice(0, idx), ...served.slice(idx + 1)];
+    }
 
     const firstNode = served[0]?.node_key ?? null;
     const { data: ses } = await supa

@@ -165,8 +165,13 @@ export interface TurnResult {
  *  Van đang XEM TRƯỚC — learning-path trả rỗng/lỗi thì web tự về lộ trình tĩnh. */
 export type Subject = "Toan" | "Van" | "Anh" | "GDKTPL";
 
-export const diagnose = (subject: Subject, nodeKey?: string) =>
-  callFn<DiagnoseResult>("diagnose", nodeKey ? { subject, nodeKey } : { subject });
+export const diagnose = (subject: Subject, nodeKey?: string, questionId?: string) =>
+  callFn<DiagnoseResult>("diagnose", {
+    subject,
+    ...(nodeKey ? { nodeKey } : {}),
+    // Luồng LÀM LẠI: server đưa đúng câu bị trả lên đầu phiên.
+    ...(questionId ? { questionId } : {}),
+  });
 
 /** `remediation`: bật khi trả lời câu engine TIÊM (vá nền) để engine biết phục
  *  vụ câu nền kế tiếp / leo ngược thay vì coi như luồng chính. */
@@ -433,6 +438,8 @@ export interface LearningPathNode {
   totalCount?: number;
   /** Số bài nộp đang chờ giáo viên chấm trên node này. */
   pending?: number;
+  /** Bài bị TRẢ VỀ: đúng những câu cần làm lại + lời nhắn của thầy cô. */
+  redo?: Array<{ questionId: string; note: string | null }>;
   /** Kho báu học liệu đứng CẠNH bài (không nằm trong bài). */
   khoBau?: { mucCoSan: number[]; mucDaQua: number };
 }
