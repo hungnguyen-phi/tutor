@@ -11547,3 +11547,47 @@ textarea {
 }
 .expired-panel .muted { line-height: 1.6; }
 .expired-panel .btn { margin-top: 6px; min-width: 220px; }
+
+/* ═══ BỐ CỤC BÀI HỌC HAI CỘT trên màn rộng (29/07) ═══
+   Trước: cột nội dung khoá ở --content-w (42rem) → màn 1920px bỏ trống gần
+   1.200px hai bên, mà khối học liệu lại đứng ĐÈ trên đầu, đẩy câu hỏi xuống
+   dưới mép màn (học sinh phải cuộn qua học liệu mới thấy đáp án).
+   Nay ≥1200px tách hai cột: câu hỏi bên trái, học liệu bên phải DÍNH theo cuộn
+   — vừa làm bài vừa tra được phim/phiếu (dual coding), và không còn khoảng chết. */
+.lsn-grid { display: contents; }
+.lsn-main { min-width: 0; }
+
+@media (min-width: 1200px) {
+  /* Nới trần cho MÀN BÀI HỌC, không đụng --content-w của các màn khác. */
+  .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1160px); }
+  .lsn-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--lsn-aside-w, 380px);
+    gap: var(--lsn-gap, 28px);
+    align-items: start;
+  }
+  .lsn-main { grid-column: 1; grid-row: 1; }
+  .lsn-aside {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
+    top: 76px;
+    max-height: calc(100dvh - 96px);
+    overflow: auto;
+    /* Thanh cuộn riêng của cột này không được đẩy chữ nhảy khi hiện/ẩn. */
+    scrollbar-gutter: stable;
+  }
+  /* Học liệu rỗng (bài chưa có gì) → LessonView trả null ⇒ aside trống:
+     trả về MỘT cột, đừng chừa 380px không khí. */
+  .lsn-grid:has(.lsn-aside:empty) { display: block; }
+  /* Khung xem trong cột hẹp: thấp hơn màn bài học vì cột chỉ rộng 380px. */
+  .lsn-aside .lsv-frame,
+  .lsn-aside .lsv-img { height: 260px; max-height: 260px; min-height: 200px; }
+  .lsn-aside .lsv { margin: 0; }
+  /* Nút hành động dưới đáy bám theo CỘT TRÁI, không trôi ra giữa cả hai cột. */
+  .lfoot-inner {
+    max-width: var(--lsn-w, 1160px);
+    padding-right: calc(var(--lsn-aside-w, 380px) + var(--lsn-gap, 28px));
+  }
+}

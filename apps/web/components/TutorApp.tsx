@@ -1421,9 +1421,19 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* Bài đặc biệt — học liệu Xưởng đưa vào, dẫn đầu node. Rỗng thì tự ẩn. */}
-      <LessonView resources={resources} />
+      {/* BỐ CỤC HAI CỘT trên màn rộng (29/07, chủ dự án chỉ ra): cột nội dung
+          khoá ở 42rem nên màn 1920px bỏ trống gần 1.200px hai bên, mà học liệu
+          lại nằm ĐÈ lên đầu, đẩy câu hỏi xuống dưới màn.
+          Nay ≥1200px: câu hỏi bên trái, học liệu sang phải và DÍNH theo khi cuộn
+          — em vừa làm bài vừa tra được phim/phiếu, đúng tinh thần dual coding.
+          Dưới 1200px giữ nguyên xếp dọc, học liệu đứng trước (xem trước rồi luyện).
+          DOM giữ học liệu TRƯỚC để thứ tự đọc màn hình + mobile không đổi. */}
+      <div className="lsn-grid">
+        <aside className="lsn-aside">
+          <LessonView resources={resources} />
+        </aside>
 
+        <div className="lsn-main">
       {q && (
         <>
           <p className="eyebrow lesson-kind">{kindEyebrow(q)}</p>
@@ -1807,8 +1817,10 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* Đệm cho footer cố định — nội dung cuối không bao giờ bị che. */}
-      <div className="lesson-pad" aria-hidden />
+          {/* Đệm cho footer cố định — nội dung cuối không bao giờ bị che. */}
+          <div className="lesson-pad" aria-hidden />
+        </div>
+      </div>
 
       {/* Footer 2 trạng thái (hi-fi): trắng + KIỂM TRA khi đang làm;
           ribbon ok-tint / warn-tint khi có kết quả. Sai = hổ phách, KHÔNG đỏ. */}

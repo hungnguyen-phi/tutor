@@ -11,6 +11,17 @@ export interface GuideCtx {
   rungQuestion?: string; // the pre-authored Socratic rung to deliver
   bottomOut?: string; // only passed when the effort gate authorizes it
   attempts: number;
+  /**
+   * Lượt "KỂ CÁCH EM NGHĨ" — cổng nỗ lực đang ở trạng thái nào. Quyết định
+   * việc AI được phép làm gì, để nó ĐÁP ĐÚNG cái em vừa nói thay vì đọc một
+   * câu soạn sẵn (lỗi: em nói ba điều khác nhau mà sư tử lặp y một câu).
+   *   must_try   — chưa thử lần nào: đáp lại ý em, RỒI mời chọn/điền một đáp án.
+   *   need_think — đã thử nhưng lời còn cụt: xoáy sâu thêm một nhịp.
+   *   guide      — đủ điều kiện: dẫn theo bậc thang đã soạn.
+   */
+  stage?: "must_try" | "need_think" | "guide";
+  /** Lời em vừa nói — để hệ thống nhắc mô hình BÁM vào đó. */
+  studentSaid?: string;
 }
 
 const BASE = `Bạn là "Sư tử Việt Anh" — BẠN ĐỒNG HÀNH học tập của một học sinh Trường Việt Anh.
@@ -52,6 +63,20 @@ Câu hỏi đang làm: <de_bai>${clip(ctx.question, 600)}</de_bai>.`;
     s += `\nHệ thống CHO PHÉP mở đáy (vì bạn ấy đã đủ nỗ lực): hãy hé lộ hướng giải kèm lý do, nhẹ nhàng, dựa trên: "${ctx.bottomOut}". Sau đó mời bạn ấy làm lại bước cuối.`;
   } else {
     s += `\nChưa được phép lộ đáp án. Nếu bạn ấy đòi đáp án, từ chối kiên định ("mình hỏi, bạn nghĩ nhé") và kéo về suy nghĩ.`;
+  }
+  // Lượt "kể cách nghĩ": bắt buộc BÁM vào lời bạn ấy vừa nói. Đây là chỗ trước
+  // đây trả câu soạn sẵn nên lặp y hệt dù học sinh nói ba điều khác nhau.
+  if (ctx.stage) {
+    s += `\nLƯỢT NÀY bạn ấy vừa KỂ CÁCH NGHĨ (chưa phải nộp đáp án). BẮT BUỘC:
+- Câu đầu tiên phải NHẮC LẠI ĐÚNG ý bạn ấy vừa nói, cho thấy mình có nghe.
+- Nếu trong đó có chỗ hiểu chưa chuẩn, ĐỪNG nói "sai" — hỏi một câu khiến bạn ấy tự kiểm lại chính chỗ đó.
+- TUYỆT ĐỐI không nói ý nào đúng ý nào sai, không xác nhận đáp án.
+- Đúng MỘT câu hỏi ở cuối. Tổng 2–3 câu, không liệt kê.`;
+    if (ctx.stage === "must_try") {
+      s += `\n- Bạn ấy CHƯA thử lần nào: sau khi đáp lại ý vừa nói, mời bạn ấy chọn/điền một đáp án để bắt đầu.`;
+    } else if (ctx.stage === "need_think") {
+      s += `\n- Lời bạn ấy còn cụt: xoáy thêm MỘT nhịp cho rõ (bạn dựa vào đâu? bước nào trước?).`;
+    }
   }
   s += `\n${lang}`;
   return s;

@@ -466,14 +466,20 @@ Deno.serve(async (req: Request) => {
           isHelpRequest(reasoning) || contentWordCount(reasoning) < 5
             ? Math.min(0.3, thinkingContentSignal(reasoning))
             : thinkingContentSignal(reasoning);
-        const [attRes, { data: ladders }] = await Promise.all([
+        // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
+        // đáng thêm một vòng mạng tuần tự).
+        const [attRes, { data: ladders }, { data: nodeForGuide }] = await Promise.all([
           supa.from("attempts").select("id, attempt_no, thinking_quality")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
           supa.from("socratic_ladders").select("rungs, bottom_out, cong_no_luc")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .eq("status", "active").limit(1),
+          supa.from("kg_nodes").select("label")
+            .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
+            .maybeSingle(),
         ]);
+        const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
         const attempts = attRows.length;
         const lastAtt = attRows[attRows.length - 1];
@@ -502,26 +508,68 @@ Deno.serve(async (req: Request) => {
           minAttempts: minAtt,
         });
         let msg: string;
-        if (gate.action === "require_attempt") {
+        // Bậc thang đã soạn cho lượt này (KHÔNG bao giờ mở đáy qua đường đối
+        // thoại — B4: chat nhiều không moi được đáp án).
+        const rung = rungs[Math.min(currentRungR, Math.max(0, rungs.length - 1))];
+        const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
+        const stage: "must_try" | "need_think" | "guide" =
+          gate.action === "require_attempt" ? "must_try"
+          : gate.action === "require_thinking" ? "need_think"
+          : "guide";
+
+        // ĐƯỜNG LUI TẤT ĐỊNH — dùng khi trường chưa bật khoá AI hoặc LLM hỏng.
+        if (stage === "must_try") {
           msg = en
             ? "Thanks for sharing your thinking! Now pick or type an answer first — trying is how we learn. I'm right here."
             : "Cảm ơn bạn đã kể! Giờ bạn chọn hoặc điền một đáp án trước nhé — thử mới biết mình vướng ở đâu, mình ở ngay đây.";
-        } else if (gate.action === "require_thinking") {
+        } else if (stage === "need_think") {
           msg = en
             ? "Tell me a bit more — which step did you take first, and why?"
             : "Bạn kể cụ thể hơn chút nữa nhé — bạn làm bước nào trước, và vì sao chọn bước đó?";
         } else {
-          // advance_rung / bottom_out: QUA ĐƯỜNG ĐỐI THOẠI không bao giờ mở đáy
-          // (B4 — chặn moi đáp án bằng cách chat nhiều); sâu nhất chỉ tới bậc cuối.
-          const rung = rungs[Math.min(currentRungR, Math.max(0, rungs.length - 1))];
-          const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
           msg = rungText
             ? `${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
             : en
               ? "Which piece of the question have you not used yet?"
               : "Trong đề bài còn dữ kiện nào bạn chưa dùng đến?";
         }
-        persist("tutor", msg, "engine", { gate: "reflect" });
+
+        // ── AI ĐÁP ĐÚNG CÁI EM VỪA NÓI (vá 29/07) ──────────────────────────
+        // Trước đây nhánh này TẤT ĐỊNH 100%: em nói ba điều khác nhau — kể cả
+        // một quan niệm sai thật ("trời đẹp quá là đúng mà") — mà sư tử lặp y
+        // một câu ba lần. Cổng nỗ lực vẫn do SERVER quyết (stage ở trên); AI
+        // chỉ được DIỄN ĐẠT đúng quyết định đó bằng lời bám vào ý của em.
+        // `bottomOut` cố tình KHÔNG truyền ⇒ mô hình không có gì để lộ.
+        if (Deno.env.get("OPENROUTER_API_KEY")) {
+          try {
+            const { text: safe, map } = anonymize(reasoning, names);
+            const res = await callLLM({
+              system: buildGuideSystem({
+                subject: s.subject,
+                grade: String(grade),
+                language,
+                nodeLabel: nodeLabelForGuide,
+                question: String(q.noi_dung ?? "").slice(0, 600),
+                ...(rungText && stage === "guide" ? { rungQuestion: rungText } : {}),
+                attempts,
+                stage,
+              }),
+              user: `<hoc_sinh>${safe}</hoc_sinh>`,
+              agent: "guide",
+              tier: "cheap", // đối thoại = việc nhẹ, deepseek-flash: nhanh + rẻ
+              maxTokens: 200,
+              temperature: 0.4,
+              studentId: s.student_id,
+              tenantId: s.tenant_id,
+              supa,
+            });
+            const t = rehydrate(res.text, map).trim();
+            if (t) msg = t;
+          } catch {
+            /* hết ngân sách / LLM hỏng → giữ câu tất định ở trên, không kẹt em */
+          }
+        }
+        persist("tutor", msg, "engine", { gate: "reflect", stage });
         return json({ correct: false, gate: "reflect", graded: false, message: msg });
       }
 
