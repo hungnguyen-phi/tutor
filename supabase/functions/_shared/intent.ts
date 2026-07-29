@@ -34,19 +34,25 @@ function normVi(s: string): string {
 // Toán hỏi "cách làm nào đúng?" → em gõ "cách làm 2"). Chỉ giữ những cụm mà
 // KHÔNG câu nào có thể lấy làm đáp án.
 const HELP_PATTERNS: RegExp[] = [
-  /goi y (giup|cho|di|voi)|cho (em|minh|tui|toi) goi y|xin goi y/,
-  /giup (em|minh|toi|tui) (voi|di|cai|phat)/,
-  /(khong|chua|k|ko|hong) (biet lam|biet giai|hieu de|lam duoc)/,
-  /(em|minh|tui|toi) (chua|khong) biet/,
+  // Những cụm này KHÔNG câu nào lấy làm đáp án được — đã tra kho sống: 0 dòng
+  // `dap_an` chứa "gợi ý"/"giúp em"; 11 dòng chứa "không biết/hiểu" nhưng đều
+  // dài 24–195 từ nên đã rơi khỏi lưới ở chốt "câu ngắn" bên dưới. Đây cũng là
+  // cách học sinh kêu cứu THƯỜNG NHẤT, bỏ đi là em gõ "em không hiểu" rồi bị
+  // chấm SAI + đóng dấu bằng chứng vĩnh viễn cho câu đó.
+  /goi y/,
+  /giup (em|minh|toi|tui|voi)/,
+  /(khong|chua|k|ko|hong) (biet|hieu|ro|lam duoc)/,
   /chi (em|minh|tui|toi) (cach|voi|di)/,
   // "làm sao/làm thế nào" GIỮ LẠI được: ba chốt chặn ở isHelpRequest (câu dài,
   // có phép tính, có từ nối lập luận) đã loại hết ca "…và làm sao cho vế trái
-  // bằng vế phải nên suy ra x = 2". Còn "cách làm" thì KHÔNG giữ nổi — "Cách
-  // làm của bạn Nam sai" là bài làm thật, ngắn, không toán, không từ nối.
-  /lam (sao|the nao|nhu the nao) (de|ma|day|vay|ha|a)?/,
+  // bằng vế phải nên suy ra x = 2".
+  /lam (sao|the nao|nhu the nao)/,
   /bo tay|chiu thua|em chiu|minh chiu|be tac/,
   /how do i (do|solve)|i (dont|don t|do not) know how/,
   /dap an la gi|cho (em|minh) dap an/,
+  // ⚠️ CỐ Ý KHÔNG có: "cach lam", "huong dan", "hint", "help me" — chúng là
+  // ĐÁP ÁN hợp lệ của nhiều câu (TA10 hỏi nghĩa "hint"; Toán hỏi "cách làm nào
+  // đúng?" → em gõ "cách làm 2"; điền khuyết có ô là "hướng dẫn").
 ];
 
 /** Từ đệm rỗng nghĩa — bài chỉ gồm những từ này là bài RÁC. */

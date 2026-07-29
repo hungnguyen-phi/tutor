@@ -17,7 +17,10 @@ Deno.serve(async (req: Request) => {
     const ctx = await authenticate(req);
     if (!ctx) return json({ error: "unauthorized" }, 401);
 
-    const { sessionId, questionId, ladderId, currentRung, thinkingQuality } = await req.json();
+    // KHÔNG đọc `currentRung` / `thinkingQuality` từ body nữa (29/07): cả hai
+    // giờ suy từ bảng attempts ở dưới. Nhận số client tự khai chính là cái lỗ
+    // mà cổng nỗ lực sinh ra để bịt.
+    const { sessionId, questionId, ladderId } = await req.json();
     if (!sessionId || !questionId) return json({ error: "sessionId & questionId required" }, 400);
     const supa = admin();
 
@@ -35,12 +38,18 @@ Deno.serve(async (req: Request) => {
       return json({ error: "forbidden" }, 403);
     }
 
-    const { count } = await supa
+    // Đọc CẢ thinking_quality: cổng nỗ lực KHÔNG được tin số client tự khai —
+    // đó đúng là thứ cả thiết kế này sinh ra để chặn. Suy từ dữ liệu server,
+    // giống hệt nhánh chấm trong chat-turn.
+    const { data: attRows } = await supa
       .from("attempts")
-      .select("id", { count: "exact", head: true })
+      .select("thinking_quality")
       .eq("tenant_id", sess.tenant_id)
       .eq("session_id", sessionId)
-      .eq("question_id", questionId);
+      .eq("question_id", questionId)
+      .order("attempt_no", { ascending: true });
+    const rows = (attRows ?? []) as Array<{ thinking_quality: number | null }>;
+    const count = rows.length;
 
     let minAttempts = 2;
     let totalRungs = 4;
@@ -59,19 +68,23 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // `currentRung` = SỐ BẬC ĐÃ TRAO (đổi nghĩa 29/07 cùng evaluateEffortGate).
-    // Client tự khai nên PHẢI kẹp: gửi 99 là mở đáy vô điều kiện, gửi số âm là
-    // lệch thang. Kẹp [0, totalRungs] giữ nguyên ngữ nghĩa mà không tin client.
-    const rung = Math.max(0, Math.min(Number(currentRung) || 0, totalRungs));
+    // CẢ HAI trục suy từ SERVER (29/07), body chỉ còn dùng để định danh phiên/câu:
+    //  · thinkingQuality = mức suy nghĩ CAO NHẤT em từng thể hiện ở câu này;
+    //  · currentRung     = SỐ BẬC ĐÃ TRAO = số lượt (sau trần tối thiểu) mà em
+    //                      thực sự trình bày. Kẹp bằng chính client thì gửi 99
+    //                      thành gửi 4 — vẫn mở đáy; phải bỏ hẳn số client.
+    const derivedThinking = rows.reduce((m, r) => Math.max(m, Number(r.thinking_quality ?? 0)), 0);
+    const rungTurns = rows.slice(Math.max(0, minAttempts - 1));
+    const rung = rungTurns.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
     const decision = evaluateEffortGate({
-      attempts: count ?? 0,
-      thinkingQuality,
+      attempts: count,
+      thinkingQuality: derivedThinking,
       currentRung: rung,
       totalRungs,
       minAttempts,
     });
 
-    return json({ ...decision, attempts: count ?? 0, totalRungs, minAttempts });
+    return json({ ...decision, attempts: count, currentRung: rung, totalRungs, minAttempts });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }

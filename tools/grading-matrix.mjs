@@ -169,6 +169,21 @@ t("KHÔNG help: 'Cách làm của bạn Nam sai'",
 t("VẪN help: 'làm sao để giải câu này'", intent.isHelpRequest("làm sao để giải câu này"), true);
 t("VẪN help: 'em chưa biết'", intent.isHelpRequest("em chưa biết"), true);
 
+
+// ══ HỒI QUY vòng 3 — cách học sinh KÊU CỨU thường nhất phải luôn được nhận ══
+// (Vòng 2 gọt HELP_PATTERNS quá tay, làm "em không hiểu" bị đem đi chấm SAI
+//  rồi đóng dấu bằng chứng vĩnh viễn cho câu đó.)
+t("help: 'không biết'", intent.isHelpRequest("không biết"), true);
+t("help: 'em không hiểu'", intent.isHelpRequest("em không hiểu"), true);
+t("help: 'ko hiểu'", intent.isHelpRequest("ko hiểu"), true);
+t("help: 'chưa hiểu bài'", intent.isHelpRequest("chưa hiểu bài"), true);
+t("help: 'gợi ý'", intent.isHelpRequest("gợi ý"), true);
+t("help: 'giúp em'", intent.isHelpRequest("giúp em"), true);
+t("help: 'giúp mình với'", intent.isHelpRequest("giúp mình với"), true);
+// …nhưng vẫn KHÔNG nuốt bài làm thật dài có chứa cùng cụm đó.
+t("KHÔNG help: bài dài chứa 'không hiểu'",
+  intent.isHelpRequest("Bạn Nam không hiểu rằng tổng ba góc trong tam giác luôn bằng 180 độ nên đã tính sai"), false);
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
 

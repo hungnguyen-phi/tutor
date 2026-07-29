@@ -491,11 +491,9 @@ Deno.serve(async (req: Request) => {
         // lượt 6 là được ngay bậc sâu nhất trong khi nhánh chấm mới ở bậc 2.
         const rungTurnsR = attRows.slice(Math.max(0, minAtt - 1));
         const engagedR = rungTurnsR.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
-        // Lượt này vừa trình bày đủ → tính luôn, nhưng KHÔNG vượt bậc cuối.
-        const currentRungR = Math.min(
-          engagedR + (best >= 0.5 && attempts >= minAtt ? 0 : 0),
-          Math.max(0, totalRungs - 1),
-        );
+        // KHÔNG cộng thêm cho lượt hiện tại: cộng là nhảy thẳng sang bậc 2, bỏ
+        // qua đúng bậc 1 (siêu nhận thức) — chính lỗi vừa vá ở nhánh chấm.
+        const currentRungR = Math.min(engagedR, Math.max(0, totalRungs - 1));
         const gate = evaluateEffortGate({
           attempts,
           thinkingQuality: best,
@@ -567,8 +565,13 @@ Deno.serve(async (req: Request) => {
       // Lấy kèm thinking_quality của lần thử GẦN NHẤT: lượt "kể cách nghĩ" (B0)
       // đã cộng dồn suy nghĩ thật vào đó — cổng nỗ lực phải nhớ, không bắt kể lại.
       const [prevRes, { data: nodeRow }] = await Promise.all([
+        // PHẢI .order: `rungTurns` cắt theo VỊ TRÍ nên thứ tự là ngữ nghĩa, không
+        // phải trang trí. Postgres không hứa thứ tự khi thiếu ORDER BY — hôm nay
+        // đúng chỉ vì heap tình cờ xếp vậy; một lần CLUSTER/dump-restore là cắt
+        // nhầm hàng, và em đã kể cách nghĩ lại bị tụt về bậc 1 mãi.
         supa.from("attempts").select("thinking_quality")
-          .eq("session_id", s.id).eq("question_id", q.id),
+          .eq("session_id", s.id).eq("question_id", q.id)
+          .order("attempt_no", { ascending: true }),
         supa.from("kg_nodes").select("revision, label").eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key).maybeSingle(),
       ]);
       const prevRows = (prevRes.data ?? []) as Array<{ thinking_quality: number | null }>;
@@ -608,8 +611,10 @@ Deno.serve(async (req: Request) => {
             tenantId: s.tenant_id,
             supa,
           });
-      // ĐAI AN TOÀN (fail-closed): LLM gật mà bài không đủ dày để là một lập
-      // luận thật → không công nhận. (Lỗi 8: "ok" từng đậu 3/5 lần.)
+      // ĐAI AN TOÀN sau LLM. Chỉ RÀNG khi đáp án mẫu là ĐOẠN VĂN (≥12 từ): ở đó
+      // một bài vài chữ không thể đủ ý, nên LLM gật là chắc chắn sai (lỗi 8:
+      // "ok" từng đậu 3/5 lần). Câu điền khuyết đáp án một cụm từ thì KHÔNG ràng
+      // — ràng là đánh trượt chính em gõ đúng; ở đó LLM/CAS là trọng tài.
       if (openV?.correct && !plausibleOpenAnswer(studentAnswer, String(q.dap_an ?? ""))) {
         openV = { correct: false, method: "llm", detail: en ? "answer too short to cover the key ideas" : "bài làm quá ngắn so với yêu cầu" };
       }
