@@ -235,9 +235,145 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     outputTokens: (data.usage as { completion_tokens?: number } | undefined)?.completion_tokens ?? 0,
   };
 
-  // Audit mọi quyết định AI (PDPL) + ĐO token đã tiêu — CHẠY NỀN (waitUntil) để
-  // KHÔNG chặn phản hồi cho học sinh. Lỗi ghi nuốt im lặng: đây là nhật ký/đo
-  // lường, không phải dữ liệu quyết định học tập.
+  recordCall(args, { text, model, tier, usage, ck });
+  return { text, model, usage };
+}
+
+/**
+ * PHÁT CHỮ DẦN (streaming, 29/07).
+ *
+ * Vì sao: hiện học sinh nhìn màn hình trống cho tới khi mô hình viết XONG cả
+ * câu rồi mới thấy một cục chữ. 100 token đầu ra là quãng chờ dài nhất trong
+ * cả lượt. Phát dần cho chữ chạy ra ngay từ token đầu — cảm giác nhanh hẳn mà
+ * KHÔNG tốn thêm một đồng nào: vẫn đúng ngần ấy token.
+ *
+ * Trả về giống `callLLM` (text đầy đủ + usage) nên nhánh gọi vẫn lưu/kiểm được
+ * như cũ. `onDelta` được gọi theo từng mẩu chữ.
+ *
+ * Thất bại thì trả text rỗng chứ KHÔNG ném: nhánh gọi đã có câu tất định để
+ * lùi về, ném ra chỉ làm em kẹt màn trống.
+ */
+const SSE_EVENT_SEP = "\n\n";
+const SSE_LINE_SEP = "\n";
+
+export async function callLLMStream(
+  args: LlmCallArgs,
+  onDelta: (chunk: string) => void,
+): Promise<LlmCallResult> {
+  assertAnonymized(`${args.system}\n${args.user}`);
+  const key = Deno.env.get("OPENROUTER_API_KEY");
+  if (!key) throw new Error("OPENROUTER_API_KEY not set in function secrets.");
+
+  // Trần token/ngày: kiểm y như lượt thường — phát dần không phải cửa sau.
+  if (args.supa && args.studentId) {
+    const day = dayKeyUTC();
+    const { data: rows } = await args.supa
+      .from("token_usage").select("tokens")
+      .eq("student_id", args.studentId).eq("day", day);
+    const spent = ((rows ?? []) as Array<{ tokens: number | null }>)
+      .reduce((acc, r) => acc + (r.tokens ?? 0), 0);
+    if (spent >= DAILY_TOKEN_LIMIT) {
+      throw new BudgetExceededError(args.studentId, DAILY_TOKEN_LIMIT, spent);
+    }
+  }
+
+  const tier: Tier = args.tier ?? "default";
+  const primary = MODELS[tier];
+  const dedupe = (a: string[]) => a.filter((m, i, arr) => arr.indexOf(m) === i);
+  const models = dedupe([primary, ...FALLBACK]).slice(0, 3);
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+  };
+  const referer = Deno.env.get("OPENROUTER_REFERER");
+  const title = Deno.env.get("OPENROUTER_TITLE");
+  if (referer) headers["HTTP-Referer"] = referer;
+  if (title) headers["X-Title"] = title;
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      models,
+      messages: [
+        { role: "system", content: args.system },
+        { role: "user", content: args.user },
+      ],
+      max_tokens: args.maxTokens ?? 420,
+      temperature: args.temperature ?? 0.3,
+      reasoning: { enabled: false, exclude: true },
+      stream: true,
+      // Không có cờ này thì mẩu cuối KHÔNG kèm usage ⇒ token_usage cộng 0 và
+      // trần token/ngày thành vô hiệu cho mọi lượt phát dần.
+      stream_options: { include_usage: true },
+    }),
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(`OpenRouter ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+  }
+
+  let text = "";
+  let model = primary;
+  let usage = { inputTokens: 0, outputTokens: 0 };
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      // SSE: các sự kiện ngăn bằng dòng trống. Giữ lại phần đuôi chưa trọn gói —
+      // cắt giữa chừng rồi JSON.parse là hỏng cả lượt.
+      const parts = buf.split(SSE_EVENT_SEP);
+      buf = parts.pop() ?? "";
+      for (const part of parts) {
+        for (const line of part.split(SSE_LINE_SEP)) {
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const j = JSON.parse(payload) as {
+              model?: string;
+              choices?: Array<{ delta?: { content?: string } }>;
+              usage?: { prompt_tokens?: number; completion_tokens?: number };
+            };
+            if (j.model) model = j.model;
+            if (j.usage) {
+              usage = {
+                inputTokens: j.usage.prompt_tokens ?? 0,
+                outputTokens: j.usage.completion_tokens ?? 0,
+              };
+            }
+            const d = j.choices?.[0]?.delta?.content;
+            if (d) { text += d; onDelta(d); }
+          } catch { /* mẩu lỗi lẻ không được giết cả lượt */ }
+        }
+      }
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* đã đóng */ }
+  }
+
+  text = text.trim();
+  // Không lưu cache cho lượt phát dần: đường này chỉ dùng cho lời DẪN DẮT — vốn
+  // riêng theo từng em, cache lại là trả lời em này bằng câu nói với em khác.
+  recordCall(args, { text, model, tier, usage, ck: null });
+  return { text, model, usage };
+}
+
+/**
+ * Ghi nhật ký + đo token + ghi cache — CHẠY NỀN (waitUntil) để KHÔNG chặn phản
+ * hồi cho học sinh. Lỗi ghi nuốt im lặng: đây là nhật ký/đo lường, không phải
+ * dữ liệu quyết định học tập. Tách riêng để lượt THƯỜNG và lượt PHÁT DẦN dùng
+ * chung một đường — hai bản sao là hai chỗ để quên cập nhật.
+ */
+function recordCall(
+  args: LlmCallArgs,
+  o: { text: string; model: string; tier: Tier; usage: { inputTokens: number; outputTokens: number }; ck: string | null },
+): void {
+  const { text, model, tier, usage, ck } = o;
   if (args.supa) {
     const supa = args.supa;
     const total = usage.inputTokens + usage.outputTokens;
@@ -286,7 +422,4 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     );
     runInBackground(bg);
   }
-  // TODO(streaming): khi cần trả token dần cho UI, thêm cờ args.stream để trả
-  // ReadableStream từ OpenRouter (stream:true) thay vì gom hết rồi trả một cục.
-  return { text, model, usage };
 }

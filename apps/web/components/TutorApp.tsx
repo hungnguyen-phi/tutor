@@ -600,7 +600,13 @@ export default function TutorApp() {
     setAttempts(0);
   }
 
-  function applyTurn(res: TurnResult, attemptNo: number, wasInjected: boolean) {
+  function applyTurn(
+    res: TurnResult,
+    attemptNo: number,
+    wasInjected: boolean,
+    /** Lời sư tử đã được PHÁT DẦN ra màn hình rồi — đừng dựng thêm bong bóng. */
+    messageShown = false,
+  ) {
     // Dạng trả lời bằng thao tác → im lặng, không dựng bong bóng đối thoại.
     const quiet = isWidgetAnswer(q);
 
@@ -608,11 +614,13 @@ export default function TutorApp() {
     // dẫn của sư tử như một gợi ý, TUYỆT ĐỐI không hiện trạng thái "sai", không
     // đổi verdict, không tính lần thử (attempts đã hoàn lại ở nơi gọi).
     if (res.graded === false) {
-      if (res.message) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
+      if (res.message && !messageShown) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
       return;
     }
 
-    if (res.message && !quiet) setMsgs((m) => [...m, { role: "tutor", text: res.message! }]);
+    if (res.message && !quiet && !messageShown) {
+      setMsgs((m) => [...m, { role: "tutor", text: res.message! }]);
+    }
 
     // XP SERVER-AUTHORITATIVE: engine trả res.xp (student_xp) → số server thắng,
     // cache máy chỉ chép lại. gained=0 nghĩa là nguồn XP này đã ăn trước đó
@@ -712,10 +720,43 @@ export default function TutorApp() {
     setLoading(true);
     try {
       const wasInjected = injectedStack.length > 0;
-      const res = await answer(ses.sessionId, q.id, ans, wasInjected);
+      // PHÁT CHỮ DẦN — chỉ nhánh "mời em nói rõ thêm" mới có chữ để phát; mọi
+      // kết cục khác server trả JSON ngay và hàm gọi đọc thẳng phong bì đó.
+      // Dạng trả lời bằng THAO TÁC (kéo thả, nối cột) vốn không dựng bong bóng
+      // đối thoại, nên cũng không mở dòng phát — không thì chữ đáng lẽ ẩn lại
+      // hiện ra, ngược hẳn thiết kế hiện thời.
+      const quiet = isWidgetAnswer(q);
+      let streamed = false;
+      let streamRole: "tutor" | "hint" = "tutor";
+      const res = await answer(ses.sessionId, q.id, ans, wasInjected, quiet ? undefined : {
+        // Phong bì tới TRƯỚC mẩu chữ đầu: lượt "không được chấm" hiện dạng GỢI Ý
+        // (không đỏ, không tính sai), lượt được chấm hiện dạng lời sư tử.
+        onMeta: (m) => { streamRole = m.graded === false ? "hint" : "tutor"; },
+        onDelta: (chunk) => {
+          setMsgs((m) => {
+            if (!streamed) return [...m, { role: streamRole, text: chunk }];
+            const last = m[m.length - 1];
+            if (!last || last.role !== streamRole) return [...m, { role: streamRole, text: chunk }];
+            return [...m.slice(0, -1), { ...last, text: last.text + chunk }];
+          });
+          streamed = true;
+          setLoading(false); // chữ đã chạy = sư tử đang nói, tắt vòng quay chờ
+        },
+      });
       // Lượt không được chấm (cổng ý định) → hoàn lại bộ đếm lần thử của UI.
       if (res.graded === false) setAttempts((n) => Math.max(0, n - 1));
-      applyTurn(res, attemptNo, wasInjected);
+      // Đã bơm chữ ra rồi thì ĐÈ bằng câu chốt của server (bản thật) và bảo
+      // applyTurn đừng dựng thêm một bong bóng thứ hai y hệt.
+      if (streamed) {
+        setMsgs((m) => {
+          const last = m[m.length - 1];
+          if (last && last.role === streamRole && res.message) {
+            return [...m.slice(0, -1), { ...last, text: res.message }];
+          }
+          return m;
+        });
+      }
+      applyTurn(res, attemptNo, wasInjected, streamed);
       // Ghi nhớ câu từng sai — nguồn số liệu "chính xác x/y" và "xem lại câu sai".
       if (!res.correct && res.graded !== false) wrongRef.current.add(q.id);
     } catch (e) {
@@ -781,8 +822,34 @@ export default function TutorApp() {
     setBusy(true);
     setLoading(true);
     try {
-      const res = await answerReflect(ses.sessionId, q.id, msg);
-      if (res.message) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
+      // PHÁT CHỮ DẦN — dựng sẵn một bong bóng RỖNG rồi bơm chữ vào nó. Trước đây
+      // em nhìn màn trống suốt quãng mô hình viết cả câu; giờ chữ chạy ra ngay
+      // từ tiếng đầu tiên. Không tốn thêm một đồng nào — vẫn ngần ấy token.
+      let opened = false;
+      const res = await answerReflect(ses.sessionId, q.id, msg, (chunk) => {
+        setMsgs((m) => {
+          if (!opened) {
+            opened = true;
+            return [...m, { role: "hint" as const, text: chunk }];
+          }
+          const last = m[m.length - 1];
+          if (!last || last.role !== "hint") return [...m, { role: "hint" as const, text: chunk }];
+          return [...m.slice(0, -1), { ...last, text: last.text + chunk }];
+        });
+        // Mẩu chữ đầu tiên đã tới = sư tử đang nói rồi → tắt vòng quay chờ.
+        setLoading(false);
+      });
+      // Câu CHỐT của server là bản thật (đã hoàn nguyên tên, đã lùi về câu tất
+      // định nếu mô hình câm) — đè lên phần đã bơm để không lệch một chữ nào.
+      if (res.message) {
+        setMsgs((m) => {
+          const last = m[m.length - 1];
+          if (opened && last && last.role === "hint") {
+            return [...m.slice(0, -1), { ...last, text: res.message! }];
+          }
+          return [...m, { role: "hint" as const, text: res.message! }];
+        });
+      }
     } catch (e) {
       { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {

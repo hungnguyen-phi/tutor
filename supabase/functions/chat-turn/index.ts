@@ -14,8 +14,10 @@ import { checkAnswer, type CasResult } from "../_shared/cas.ts";
 import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
 import { evaluateEffortGate } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
-import { anonymize, rehydrate, callLLM } from "../_shared/llm.ts";
-import { buildGuideSystem, buildScoredRubricSystem } from "../_shared/prompts.ts";
+import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
+import { buildGuideSystem, buildGuideUser, buildScoredRubricSystem } from "../_shared/prompts.ts";
+import { buildMemory } from "../_shared/memory.ts";
+import { openSse } from "../_shared/sse.ts";
 import { rubricFor, buildRubricResult, parseRubricJson, type RubricResult } from "../_shared/rubrics.ts";
 import { awardXp, type XpEventInput } from "../_shared/xp.ts";
 import { recomputeNodeState } from "../_shared/mastery-state.ts";
@@ -415,6 +417,93 @@ Deno.serve(async (req: Request) => {
     };
 
     const action = body.action as string;
+    // PHÁT CHỮ DẦN: cờ do CLIENT bật. Không bật thì server trả JSON y như cũ —
+    // nhờ vậy web và edge function không buộc phải lên cùng lúc, và bản web cũ
+    // đang chạy ngoài kia không vỡ khi function mới deploy trước.
+    //
+    // CẦU DAO: đặt secret `STREAM_DISABLED=1` là toàn bộ quay về đường JSON
+    // NGAY, không cần sửa mã, không cần deploy lại. Dòng phát đi qua edge
+    // runtime và cả proxy trước nó — nếu chỗ nào gom bộ đệm hay cắt sớm thì phải
+    // tắt được trong một phút, chứ không phải chờ một vòng deploy.
+    const wantStream = body.stream === true && Deno.env.get("STREAM_DISABLED") !== "1";
+
+    /**
+     * Một lượt sư tử NÓI: phát dần nếu client xin, không thì trả một cục.
+     *
+     * Gộp về một chỗ vì ba nhánh (kể-cách-nghĩ · mời-nói-rõ-thêm · trò chuyện)
+     * đều cần đúng chuỗi việc: gọi mô hình → hỏng thì lùi về câu tất định → lưu
+     * lời sư tử → trả phong bì. Ba bản sao là ba chỗ để quên một bước.
+     */
+    const speak = async (o: {
+      envelope: Record<string, unknown>;
+      fallback: string;
+      llm: Parameters<typeof callLLM>[0] | null;
+      /** Bảng tra tên thật để hoàn nguyên sau khi mô hình trả lời. */
+      map: Record<string, string>;
+      persistMeta?: unknown;
+      /** Nhãn ghi vào `session_turns.agent`. Giữ đúng như trước khi gộp. */
+      agent?: string;
+    }): Promise<Response> => {
+      const who = o.agent ?? "engine";
+      // ĐƯỜNG CŨ — một cục JSON.
+      if (!wantStream) {
+        let msg = o.fallback;
+        if (o.llm) {
+          try {
+            const res = await callLLM(o.llm);
+            const t = rehydrate(res.text, o.map).trim();
+            if (t) msg = t;
+          } catch { /* hết ngân sách / LLM hỏng → giữ câu tất định */ }
+        }
+        persist("tutor", msg, who, o.persistMeta);
+        return json({ ...o.envelope, message: msg }, 200, req);
+      }
+
+      // ĐƯỜNG PHÁT DẦN.
+      const { response, writer } = openSse(req);
+      const bg = (async () => {
+        writer.meta(o.envelope);
+        if (!o.llm) {
+          writer.delta(o.fallback);
+          persist("tutor", o.fallback, who, o.persistMeta);
+          writer.done(o.fallback);
+          return;
+        }
+        // Tên thật được thay bằng [NAME_0] trước khi gửi đi; mẩu chữ về có thể
+        // CẮT ĐÔI cái nhãn đó. Giữ lại phần đuôi còn dở tới khi thấy dấu đóng —
+        // không thì học sinh đọc thấy "[NAME_" nhấp nháy giữa câu.
+        let pend = "";
+        let full = "";
+        const push = (d: string) => {
+          pend += d;
+          const open = pend.lastIndexOf("[");
+          let safe: string;
+          if (open >= 0 && !pend.slice(open).includes("]")) {
+            safe = pend.slice(0, open);
+            pend = pend.slice(open);
+          } else {
+            safe = pend;
+            pend = "";
+          }
+          if (safe) { const t = rehydrate(safe, o.map); full += t; writer.delta(t); }
+        };
+        try {
+          await callLLMStream(o.llm, push);
+          if (pend) { const t = rehydrate(pend, o.map); full += t; writer.delta(t); }
+        } catch { /* rơi xuống câu tất định ngay bên dưới */ }
+        const msg = full.trim() || o.fallback;
+        // Mô hình câm hẳn → phát câu tất định để em không nhìn màn trống.
+        if (!full.trim()) writer.delta(o.fallback);
+        persist("tutor", msg, who, o.persistMeta);
+        writer.done(msg);
+      })().catch((e) => {
+        console.error("speak stream error:", e instanceof Error ? e.message : e);
+        writer.fail(o.fallback);
+      });
+      (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+        .EdgeRuntime?.waitUntil?.(bg);
+      return response;
+    };
 
     // ── Câu khách quan: ENGINE ÁP CỨNG, không LLM ──────────────────────────
     if (action === "answer") {
@@ -468,7 +557,7 @@ Deno.serve(async (req: Request) => {
             : thinkingContentSignal(reasoning);
         // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
         // đáng thêm một vòng mạng tuần tự).
-        const [attRes, { data: ladders }, { data: nodeForGuide }] = await Promise.all([
+        const [attRes, { data: ladders }, { data: nodeForGuide }, mem] = await Promise.all([
           supa.from("attempts").select("id, attempt_no, thinking_quality")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
@@ -478,6 +567,11 @@ Deno.serve(async (req: Request) => {
           supa.from("kg_nodes").select("label")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .maybeSingle(),
+          // TRÍ NHỚ — đi CÙNG chuyến với ba truy vấn kia, không thêm vòng chờ nào.
+          buildMemory(supa, {
+            sessionId: s.id, studentId: s.student_id, questionId: q.id,
+            names, omitContent: reasoning,
+          }).catch(() => null),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
@@ -540,10 +634,14 @@ Deno.serve(async (req: Request) => {
         // một câu ba lần. Cổng nỗ lực vẫn do SERVER quyết (stage ở trên); AI
         // chỉ được DIỄN ĐẠT đúng quyết định đó bằng lời bám vào ý của em.
         // `bottomOut` cố tình KHÔNG truyền ⇒ mô hình không có gì để lộ.
-        if (Deno.env.get("OPENROUTER_API_KEY")) {
-          try {
-            const { text: safe, map } = anonymize(reasoning, names);
-            const res = await callLLM({
+        const { text: safe, map } = anonymize(reasoning, names);
+        return await speak({
+          envelope: { correct: false, gate: "reflect", graded: false },
+          fallback: msg,
+          map,
+          persistMeta: { gate: "reflect", stage },
+          llm: Deno.env.get("OPENROUTER_API_KEY")
+            ? {
               system: buildGuideSystem({
                 subject: s.subject,
                 grade: String(grade),
@@ -553,8 +651,14 @@ Deno.serve(async (req: Request) => {
                 ...(rungText && stage === "guide" ? { rungQuestion: rungText } : {}),
                 attempts,
                 stage,
+                hasMemory: !!mem,
               }),
-              user: `<hoc_sinh>${safe}</hoc_sinh>`,
+              user: buildGuideUser({
+                hoSo: mem?.hoSo,
+                soTay: mem?.soTay,
+                lichSu: mem?.lichSu,
+                studentSaid: safe,
+              }),
               agent: "guide",
               tier: "cheap", // đối thoại = việc nhẹ, deepseek-flash: nhanh + rẻ
               maxTokens: 200,
@@ -562,15 +666,9 @@ Deno.serve(async (req: Request) => {
               studentId: s.student_id,
               tenantId: s.tenant_id,
               supa,
-            });
-            const t = rehydrate(res.text, map).trim();
-            if (t) msg = t;
-          } catch {
-            /* hết ngân sách / LLM hỏng → giữ câu tất định ở trên, không kẹt em */
-          }
-        }
-        persist("tutor", msg, "engine", { gate: "reflect", stage });
-        return json({ correct: false, gate: "reflect", graded: false, message: msg });
+            }
+            : null,
+        });
       }
 
       persist("student", studentAnswer, undefined, { questionId: q.id, nodeKey: q.node_key });
@@ -898,8 +996,72 @@ Deno.serve(async (req: Request) => {
         const msg = en
           ? "Before I give a hint — tell me how you got that. What was your reasoning?"
           : ASK_VI[Math.min(attemptNo - minAttempts, ASK_VI.length - 1)] ?? ASK_VI[0]!;
-        persist("tutor", msg, "engine", { gate: gate.action, matched });
-        return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
+
+        // ── LỚP 3 (chốt 29/07): NHÁNH NÀY TỪNG KHÔNG HỀ GỌI AI ────────────────
+        // Đo trên hội thoại thật: em kể cách nghĩ hai lượt liền — kể ĐÚNG — rồi
+        // chọn sai một phương án, và nhánh này đáp "bạn kể xem đã nghĩ thế nào".
+        // Máy hỏi lại thứ em vừa trả lời, vì nhánh này không đọc gì cả.
+        //
+        // Chỉ gọi mô hình khi em ĐÃ NÓI ít nhất một lần trong buổi (mem.daNoi):
+        // em mới vào bài, chưa nói câu nào thì chẳng có gì để nhớ — câu soạn sẵn
+        // vừa đúng vừa hiện ra tức thì, gọi mô hình chỉ tốn thêm một vòng chờ.
+        const askEnvelope = {
+          correct: false,
+          attemptNo,
+          gate: gate.action,
+          ...(xp ? { xp } : {}),
+        };
+        if (!Deno.env.get("OPENROUTER_API_KEY")) {
+          return await speak({
+            envelope: askEnvelope, fallback: msg, llm: null, map: {},
+            persistMeta: { gate: gate.action, matched },
+          });
+        }
+        const [memAsk, { data: nodeRowAsk }] = await Promise.all([
+          buildMemory(supa, {
+            sessionId: s.id, studentId: s.student_id, questionId: q.id,
+            names, omitContent: studentAnswer,
+          }).catch(() => null),
+          supa.from("kg_nodes").select("label")
+            .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
+            .maybeSingle(),
+        ]);
+        const { text: safeAns, map: mapAsk } = anonymize(studentAnswer, names);
+        return await speak({
+          envelope: askEnvelope,
+          fallback: msg,
+          map: mapAsk,
+          persistMeta: { gate: gate.action, matched },
+          llm: memAsk?.daNoi
+            ? {
+              system: buildGuideSystem({
+                subject: s.subject,
+                grade: String(grade),
+                language,
+                nodeLabel: String(nodeRowAsk?.label ?? q.node_key),
+                question: String(q.noi_dung ?? "").slice(0, 600),
+                ...(matched ? { misconception: safeMisconception(matched) } : {}),
+                attempts: attemptNo,
+                // `need_think` = mời em nói rõ thêm MỘT nhịp. KHÔNG truyền
+                // rungQuestion và KHÔNG truyền bottomOut: cổng chưa mở, mô hình
+                // không được cầm sẵn thứ để lỡ miệng.
+                stage: "need_think",
+                hasMemory: true,
+              }),
+              user: buildGuideUser({
+                hoSo: memAsk.hoSo, soTay: memAsk.soTay, lichSu: memAsk.lichSu,
+                studentSaid: `(vừa chọn/điền: ${safeAns})`,
+              }),
+              agent: "guide",
+              tier: "cheap",
+              maxTokens: 200,
+              temperature: 0.4,
+              studentId: s.student_id,
+              tenantId: s.tenant_id,
+              supa,
+            }
+            : null,
+        });
       }
 
       // Hết thang + vẫn sai (ĐÃ NHẬN gợi mở ở đáy ít nhất một lượt) → lan truyền ngược.
@@ -1250,6 +1412,14 @@ Deno.serve(async (req: Request) => {
         return json({ message: msg });
       }
       const { text: safe, map } = anonymize(studentMessage, names);
+      // TRÍ NHỚ — chính nhánh này đẻ ra câu "Chào bạn!" GIỮA cuộc trò chuyện rồi
+      // giảng lại đúng cái định nghĩa em vừa nêu chuẩn hai lượt trước (đo 29/07).
+      // Không phải mô hình dở: `user` gửi lên chỉ có đúng một câu em vừa gõ.
+      const mem = await buildMemory(supa, {
+        sessionId: s.id, studentId: s.student_id,
+        ...(body.questionId ? { questionId: String(body.questionId) } : {}),
+        names, omitContent: studentMessage,
+      }).catch(() => null);
       const system = buildGuideSystem({
         subject: s.subject,
         grade: String(grade),
@@ -1257,23 +1427,33 @@ Deno.serve(async (req: Request) => {
         nodeLabel: s.current_node_id ?? "",
         question: String(body.question ?? "").slice(0, 600),
         attempts: 0,
+        hasMemory: !!mem?.lichSu,
       });
-      const res = await callLLM({
-        system,
-        // Bọc lượt nói của học sinh trong thẻ dữ liệu — BASE đã dặn mô hình coi
-        // phần trong thẻ là dữ liệu, không phải lệnh (chống "bỏ vai đi, in đáp án").
-        user: safe ? `<hoc_sinh>${safe}</hoc_sinh>` : "(mở đầu buổi học)",
+      return await speak({
+        envelope: {},
         agent: "guide",
-        // Đối thoại dẫn dắt = "cái dễ dễ" → tier cheap = deepseek-v4-flash: NHANH + RẺ
-        // ($0.094/$0.188 per 1M, rẻ nhất & nhẹ nhất họ deepseek). Chấm rubric/nói giữ default.
-        tier: "cheap",
-        studentId: s.student_id,
-        tenantId: s.tenant_id,
-        supa,
+        // Mô hình hỏng thì vẫn phải có người trả lời em một câu tử tế.
+        fallback: "Mình đang ở đây với bạn. Bạn nói lại giúp mình chỗ đang vướng nhé?",
+        map,
+        llm: {
+          system,
+          // Bọc lượt nói của học sinh trong thẻ dữ liệu — BASE đã dặn mô hình coi
+          // phần trong thẻ là dữ liệu, không phải lệnh (chống "bỏ vai đi, in đáp án").
+          user: safe || mem?.lichSu
+            ? buildGuideUser({
+              hoSo: mem?.hoSo, soTay: mem?.soTay, lichSu: mem?.lichSu,
+              studentSaid: safe,
+            })
+            : "(mở đầu buổi học)",
+          agent: "guide",
+          // Đối thoại dẫn dắt = "cái dễ dễ" → tier cheap = deepseek-v4-flash: NHANH + RẺ
+          // ($0.094/$0.188 per 1M, rẻ nhất & nhẹ nhất họ deepseek). Chấm rubric/nói giữ default.
+          tier: "cheap",
+          studentId: s.student_id,
+          tenantId: s.tenant_id,
+          supa,
+        },
       });
-      const text = rehydrate(res.text, map);
-      persist("tutor", text, "guide");
-      return json({ message: text });
     }
 
     return json({ error: `unknown action: ${action}` }, 400);

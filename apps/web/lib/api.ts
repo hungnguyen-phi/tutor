@@ -80,6 +80,13 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
     },
     body: JSON.stringify(body),
   });
+  return await readJsonOrThrow<T>(fn, res);
+}
+
+/** Đọc phong bì JSON, dịch mã lỗi thành lời cho học sinh. Tách riêng để đường
+ *  PHÁT CHỮ DẦN dùng chung — nó cũng có thể nhận về JSON (server chưa hỗ trợ,
+ *  hoặc lượt đó không có gì để phát) và phải dịch lỗi Y HỆT. */
+async function readJsonOrThrow<T>(fn: string, res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     // ── Rate limit (429) ──────────────────────────────────────────────────
@@ -230,6 +237,102 @@ export const diagnose = (subject: Subject, nodeKey?: string, questionId?: string
     ...(questionId ? { questionId } : {}),
   });
 
+/**
+ * PHÁT CHỮ DẦN cho lượt trò chuyện (29/07).
+ *
+ * Vì sao: mỗi lượt sư tử nói, học sinh nhìn màn hình trống tới khi mô hình viết
+ * XONG cả câu. Đó là quãng chờ dài nhất của một lượt và không cách nào mua ngắn
+ * lại được — chỉ có cách đừng bắt em đợi trọn câu.
+ *
+ * Server chỉ phát dần khi ta gửi `stream: true`. Không nhận được dòng SSE (bản
+ * function cũ, proxy gom bộ đệm, mạng chập) thì hàm này TỰ ĐỌC JSON như cũ —
+ * nên web mới chạy được với function cũ, và ngược lại.
+ */
+async function callFnStream<T>(
+  fn: string,
+  body: unknown,
+  onDelta: (chunk: string) => void,
+  /** Phong bì tới TRƯỚC mẩu chữ đầu tiên — client cần nó để biết lượt này là
+   *  "được chấm" hay "chỉ dẫn dắt", vì hai kiểu hiện ra khác nhau. */
+  onMeta?: (meta: Record<string, unknown>) => void,
+): Promise<T> {
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess.session?.access_token;
+  if (!token) {
+    throw new ApiError("Phiên đăng nhập đã hết hạn — bạn đăng nhập lại nhé.", {
+      status: 401,
+      code: SESSION_EXPIRED,
+    });
+  }
+  const res = await fetch(`${FUNCTIONS_BASE}/${fn}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ ...(body as Record<string, unknown>), stream: true }),
+  });
+  const ctype = res.headers.get("Content-Type") ?? "";
+  // Server trả JSON (bản function cũ chưa biết phát dần, hoặc lượt này không có
+  // gì để phát, hoặc lỗi) → ĐỌC CHÍNH PHẢN HỒI NÀY.
+  //
+  // ⚠️ TUYỆT ĐỐI KHÔNG gọi lại `callFn(fn, body)` ở đây. Yêu cầu đã tới server
+  // và đã được xử lý rồi — gọi lại là NỘP BÀI HAI LẦN: thêm một lượt thử vào
+  // `attempts`, ăn thêm một nhịp của cổng nỗ lực, và có thể lật cả phán quyết.
+  if (!res.ok || !res.body || !ctype.includes("text/event-stream")) {
+    return await readJsonOrThrow<T>(fn, res);
+  }
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let meta: Record<string, unknown> = {};
+  let message = "";
+  let sawDone = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split("\n\n");
+    buf = parts.pop() ?? "";
+    for (const part of parts) {
+      let event = "message";
+      let data = "";
+      for (const line of part.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data += line.slice(5).trim();
+      }
+      if (!data) continue;
+      let j: Record<string, unknown>;
+      try {
+        j = JSON.parse(data) as Record<string, unknown>;
+      } catch {
+        continue; // mẩu lỗi lẻ không được giết cả lượt
+      }
+      if (event === "meta") { meta = j; onMeta?.(j); }
+      else if (event === "delta") {
+        const t = String(j.t ?? "");
+        if (t) { message += t; onDelta(t); }
+      } else if (event === "done") {
+        // Câu chốt của server là BẢN THẬT (đã hoàn nguyên tên, đã lùi về câu tất
+        // định nếu mô hình câm). Ghi đè phần cóp nhặt từ các mẩu.
+        message = String(j.message ?? message);
+        sawDone = true;
+      }
+    }
+  }
+  // Đứt giữa chừng mà CHƯA nhận được chữ nào: nói thật là mạng đứt. Cũng KHÔNG
+  // gọi lại — server đã xử lý lượt này rồi (xem ghi chú chống nộp hai lần ở trên).
+  if (!sawDone && !message) {
+    throw new ApiError("Đường truyền đứt giữa chừng — bạn thử lại giúp mình nhé.", {
+      status: 0,
+      code: "stream_broken",
+    });
+  }
+  return { ...meta, message } as T;
+}
+
 /** `remediation`: bật khi trả lời câu engine TIÊM (vá nền) để engine biết phục
  *  vụ câu nền kế tiếp / leo ngược thay vì coi như luồng chính. */
 export const answer = (
@@ -237,20 +340,42 @@ export const answer = (
   questionId: string,
   studentAnswer: string,
   remediation = false,
-) =>
-  callFn<TurnResult>("chat-turn", {
+  /** Có thì đi đường PHÁT CHỮ DẦN. Chỉ nhánh "mời em nói rõ thêm" mới có chữ để
+   *  phát — mọi kết cục khác server trả JSON ngay và hàm đọc thẳng phong bì đó,
+   *  KHÔNG gọi lại (gọi lại là nộp bài hai lần). */
+  stream?: {
+    onDelta: (chunk: string) => void;
+    onMeta?: (meta: Record<string, unknown>) => void;
+  },
+) => {
+  const payload = {
     sessionId,
     action: "answer",
     questionId,
     studentAnswer,
     ...(remediation ? { remediation: true } : {}),
-  });
+  };
+  return stream
+    ? callFnStream<TurnResult>("chat-turn", payload, stream.onDelta, stream.onMeta)
+    : callFn<TurnResult>("chat-turn", payload);
+};
 
 /** B0 (29/07) — lượt "KỂ CÁCH EM NGHĨ": gửi suy nghĩ, KHÔNG phải đáp án.
  *  Server không chấm, không ghi lượt thử; chỉ đối thoại (thang Socratic) và
  *  ghi nhớ chất lượng suy nghĩ cho cổng nỗ lực. Cũng là đường của nút Xin gợi ý. */
-export const answerReflect = (sessionId: string, questionId: string, reasoning: string) =>
-  callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, reasoning });
+export const answerReflect = (
+  sessionId: string,
+  questionId: string,
+  reasoning: string,
+  onDelta?: (chunk: string) => void,
+) =>
+  onDelta
+    ? callFnStream<TurnResult>(
+      "chat-turn",
+      { sessionId, action: "answer", questionId, reasoning },
+      onDelta,
+    )
+    : callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, reasoning });
 
 export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
