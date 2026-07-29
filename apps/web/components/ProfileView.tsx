@@ -22,9 +22,15 @@ import { supabase } from "../lib/supabase";
 import * as G from "../lib/gamify";
 import * as Prefs from "../lib/prefs";
 
-/** QUY ƯỚC TẠM: mỗi 5 điểm thành thạo = 1 huy hiệu chương. */
-const BADGE_STEP = 5;
-const BADGE_MILESTONES = [5, 10, 15, 20] as const;
+/**
+ * HUY HIỆU CHƯƠNG — đếm theo ĐIỂM THÀNH THẠO (không phải XP).
+ *
+ * Sửa 29/07 (lỗi 6): mốc cũ 5·10·15·20 khiến học sinh 705 XP mà cả bốn ô đều
+ * khoá, và nhãn chỉ ghi "5 điểm" — đứng cạnh ô "705 tổng XP" thì ai cũng đọc
+ * thành 5 XP. Nay: mốc ĐẦU hạ xuống 1 (có phần thưởng sớm, đúng tinh thần
+ * "thưởng nỗ lực"), nhãn ghi đủ chữ, và có dòng tiến độ thật bên dưới.
+ */
+const BADGE_MILESTONES = [1, 3, 5, 10, 20] as const;
 
 export default function ProfileView({
   onGoBoard,
@@ -106,7 +112,10 @@ export default function ProfileView({
   const name = Prefs.displayNameOf(profile?.full_name) ?? "Học sinh Việt Anh";
   const initial = name.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "V";
   const ava = Prefs.getAvatar();
-  const badgeCount = Math.floor(masteredCount / BADGE_STEP);
+  // Số huy hiệu = số MỐC đã vượt (không phải phép chia) — mốc nay không đều nhau.
+  const badgeCount = BADGE_MILESTONES.filter((m) => masteredCount >= m).length;
+  /** Mốc kế tiếp chưa đạt — để nói rõ "còn mấy điểm nữa", thay vì để em đoán. */
+  const nextBadge = BADGE_MILESTONES.find((m) => masteredCount < m) ?? null;
   const subjects = sb?.subjectProgress ?? [];
 
   return (
@@ -176,7 +185,7 @@ export default function ProfileView({
           className="ws-stat"
           data-tone="plain"
           data-zero={badgeCount === 0 || undefined}
-          title={`Mỗi ${BADGE_STEP} điểm thành thạo = 1 huy hiệu chương`}
+          title={`Huy hiệu chương mở theo ĐIỂM THÀNH THẠO (${BADGE_MILESTONES.join(" · ")}), không phải XP`}
         >
           <span className="ws-stat-ico" aria-hidden>
             <Award strokeWidth={2.25} />
@@ -235,14 +244,31 @@ export default function ProfileView({
                   <span className="pf-badge-tile" aria-hidden>
                     {got ? <Award strokeWidth={2} /> : <Lock strokeWidth={2} />}
                   </span>
+                  {/* Nhãn ghi ĐỦ CHỮ: "điểm" trống không đứng cạnh ô "tổng XP"
+                      làm học sinh đọc thành XP (lỗi 6). */}
                   <span className="pf-badge-lbl">
                     {m} điểm
+                    <br />
+                    thành thạo
                     <span className="sr-only">{got ? " — đã đạt" : " — chưa đạt"}</span>
                   </span>
                 </div>
               );
             })}
           </div>
+          {/* Dòng tiến độ THẬT — tooltip title= vô hình trên điện thoại (không có
+              hover), nên phải nói ra thành chữ. */}
+          <p className="muted pf-badge-foot">
+            {nextBadge !== null ? (
+              <>
+                Bạn có <b>{masteredCount}/{nextBadge}</b> điểm thành thạo — còn{" "}
+                <b>{nextBadge - masteredCount}</b> điểm nữa là mở huy hiệu tiếp theo. Mỗi điểm là một
+                bài bạn đã làm chủ (không phải XP).
+              </>
+            ) : (
+              <>Bạn đã mở hết huy hiệu chương — {masteredCount} điểm thành thạo, quá giỏi!</>
+            )}
+          </p>
         </section>
 
         {/* CỘT PHẢI: thành thạo theo môn + tài khoản */}

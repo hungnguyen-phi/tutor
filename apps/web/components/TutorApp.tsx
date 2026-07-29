@@ -1047,7 +1047,17 @@ export default function TutorApp() {
           {/* key={view}: remount khi đổi tab → animation view-in (mobile) chạy
               lại — chuyển tab có nhịp native thay vì nhảy hình 0ms */}
           <div key={view} className="view-in" data-dir={viewDir}>
-            {view === "review" && <ReviewView onGoLearn={() => switchView("learn")} />}
+            {view === "review" && (
+              <ReviewView
+                subject={subject}
+                onGoLearn={() => switchView("learn")}
+                /* Ôn một bài = mở buổi học đúng node đó, ngay tại chỗ. */
+                onReview={(nodeKey, label) => {
+                  switchView("learn");
+                  void start({ key: nodeKey, label, state: "available" });
+                }}
+              />
+            )}
             {view === "scoreboard" && <ScoreboardBody onGoLearn={() => switchView("learn")} />}
             {view === "quests" && (
               /* Tên chương thật từ learning-path (version_label) → title WIG.

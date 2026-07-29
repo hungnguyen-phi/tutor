@@ -124,15 +124,24 @@ export function ParentView() {
   const { d, err } = useDash("parent");
   if (!d) return <Loading err={err} />;
   if (!d.child) {
+    // MÀN RỖNG PHẢI NÓI RÕ AI LÀM GÌ TIẾP (lỗi 18): "chưa liên kết" trơ trọi
+    // khiến phụ huynh tưởng app hỏng, trong khi việc cần làm nằm ở nhà trường.
     return (
       <div className="banner warn">
         <AlertTriangle aria-hidden strokeWidth={2} />
-        <span>Chưa liên kết với học sinh nào.</span>
+        <span>
+          <b>Tài khoản này chưa được nối với học sinh nào.</b> Nhà trường cần nối tài khoản phụ
+          huynh với con của mình thì báo cáo mới hiện ra — anh/chị liên hệ giáo viên chủ nhiệm giúp
+          nhé. Đây không phải lỗi ứng dụng.
+        </span>
       </div>
     );
   }
   const c = d.child;
   const first = c.name.trim().split(/\s+/).pop();
+  // Con CHƯA HỌC buổi nào: mọi con số đều 0 một cách hợp lệ. Trước đây màn hình
+  // im lặng → phụ huynh kết luận "chưa thấy thông tin gì" (người thử 1, 29/07).
+  const chuaHoc = (c.masteredNodes ?? 0) === 0 && (c.practicingNodes ?? 0) === 0;
   return (
     <div className="stack">
       <div className="pr-head">
@@ -146,6 +155,15 @@ export function ParentView() {
           Tuần này
         </span>
       </div>
+
+      {chuaHoc && (
+        <div className="banner" role="status">
+          <span>
+            <b>{first} chưa có buổi học nào trên Tutor.</b> Khi con bắt đầu học, kết quả sẽ hiện ngay
+            ở đây — số điểm đã thành thạo, tiến độ mục tiêu và nhịp học hằng tuần.
+          </span>
+        </div>
+      )}
 
       {/* Hi-fi vẽ buổi · phút · chuỗi — dashboard(parent) chưa có 3 trường đó,
           hiển thị 2 chỉ số THẬT đang có thay vì bịa số. */}

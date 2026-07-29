@@ -221,6 +221,17 @@ Deno.serve(async (req: Request) => {
       classBoard: classRows && classRows.length >= 2 ? { scope: "lop", label: className ?? "Lớp", rows: classRows } : null,
       gradeLabel,
       className,
+      // VÌ SAO bảng trống — client phải nói đúng lý do thay vì luôn hiện "chờ
+      // buổi học đầu tiên" (lỗi 5: học sinh có 640 XP tuần này vẫn bị bảo là
+      // chưa học buổi nào, vì hồ sơ thiếu khối/lớp nên không dựng nổi bảng).
+      //   unassigned  — hồ sơ chưa có khối/lớp → việc của nhà trường, không phải lỗi em
+      //   too_few     — có khối/lớp nhưng chưa đủ 2 người thật để xếp hạng
+      //   null        — bảng dựng được bình thường
+      boardIssue: !prof?.grade && !myClassId
+        ? "unassigned"
+        : (!gradeRows || gradeRows.length < 2) && (!classRows || classRows.length < 2)
+          ? "too_few"
+          : null,
       subjectProgress: (wigs ?? [])
         .filter((w) => w.source === "tutor")
         .map((w) => ({ subject: AREA_SUBJECT[w.area] ?? AREA_LABEL[w.area], pct: Math.round(w.progress_pct) })),

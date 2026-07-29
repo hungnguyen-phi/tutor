@@ -401,6 +401,9 @@ export interface Scoreboard {
   gradeLabel?: string;
   /** Tên lớp, vd "10A1"; null nếu chưa xếp lớp. */
   className?: string | null;
+  /** VÌ SAO bảng trống — để màn hình nói đúng lý do (lỗi 5):
+   *  `unassigned` = hồ sơ chưa có khối/lớp · `too_few` = chưa đủ người thật. */
+  boardIssue?: "unassigned" | "too_few" | null;
 }
 
 export interface BoardView {
@@ -443,6 +446,32 @@ export interface LearningPathNode {
   /** Kho báu học liệu đứng CẠNH bài (không nằm trong bài). */
   khoBau?: { mucCoSan: number[]; mucDaQua: number };
 }
+
+/** Một bài trong hàng đợi ôn tập (function `review-queue`). */
+export interface ReviewItem {
+  key: string;
+  label: string;
+  chapter: string | null;
+  /** Hộp Leitner 0..3 → nhịp 1 · 3 · 7 · 21 ngày. */
+  box: number;
+  nextReviewAt: string | null;
+  /** Đã quá hạn bao nhiêu ngày (due) hoặc còn mấy ngày nữa (soon/strong). */
+  days: number;
+}
+
+export interface ReviewQueue {
+  due: ReviewItem[];
+  soon: ReviewItem[];
+  strong: ReviewItem[];
+  total: number;
+  /** Ngày hẹn gần nhất — để màn rỗng nói "quay lại ngày …", không nói "chưa có gì". */
+  nextAt?: string | null;
+}
+
+/** Hàng đợi ôn tập THẬT từ server (student_node_state.next_review_at). Thay cho
+ *  localStorage: khoá cũ chỉ ghi khi kết thúc trọn buổi nên đổi máy là mất sạch. */
+export const reviewQueue = (subject?: Subject) =>
+  callFn<ReviewQueue>("review-queue", subject ? { subject } : {});
 
 export interface LearningPathResult {
   version_id: string;

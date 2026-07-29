@@ -5846,7 +5846,16 @@ html[data-motion="reduce"] .spin {
   font-size: 0.65625rem;
   font-weight: 600;
   text-align: center;
+  /* Nhãn giờ hai dòng ("5 điểm / thành thạo") — cần line-height gọn, không thì
+     hai dòng dính nhau. */
+  line-height: 1.25;
   color: var(--muted);
+}
+/* Dòng tiến độ dưới cụm huy hiệu — nói rõ còn mấy điểm nữa (lỗi 6). */
+.pf-badge-foot {
+  margin: 12px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
 }
 .pf-badge[data-got] .pf-badge-lbl {
   color: var(--ink-2);
@@ -8035,13 +8044,37 @@ body:has(.lfoot-says) .lesson-pad {
   width: 18px;
   height: 18px;
 }
-.rv-card-name {
+/* Thân thẻ: tên bài + DÒNG HẸN ("quá hạn 2 ngày" / "3 ngày nữa"). Dòng hẹn là
+   thứ khiến màn Ôn tập nói thật thay vì im lặng (lỗi 3). */
+.rv-card-body {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rv-card-name {
   min-width: 0;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.35;
+}
+.rv-card-when {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+/* Quá hạn → nhấn màu cảnh báo dịu (hổ phách), KHÔNG đỏ: ôn muộn không phải lỗi. */
+.rv-card-when[data-overdue] {
+  color: var(--warn, #9a6b12);
+  font-weight: 600;
+}
+/* Hôm nay không có gì đến hạn — nói rõ ngày hẹn kế tiếp. */
+.rv-rest {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 .rv-card-btn {
   flex: 0 0 auto;
@@ -8049,6 +8082,9 @@ body:has(.lfoot-says) .lesson-pad {
   place-items: center;
   width: 36px;
   height: 36px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
   border-radius: 10px;
   background: var(--navy);
   color: #fff;

@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import Lion from "./Lion";
 import * as G from "../lib/gamify";
+import { useAuth } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 
 type Quest = {
   key: string;
@@ -102,8 +104,28 @@ export default function QuestsView({
 
   useEffect(() => {
     setProgress(G.load());
-    setMasteredCount(G.loadMastered().length);
   }, []);
+
+  // MỘT NGUỒN SỰ THẬT (29/07, lỗi 3/6): điểm thành thạo đọc THẲNG server
+  // (student_node_state), không đọc localStorage — khoá cũ chỉ ghi khi kết thúc
+  // trọn buổi nên đổi máy/thoát giữa chừng là số về 0 sai sự thật.
+  const { session } = useAuth();
+  const uid = session?.user.id;
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    supabase
+      .from("student_node_state")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", uid)
+      .eq("mastered", true)
+      .then(({ count, error }) => {
+        if (alive && !error) setMasteredCount(count ?? 0);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
 
   if (!progress) {
     return (

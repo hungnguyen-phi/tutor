@@ -79,8 +79,13 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
   }, [sb]);
 
   // Tên hiển thị: override cục bộ (Cài đặt) thắng tên server.
-  const myName = Prefs.displayNameOf(sb?.student.name ?? profile?.full_name) ?? "bạn";
-  const firstName = myName.trim().split(/\s+/).pop();
+  // LỖI 4 — KHÔNG đoán tên rồi thay: khi chưa biết tên (sb chưa về, profile chưa
+  // nạp) thì `firstName` là null và tiêu đề bỏ hẳn vế "của …", thay vì hiện
+  // "Bảng tuần của bạn" rồi giật sang "Bảng tuần của An" sau một giây.
+  const myName = Prefs.displayNameOf(sb?.student.name ?? profile?.full_name);
+  const firstName = myName ? myName.trim().split(/\s+/).pop() ?? null : null;
+  /** Tên để nhét vào câu văn khi CHẮC CHẮN đã có; chưa có thì dùng "bạn". */
+  const you = firstName ?? "bạn";
 
   async function saveCommit() {
     setSavingCommit(true);
@@ -136,7 +141,7 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
       <section className="ws-panel">
         <h2 className="ws-panel-title">
           <Trophy aria-hidden strokeWidth={2.25} />
-          Mục tiêu lớn của {firstName}
+          Mục tiêu lớn của {you}
         </h2>
         {sb && sb.wigs.length === 0 && <p className="muted">Chưa thiết lập WIG.</p>}
         {sb?.wigs.map((w) => (
@@ -210,7 +215,7 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
             <Trophy aria-hidden strokeWidth={2.5} />
             Xếp theo nỗ lực · không theo điểm số
           </span>
-          <h1 className="ws-title">Bảng tuần của {firstName}</h1>
+          <h1 className="ws-title">Bảng tuần{firstName ? ` của ${firstName}` : ""}</h1>
           <p className="ws-lead">
             Mỗi buổi học là XP — thứ ai cũng tăng được bằng cách quay lại đều đặn. Thêm một buổi hôm
             nay là bạn tiến thêm một bậc.
@@ -290,21 +295,45 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
             {/* CỘT CHÍNH: bảng xếp hạng THẬT — hoặc lời mời khi chưa ai có XP */}
             <section className="ws-panel sb-board">
               {coldStart ? (
-                /* COLD-START: chưa ai trong bảng có XP tuần này. Thay danh sách
-                   vắng bằng lời mời đầy đặn — cân với cột phải, không để trống. */
+                /* MÀN RỖNG NÓI ĐÚNG LÝ DO (lỗi 5). Trước đây mọi trường hợp đều
+                   hiện "chờ buổi học đầu tiên" — kể cả khi em đã có 640 XP tuần
+                   này mà hồ sơ thiếu khối/lớp nên server không dựng nổi bảng.
+                   Ba trạng thái khác nhau, ba câu khác nhau. */
                 <div className="sb-cold">
                   {/* KHÔNG lặp sư tử: hero ngay trên đã có đúng tư thế này (excited
                       132px). Một màn — một sư tử (DESIGN.md: "không rải sư tử lên
                       mọi góc"). */}
-                  <h2 className="sb-cold-title">
-                    Bảng tuần đang chờ buổi học đầu tiên của {firstName}
-                  </h2>
-                  {/* Bỏ "Xếp theo nỗ lực, không theo điểm số" — chip ở hero đã nói
-                      nguyên văn câu đó rồi. */}
-                  <p className="sb-cold-lead">
-                    Học <b>1 bài</b> hôm nay là {firstName} có tên trên bảng {scopeWord} ngay — ai quay
-                    lại đều đặn đều lên hạng được.
-                  </p>
+                  {sb.boardIssue === "unassigned" ? (
+                    <>
+                      <h2 className="sb-cold-title">{you} chưa được xếp vào lớp</h2>
+                      <p className="sb-cold-lead">
+                        Bảng tuần xếp theo lớp và khối, nên cần nhà trường xếp lớp cho {you} trước
+                        đã. <b>Nỗ lực của bạn vẫn được ghi đủ</b>
+                        {myTotalXp > 0 ? ` (${myTotalXp.toLocaleString("vi-VN")} XP)` : ""} — báo thầy cô
+                        giúp bạn một câu nhé!
+                      </p>
+                    </>
+                  ) : sb.boardIssue === "too_few" ? (
+                    <>
+                      <h2 className="sb-cold-title">Lớp mình chưa đủ bạn để xếp hạng</h2>
+                      <p className="sb-cold-lead">
+                        Bảng tuần cần ít nhất hai bạn cùng học. Khi các bạn trong {scopeWord} vào học,
+                        bảng sẽ hiện ngay — nỗ lực của {you} vẫn đang được ghi đầy đủ.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="sb-cold-title">
+                        Bảng tuần đang chờ buổi học đầu tiên của {you}
+                      </h2>
+                      {/* Bỏ "Xếp theo nỗ lực, không theo điểm số" — chip ở hero đã nói
+                          nguyên văn câu đó rồi. */}
+                      <p className="sb-cold-lead">
+                        Học <b>1 bài</b> hôm nay là {you} có tên trên bảng {scopeWord} ngay — ai quay
+                        lại đều đặn đều lên hạng được.
+                      </p>
+                    </>
+                  )}
                   {/* GỠ danh sách 3 gạch đầu dòng giảng luật chơi (XP mỗi buổi học,
                       giữ chuỗi ngày, bảng làm mới hàng tuần): màn RỖNG không phải
                       chỗ dạy cơ chế — tab Mục tiêu đã có bảng "Cách kiếm XP" đầy
@@ -315,7 +344,7 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                     onClick={() => (onGoLearn ? onGoLearn() : (window.location.href = "/learn/"))}
                   >
                     <Sparkles aria-hidden strokeWidth={2.25} />
-                    Bắt đầu học ngay
+                    {sb.boardIssue ? "Tiếp tục học" : "Bắt đầu học ngay"}
                   </button>
                 </div>
               ) : (
@@ -381,17 +410,17 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                     <Lion mood="idle" size={40} decorative />
                     {myWeekXp === 0 ? (
                       <p>
-                        Học <b>1 bài</b> tuần này là {firstName} có XP lên bảng {scopeWord} ngay!
+                        Học <b>1 bài</b> tuần này là {you} có XP lên bảng {scopeWord} ngay!
                       </p>
                     ) : myIdx === 0 || !above ? (
                       <p>
-                        Tuyệt vời — {firstName} đang giữ hạng 1! Thêm <b>1 buổi học</b> nữa để giữ vững ngôi
+                        Tuyệt vời — {you} đang giữ hạng 1! Thêm <b>1 buổi học</b> nữa để giữ vững ngôi
                         đầu tuần này nhé!
                       </p>
                     ) : (
                       <p>
                         Thêm <b>{Math.ceil((above.xp - myWeekXp + 1) / G.XP.lessonDone)} buổi học</b> nữa là{" "}
-                        {firstName} vượt {above.name} lên hạng {myIdx}!
+                        {you} vượt {above.name} lên hạng {myIdx}!
                       </p>
                     )}
                   </div>
@@ -453,7 +482,7 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                     value={commitment}
                     maxLength={280}
                     onChange={(e) => setCommitment(e.target.value)}
-                    placeholder={`Ví dụ: "${firstName} cam kết ôn hết thẻ trước Chủ nhật"`}
+                    placeholder={`Ví dụ: "${you} cam kết ôn hết thẻ trước Chủ nhật"`}
                     autoCapitalize="sentences"
                   />
                   <button className="btn btn-block" onClick={saveCommit} disabled={savingCommit} data-loading={savingCommit || undefined}>
