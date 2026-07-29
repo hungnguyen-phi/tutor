@@ -144,7 +144,8 @@ export async function checkWithDistractors(
 ): Promise<GradedAnswer> {
   const result = await checkAnswer(student, correct, params);
   // Đã đúng → không cần chẩn đoán quan niệm sai; thoát sớm (đường nhanh).
-  if (result.correct || !distractors || distractors.length === 0) {
+  // Array.isArray, không phải `!distractors`: cột là jsonb không ràng buộc kiểu.
+  if (result.correct || !Array.isArray(distractors) || distractors.length === 0) {
     return { result, distractor: null };
   }
 

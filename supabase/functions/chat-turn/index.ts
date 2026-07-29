@@ -629,7 +629,11 @@ Deno.serve(async (req: Request) => {
       // vòng lặp. Còn cần thì chạy SONG SONG (checkAnswer có thể nạp mathjs).
       let matched: string | null = null;
       if (!verdict.correct) {
-        const distractors = (q.distractors ?? []) as Array<{ phuong_an: string; quan_niem_sai: string }>;
+        // `?? []` KHÔNG đủ: distractors là jsonb không ràng buộc kiểu, `?? []`
+        // chỉ bắt null/undefined còn một object/chuỗi vẫn lọt xuống `.map` rồi ném.
+        const distractors = (
+          Array.isArray(q.distractors) ? q.distractors : []
+        ) as Array<{ phuong_an: string; quan_niem_sai: string }>;
         const hits = await Promise.all(distractors.map((d) => checkAnswer(studentAnswer, d.phuong_an, qParams)));
         const idx = hits.findIndex((r) => r.correct);
         if (idx >= 0) matched = distractors[idx]!.quan_niem_sai;
