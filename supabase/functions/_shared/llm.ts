@@ -95,6 +95,24 @@ export interface LlmCallArgs {
   agent: string;
   tenantId?: string;
   supa?: SupabaseClient;
+  /**
+   * Bật CACHE cho lượt gọi TẤT ĐỊNH (temperature 0). Hai lợi ích, cả hai đều
+   * quan trọng với bài học 29/07:
+   *  · TIẾT KIỆM TOKEN — cùng (đề, đáp án mẫu, bài làm) thì không gọi lại.
+   *  · ỔN ĐỊNH PHÁN QUYẾT — đo trên prod: cùng chữ "ok" nộp 5 lần, mô hình trả
+   *    3 lần ĐÚNG / 2 lần SAI dù temperature=0. Cache khoá kết quả lần đầu nên
+   *    một bài làm không còn lúc đậu lúc trượt.
+   * CHỈ dùng cho nhánh chấm; KHÔNG dùng cho đối thoại (mỗi lượt phải mới).
+   */
+  cache?: boolean;
+}
+
+/** Khoá cache = SHA-256 của (agent | tier | system | user). Băm để khoá ngắn,
+ *  không chứa bài làm của học sinh dưới dạng đọc được (PDPL). */
+async function cacheKeyOf(a: LlmCallArgs): Promise<string> {
+  const raw = `${a.agent}|${a.tier ?? "default"}|${a.system}|${a.user}`;
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export interface LlmCallResult {
@@ -114,6 +132,22 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   assertAnonymized(args.system + "\n" + args.user);
   const key = Deno.env.get("OPENROUTER_API_KEY");
   if (!key) throw new Error("OPENROUTER_API_KEY not set in function secrets.");
+
+  // ── CACHE (chỉ nhánh chấm tất định) — đọc TRƯỚC khi tiêu token ────────────
+  let ck: string | null = null;
+  if (args.cache && args.supa) {
+    try {
+      ck = await cacheKeyOf(args);
+      const { data: hit } = await args.supa
+        .from("llm_cache").select("response").eq("key", ck).maybeSingle();
+      const cached = hit?.response as LlmCallResult | undefined;
+      if (cached && typeof cached.text === "string") {
+        return { text: cached.text, model: cached.model ?? "cache", usage: { inputTokens: 0, outputTokens: 0 } };
+      }
+    } catch {
+      ck = ck ?? null; // cache hỏng KHÔNG được chặn việc chấm
+    }
+  }
 
   // KIỂM TOKEN-BUDGET TRƯỚC KHI GỌI LLM: đọc tổng token HS này đã tiêu hôm nay;
   // đã chạm trần → dừng, ném lỗi budget (caller bắt để báo HS "hết lượt hôm nay")
@@ -196,6 +230,10 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     const supa = args.supa;
     const total = usage.inputTokens + usage.outputTokens;
     const bg = (async () => {
+      // Ghi cache TRƯỚC audit: đây là thứ lượt sau đọc để khỏi tiêu token lại.
+      if (ck && text) {
+        await supa.from("llm_cache").upsert({ key: ck, response: { text, model } }, { onConflict: "key" });
+      }
       await supa.from("audit_logs").insert({
         tenant_id: args.tenantId ?? null,
         actor_id: null,

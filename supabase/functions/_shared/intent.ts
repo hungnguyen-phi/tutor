@@ -88,3 +88,21 @@ export function isJunkOpenAnswer(text: string): boolean {
 export function plausibleOpenAnswer(text: string): boolean {
   return !isJunkOpenAnswer(text) && contentWordCount(text) >= 4;
 }
+
+/**
+ * Gọt QUAN NIỆM SAI trước khi đọc cho học sinh nghe.
+ *
+ * Kiểm dữ liệu sống 29/07: 0/3641 `quan_niem_sai` có dạng lộ đáp án — chúng
+ * được soạn đúng vai ("SAI CHIỀU — đây là định nghĩa của B ⊂ A"). Hàm này là
+ * chốt chặn cho NỘI DUNG TƯƠNG LAI: nếu ai đó soạn "(b) SAI vì…" thì với câu
+ * Đúng/Sai chùm ý, riêng cái nhãn đầu câu đã là một phần đáp án.
+ */
+export function safeMisconception(s: string | null | undefined): string {
+  let t = String(s ?? "").trim();
+  if (!t) return "";
+  // Bỏ nhãn phán quyết đứng ĐẦU: "(b) SAI vì…", "b) Đúng —", "① SAI:"…
+  t = t.replace(/^[(\[]?\s*[a-dA-D①-⑨]\s*[)\].:]?\s*(ĐÚNG|SAI|Đúng|Sai|đúng|sai)\b\s*[-–—:,]?\s*/u, "");
+  // Bỏ câu tự khai đáp án nếu lỡ có.
+  t = t.replace(/\b(đáp án (đúng )?là|kết quả là|phải chọn)\b[^.;]*/giu, "");
+  return t.trim().slice(0, 220);
+}

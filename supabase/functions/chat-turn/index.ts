@@ -21,7 +21,7 @@ import { awardXp, type XpEventInput } from "../_shared/xp.ts";
 import { recomputeNodeState } from "../_shared/mastery-state.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
 import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
-import { isHelpRequest, isJunkOpenAnswer, plausibleOpenAnswer } from "../_shared/intent.ts";
+import { isHelpRequest, isJunkOpenAnswer, plausibleOpenAnswer, safeMisconception } from "../_shared/intent.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { orderedOptions } from "../_shared/options.ts";
 
@@ -169,6 +169,9 @@ async function gradeOpenAnswer(args: {
       tier: "default",
       maxTokens: 260,
       temperature: 0,
+      // Chấm là việc TẤT ĐỊNH → cache. Vừa đỡ token, vừa khoá phán quyết: cùng
+      // một bài làm không còn lúc đậu lúc trượt (đo được 3/5 với chữ "ok").
+      cache: true,
       studentId: args.studentId,
       tenantId: args.tenantId,
       supa: args.supa,
@@ -773,8 +776,8 @@ Deno.serve(async (req: Request) => {
           : RETRY_VI[(attemptNo - 1) % RETRY_VI.length]!;
         const msg = matched
           ? (en
-              ? `I can see the idea behind that choice — it hides a common trap: ${String(matched).slice(0, 220)} ${base}`
-              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${String(matched).slice(0, 220)} ${base}`)
+              ? `I can see the idea behind that choice — it hides a common trap: ${safeMisconception(matched)} ${base}`
+              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${safeMisconception(matched)} ${base}`)
           : base;
         persist("tutor", msg, "engine", { gate: gate.action, matched });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
@@ -858,8 +861,8 @@ Deno.serve(async (req: Request) => {
       // chứa đáp án cuối.
       const lead = matched
         ? (en
-            ? `I see where that came from — there's a trap in it: ${String(matched).slice(0, 220)} `
-            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${String(matched).slice(0, 220)} `)
+            ? `I see where that came from — there's a trap in it: ${safeMisconception(matched)} `
+            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${safeMisconception(matched)} `)
         : "";
       const msg = rungText
         ? `${lead}${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
@@ -980,6 +983,9 @@ Deno.serve(async (req: Request) => {
     // ── Writing (English rubric, formative) — LLM đúng vai: chấm rubric ────
 
     if (action === "writing") {
+      // Chấm rubric = lượt LLM "nặng" (tier default) → phải siết như nhánh nộp bài.
+      const rlWr = await rateLimit(supa, `writing:${ctx.userId}`, 8, 60);
+      if (!rlWr.ok) return json({ error: "rate_limited", retryAfter: rlWr.retryAfter }, 429);
       if (!Deno.env.get("OPENROUTER_API_KEY")) {
         const msg = "Chấm bài viết cần AI — trường chưa bật khoá AI. Bạn luyện các câu khách quan trước nhé, phần viết sẽ mở sau!";
         persist("tutor", msg, "engine", { unavailable: "writing" });
@@ -1025,6 +1031,8 @@ Deno.serve(async (req: Request) => {
 
     // ── Speaking (English; transcript from in-browser STT) ─────────────────
     if (action === "speaking") {
+      const rlSp = await rateLimit(supa, `speaking:${ctx.userId}`, 8, 60);
+      if (!rlSp.ok) return json({ error: "rate_limited", retryAfter: rlSp.retryAfter }, 429);
       if (!Deno.env.get("OPENROUTER_API_KEY")) {
         const msg = "Chấm phần nói cần AI — trường chưa bật khoá AI. Bạn luyện các câu khách quan trước nhé, phần nói sẽ mở sau!";
         persist("tutor", msg, "engine", { unavailable: "speaking" });
@@ -1071,6 +1079,12 @@ Deno.serve(async (req: Request) => {
 
     // ── Chat tự do — LLM nếu có khoá; không có thì lái về luyện tập ────────
     if (action === "message") {
+      // RATE-LIMIT (bịt lỗ 29/07): nhánh này gọi LLM MỖI LƯỢT mà trước đây
+      // KHÔNG siết gì — giữ Enter là đốt sạch ngân sách token của trường trong
+      // vài phút. 20 lượt/phút vẫn rộng rãi cho đối thoại thật.
+      const rlM = await rateLimit(supa, `msg:${ctx.userId}`, 20, 60);
+      if (!rlM.ok) return json({ error: "rate_limited", retryAfter: rlM.retryAfter }, 429);
+
       // Cap 2k: lượt chat dài hơn là dán văn bản, không phải câu hỏi học tập —
       // vừa tiết kiệm token vừa thu hẹp đất tiêm lệnh.
       const studentMessage = String(body.message ?? "").slice(0, 2000);
