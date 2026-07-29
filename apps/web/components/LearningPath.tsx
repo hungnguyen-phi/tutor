@@ -389,28 +389,31 @@ export default function LearningPath({
                 thầy cô hiện ngay tại đây. Trước đây đây là <div> chết: em biết
                 "có 1 bài cần làm lại" mà không biết bài nào, sai gì, và phải
                 học lại cả bài từ đầu (lỗi 2 — ba lớp). */}
+            {/* MỘT NÚT CHO MỖI CÂU bị trả, kèm ĐÚNG lời nhắn của câu đó. Gộp
+                theo bài thì lời nhắn của câu này lại nằm cạnh nút mở câu kia,
+                và các câu còn lại không có lối vào. */}
             <div className="redo-list">
-              {redoNodes.map((n) => {
-                const note = n.redo?.find((r) => r.note)?.note ?? null;
-                const qid = n.redo?.[0]?.questionId;
-                return (
-                  <div key={n.key} className="redo-item">
+              {redoNodes.flatMap((n) => {
+                const items = n.redo?.length ? n.redo : [{ questionId: undefined, note: null }];
+                return items.map((r, i) => (
+                  <div key={`${n.key}:${r.questionId ?? i}`} className="redo-item">
                     <button
                       type="button"
                       className="redo-go"
                       disabled={busy}
-                      onClick={() => (onRedo ? onRedo(n, qid) : onStart(n))}
+                      onClick={() => (onRedo ? onRedo(n, r.questionId) : onStart(n))}
                     >
                       <Undo2 aria-hidden strokeWidth={2.5} />
                       Làm lại: {n.label}
+                      {items.length > 1 ? ` (câu ${i + 1}/${items.length})` : ""}
                     </button>
-                    {note && (
+                    {r.note && (
                       <p className="redo-note">
-                        <b>Thầy cô nhắn:</b> {note}
+                        <b>Thầy cô nhắn:</b> {r.note}
                       </p>
                     )}
                   </div>
-                );
+                ));
               })}
             </div>
           </div>

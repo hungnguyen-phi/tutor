@@ -52,11 +52,25 @@ const FILLER = new Set([
   "da hieu", "cam on", "thanks", "thank", "you", "yes", "yeah", "done",
 ]);
 
-/** Học sinh đang XIN TRỢ GIÚP chứ không nộp đáp án? */
+/**
+ * Học sinh đang XIN TRỢ GIÚP chứ không nộp đáp án?
+ *
+ * ⚠️ PHẢI BẢO THỦ. Cụm như "cách làm", "làm sao", "hướng dẫn" xuất hiện đầy
+ * trong BÀI LÀM THẬT ("Cách làm của bạn sai ở bước 2 vì quên đổi dấu…") — bắt
+ * bừa là nuốt mất bài của em, mà ở nhánh nộp bài thì còn mất cả dòng hàng đợi
+ * của giáo viên. Nên chỉ nhận khi câu NGẮN và KHÔNG có dấu hiệu lập luận:
+ * lời cầu cứu thật thì cụt lủn, bài làm thật thì có lý lẽ hoặc phép tính.
+ */
 export function isHelpRequest(text: string): boolean {
   const n = normVi(text);
   if (!n) return false;
-  // Câu có phép tính / con số dài thường là bài làm thật — không coi là xin giúp.
+  const words = n.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  // Dài hơn một lời cầu cứu → đây là bài làm, dù có chứa cụm nào đi nữa.
+  if (words.length > 12) return false;
+  // Có phép tính / dấu suy ra / trích dẫn → đang trình bày, không phải xin giúp.
+  if (/[=+\-*/^<>√≤≥]|=>|→|⇒/.test(text)) return false;
+  // Có từ nối lập luận → đang giải thích.
+  if (/\b(vi|boi|nen|suy ra|do do|ta co|thay vao|ket luan|buoc \d)\b/.test(n)) return false;
   return HELP_PATTERNS.some((re) => re.test(n));
 }
 
@@ -67,26 +81,42 @@ export function contentWordCount(text: string): number {
 }
 
 /**
- * Bài RÁC so với một câu TỰ LUẬN/MỞ (đáp án mẫu là đoạn văn): quá ngắn, toàn
- * từ đệm, hoặc chỉ một con số trơ. KHÔNG dùng cho câu đáp-án-ngắn (MCQ, điền
- * số) — ở đó "7" hay "B" là đáp án hợp lệ.
+ * Bài RÁC so với một câu TỰ LUẬN thật sự.
+ *
+ * ⚠️ Ngưỡng phải SO VỚI ĐÁP ÁN MẪU, không phải một con số cứng. Ngân hàng có
+ * câu ĐIỀN KHUYẾT đi vào cùng nhánh "câu mở" mà đáp án đúng chỉ là "giao" hay
+ * "trái dấu a" — chặn theo ngưỡng 5 từ là học sinh gõ ĐÚNG y đáp án vẫn bị
+ * đuổi về, và vì cổng chặn trước cả việc ghi lượt thử nên em kẹt vĩnh viễn.
+ *
+ * `reference` = đáp án mẫu. Đáp án mẫu ngắn ⇒ bài làm ngắn là hợp lệ.
  */
-export function isJunkOpenAnswer(text: string): boolean {
+export function isJunkOpenAnswer(text: string, reference = ""): boolean {
   const t = (text ?? "").trim();
   if (!t) return true;
   const n = normVi(t);
-  // Chỉ một con số / một biểu thức cụt so với câu đòi lập luận → rác.
-  if (/^[-+0-9.,\s/^*()=]+$/.test(n)) return true;
   const words = n.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  if (words.length < 5) return true; // đáp án mẫu ngắn nhất trong ngân hàng cũng ~1 câu
+
+  // Toàn từ đệm ("ok", "em hiểu rồi ạ") → rác với MỌI loại câu.
   if (words.every((w) => FILLER.has(w) || /^\d+$/.test(w))) return true;
+
+  // Bao nhiêu từ thì đủ? Lấy theo ĐÁP ÁN MẪU: đáp án một cụm từ thì bài làm một
+  // cụm từ là đủ; đáp án cả đoạn thì mới đòi lập luận thành câu.
+  const refWords = normVi(reference).split(/[^\p{L}\p{N}]+/u).filter(Boolean).length;
+  const need = refWords >= 12 ? 5 : refWords >= 5 ? 3 : 1;
+  if (words.length < need) return true;
+
+  // Một con số trơ CHỈ là rác khi đề đòi cả đoạn lập luận.
+  if (need >= 5 && /^[-+0-9.,\s/^*()=]+$/.test(n)) return true;
   return false;
 }
 
 /** Bài làm mở ĐỦ ĐỘ TIN để nhận phán quyết ĐÚNG từ LLM chưa? (đai an toàn sau
  *  chấm: LLM gật mà bài dưới ngưỡng này thì KHÔNG công nhận.) */
-export function plausibleOpenAnswer(text: string): boolean {
-  return !isJunkOpenAnswer(text) && contentWordCount(text) >= 4;
+export function plausibleOpenAnswer(text: string, reference = ""): boolean {
+  if (isJunkOpenAnswer(text, reference)) return false;
+  const refWords = normVi(reference).split(/[^\p{L}\p{N}]+/u).filter(Boolean).length;
+  // Đáp án mẫu ngắn → không đòi "dày"; chỉ câu đoạn văn mới cần ≥4 từ có nghĩa.
+  return refWords < 12 || contentWordCount(text) >= 4;
 }
 
 /**
@@ -101,8 +131,11 @@ export function safeMisconception(s: string | null | undefined): string {
   let t = String(s ?? "").trim();
   if (!t) return "";
   // Bỏ nhãn phán quyết đứng ĐẦU: "(b) SAI vì…", "b) Đúng —", "① SAI:"…
-  t = t.replace(/^[(\[]?\s*[a-dA-D①-⑨]\s*[)\].:]?\s*(ĐÚNG|SAI|Đúng|Sai|đúng|sai)\b\s*[-–—:,]?\s*/u, "");
-  // Bỏ câu tự khai đáp án nếu lỡ có.
-  t = t.replace(/\b(đáp án (đúng )?là|kết quả là|phải chọn)\b[^.;]*/giu, "");
-  return t.trim().slice(0, 220);
+  t = t.replace(/^[(\[]?\s*[a-dA-D①-⑨]\s*[)\].:]?\s*(ĐÚNG|SAI|Đúng|Sai|đúng|sai)(?![\p{L}])\s*[-–—:,]?\s*/u, "");
+  // Bỏ câu tự khai đáp án nếu lỡ có. KHÔNG dùng \b: `\w` không tính chữ có dấu
+  // nên `\bđáp` và `là\b` không bao giờ khớp — phải neo bằng ranh giới KHÔNG-chữ.
+  t = t.replace(/(^|[^\p{L}])(đáp án (đúng )?là|kết quả là|phải chọn)[^.;]*/giu, "$1");
+  // Dọn dấu câu mồ côi còn lại sau khi cắt ("Đáp án là B vì…." → "." → "").
+  t = t.replace(/^[\s.,;:—–-]+|[\s.,;:—–-]+$/gu, "");
+  return t.slice(0, 220);
 }

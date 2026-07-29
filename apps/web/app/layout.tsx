@@ -61,7 +61,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               // Giao diện tối đã GỠ (29/07): không đọc va-theme nữa, và XOÁ khoá
               // cũ ngay trong script chống-nháy — ai từng bật tối sẽ về sáng ở
               // lần mở đầu tiên, không kẹt nền tối vì một khoá còn sót.
-              "(function(){try{var e=document.documentElement;localStorage.removeItem('va-theme');var f=localStorage.getItem('va-font');(f==='sm'||f==='lg')&&(e.dataset.font=f);localStorage.getItem('va-motion')==='reduce'&&(e.dataset.motion='reduce')}catch(n){}})()",
+              // GẮN data-theme="light" ngay từ script chống-nháy: CSS nền tối là
+              // @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }
+              // nên thiếu thuộc tính này là máy để OS tối sẽ chớp nguyên màn tối
+              // trước khi React kịp chạy.
+              "(function(){try{var e=document.documentElement;e.dataset.theme='light';localStorage.removeItem('va-theme');var f=localStorage.getItem('va-font');(f==='sm'||f==='lg')&&(e.dataset.font=f);localStorage.getItem('va-motion')==='reduce'&&(e.dataset.motion='reduce')}catch(n){}})()",
           }}
         />
         {/* App-shell 1:1 viewport (yêu cầu chủ dự án): body khoá cuộn, mọi

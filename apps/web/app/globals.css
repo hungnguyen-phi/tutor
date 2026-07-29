@@ -11500,3 +11500,16 @@ textarea {
 @media (max-width: 480px) {
   .nb-send { width: 100%; min-width: 0; }
 }
+
+/* Mỗi câu bị trả là một khối nút + lời nhắn riêng (khớp .redo-list ở trên). */
+.redo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Cột chính của màn Ôn tập — các nhóm bên trong tự giãn cách đều nhau. */
+.rv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

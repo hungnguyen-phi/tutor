@@ -421,7 +421,13 @@ Deno.serve(async (req: Request) => {
       const questionId = String(body.questionId ?? "");
       // RATE-LIMIT nhánh chấm: chống spam nộp (đoán mò/bơm bằng chứng). Cửa sổ
       // trượt theo (HS, câu). Quá ngưỡng → 429 kèm số giây chờ cho UI dịu giọng.
-      const rl = await rateLimit(supa, `answer:${ctx.userId}:${questionId}`, 8, 60);
+      // Lượt "kể cách nghĩ" đi NGÂN SÁCH RIÊNG, rộng hơn: nó không chấm, không
+      // ghi bằng chứng, và nhịp đối thoại thật (thử → kể → thử → kể) mà dùng
+      // chung 8 lượt/phút là em bị 429 giữa chừng đúng lúc đang mở lời.
+      const isReflectTurn = !String(body.studentAnswer ?? "").trim() && !!String(body.reasoning ?? "").trim();
+      const rl = isReflectTurn
+        ? await rateLimit(supa, `reflect:${ctx.userId}`, 20, 60)
+        : await rateLimit(supa, `answer:${ctx.userId}:${questionId}`, 8, 60);
       if (!rl.ok) return json({ error: "rate_limited", retryAfter: rl.retryAfter }, 429);
 
       // KIỂM QUYỀN SỞ HỮU CÂU HỎI: câu phải thuộc KG version đang phục vụ của
@@ -450,7 +456,10 @@ Deno.serve(async (req: Request) => {
       const reasoning = String(body.reasoning ?? "").trim().slice(0, 2000);
       if (!studentAnswer.trim() && reasoning) {
         persist("student", reasoning, undefined, { questionId: q.id, kind: "reflect" });
-        const signal = thinkingContentSignal(reasoning);
+        // Lời XIN GỢI Ý không phải là "đã thể hiện suy nghĩ" — nếu tính thì bấm
+        // một nhát nút 💡 là mở được cổng (chuỗi mồi sẵn có chữ "bước" đủ để
+        // thinkingContentSignal cho 0,6). Xin giúp vẫn được đáp, chỉ không mua bậc.
+        const signal = isHelpRequest(reasoning) ? 0 : thinkingContentSignal(reasoning);
         const [attRes, { data: ladders }] = await Promise.all([
           supa.from("attempts").select("id, thinking_quality", { count: "exact" })
             .eq("session_id", s.id).eq("question_id", q.id)
@@ -542,15 +551,17 @@ Deno.serve(async (req: Request) => {
       // Lấy kèm thinking_quality của lần thử GẦN NHẤT: lượt "kể cách nghĩ" (B0)
       // đã cộng dồn suy nghĩ thật vào đó — cổng nỗ lực phải nhớ, không bắt kể lại.
       const [prevRes, { data: nodeRow }] = await Promise.all([
-        supa.from("attempts").select("thinking_quality", { count: "exact" })
-          .eq("session_id", s.id).eq("question_id", q.id)
-          .order("attempt_no", { ascending: false }).limit(1),
+        supa.from("attempts").select("thinking_quality")
+          .eq("session_id", s.id).eq("question_id", q.id),
         supa.from("kg_nodes").select("revision, label").eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key).maybeSingle(),
       ]);
-      const attemptNo = (prevRes.count ?? 0) + 1;
-      const prevThinking = Number(
-        ((prevRes.data ?? [])[0] as { thinking_quality: number | null } | undefined)?.thinking_quality ?? 0,
-      );
+      const prevRows = (prevRes.data ?? []) as Array<{ thinking_quality: number | null }>;
+      const attemptNo = prevRows.length + 1;
+      // Suy nghĩ CAO NHẤT em từng thể hiện ở câu này (gồm cả lượt "kể cách nghĩ"
+      // — B0 ghi đè lên lần thử gần nhất). Cổng nhớ, không bắt kể lại từ đầu.
+      const prevThinking = prevRows.reduce((m, r) => Math.max(m, Number(r.thinking_quality ?? 0)), 0);
+      // Số lần em THỰC SỰ trình bày suy nghĩ = số bậc thang đã "mua" được.
+      const engaged = prevRows.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
 
       // Dạng tương tác (dung_sai/sap_xep/noi_cot) chấm CẤU TRÚC tất định (so dãy /
       // tập cặp / đúng-sai) — CAS không phủ được. Còn lại (mcq/điền/toán) dùng CAS:
@@ -564,7 +575,7 @@ Deno.serve(async (req: Request) => {
       // một con số trơ thì KHÔNG gọi mô hình (đỡ token) và KHÔNG tính lượt thử —
       // trả lời thẳng là bài chưa đủ để chấm. Chính nhánh này chặn ca "nhập 1 số
       // bất kỳ thì sư tử báo chính xác" của người thử 2.
-      if (openQ && isJunkOpenAnswer(studentAnswer)) {
+      if (openQ && isJunkOpenAnswer(studentAnswer, String(q.dap_an ?? ""))) {
         const msg = en
           ? "This one needs your reasoning in full sentences — write out your idea first, then submit again. (Not graded yet, so nothing lost!)"
           : "Câu này cần bạn viết lập luận thành câu — bạn viết rõ ý của mình rồi gửi lại nhé. (Lượt này mình chưa chấm, không mất gì đâu!)";
@@ -585,7 +596,7 @@ Deno.serve(async (req: Request) => {
           });
       // ĐAI AN TOÀN (fail-closed): LLM gật mà bài không đủ dày để là một lập
       // luận thật → không công nhận. (Lỗi 8: "ok" từng đậu 3/5 lần.)
-      if (openV?.correct && !plausibleOpenAnswer(studentAnswer)) {
+      if (openV?.correct && !plausibleOpenAnswer(studentAnswer, String(q.dap_an ?? ""))) {
         openV = { correct: false, method: "llm", detail: en ? "answer too short to cover the key ideas" : "bài làm quá ngắn so với yêu cầu" };
       }
       const verdict =
@@ -741,18 +752,29 @@ Deno.serve(async (req: Request) => {
       const totalRungs = rungs.length > 0 ? rungs.length : 4;
       const minAttempts =
         (ladder?.cong_no_luc as { so_lan_thu_toi_thieu?: number } | null)?.so_lan_thu_toi_thieu ?? 2;
-      const currentRung = Math.max(0, attemptNo - minAttempts);
 
-      // thinkingQuality cho CỔNG (viết lại 29/07 — cổng KHÔNG còn là cái đếm click):
-      //  · tín hiệu nội dung của CHÍNH lượt này, HOẶC
-      //  · suy nghĩ đã kể ở lượt "kể cách nghĩ" trước đó (prevThinking — B0), HOẶC
-      //  · van xả an toàn: sau khi đã quá trần tối thiểu THÊM 2 lần thử mà vẫn im
-      //    lặng thì mới nới dần — em không chịu gõ gì suốt nhiều lần vẫn không bị
-      //    giam vĩnh viễn, nhưng bấm mò 1 nhát không còn mở được cổng như trước.
-      const thinkingQuality = Math.min(
-        1,
-        Math.max(thinkSignal, prevThinking) + Math.max(0, attemptNo - minAttempts - 2) * 0.55,
-      );
+      // ── CỔNG NỖ LỰC, viết lại 29/07 ────────────────────────────────────────
+      // Cũ: thinkSignal + (attemptNo − minAttempts) × 0,55 ⇒ bấm đại thêm MỘT
+      //     nhát là qua cổng "đã suy nghĩ thật" (cổng = cái đếm click).
+      // Lần vá đầu trừ thêm 2 thì hỏng kiểu khác: `currentRung` vẫn chạy theo
+      // attemptNo nên khi thinking đủ thì rung đã tới cuối ⇒ NHẢY THẲNG bottom_out,
+      // 2.628 thang Socratic không bao giờ được dùng.
+      // Nay tách hẳn hai trục:
+      //   • QUA CỔNG   ← chất lượng suy nghĩ (nội dung lượt này, hoặc cao nhất
+      //                  từng thể hiện ở câu này). Bấm mò KHÔNG mua được.
+      //   • LÊN BẬC    ← số lần đã thực sự trình bày (`engaged`), nên mỗi lần em
+      //                  nói ra suy nghĩ là được thêm MỘT bậc gợi mở.
+      // Van xả: im lặng quá lâu thì vẫn được dẫn (không giam em), nhưng vì
+      // `engaged` = 0 nên chỉ tới bậc 1 — đáy KHÔNG mở bằng cách click.
+      const stuckLong = attemptNo >= minAttempts + 4;
+      const thinkingQuality = Math.min(1, Math.max(thinkSignal, prevThinking, stuckLong ? 0.5 : 0));
+      // Chốt chặn cuối: quá nhiều lần mà vẫn kẹt thì mở đáy/vá nền, đừng để em
+      // quay vòng vô tận trên cùng một câu.
+      // KHÔNG kẹp `engaged` xuống totalRungs-1: `currentRung` là SỐ BẬC ĐÃ TRAO,
+      // phải chạm được totalRungs thì đáy mới mở (xem evaluateEffortGate). Kẹp
+      // lại là bậc cuối vĩnh viễn không tới lượt.
+      const exhausted = attemptNo >= minAttempts + totalRungs + 2;
+      const currentRung = exhausted ? totalRungs : engaged;
 
       const gate = evaluateEffortGate({
         attempts: attemptNo,
@@ -786,9 +808,16 @@ Deno.serve(async (req: Request) => {
       // Chưa thể hiện suy nghĩ thật (server chấm thấp) → mời HS nói cách nghĩ TRƯỚC
       // khi mở gợi ý — KHÔNG cho nhảy thẳng vào thang/đáy nhờ khai khống từ client.
       if (gate.action === "require_thinking") {
+        // Xoay vòng lời mời (lỗi 19): nhánh này có thể lặp vài lượt liền, nói y
+        // hệt một câu là nghe như máy hỏng — mà đây đúng là chỗ cần em mở lời.
+        const ASK_VI = [
+          "Trước khi mình gợi ý, bạn kể xem đã nghĩ thế nào để ra kết quả đó nhé? Gõ vào ô «Kể cách em nghĩ» bên dưới.",
+          "Bạn nói mình nghe bước đầu tiên bạn làm là gì? Nói sai cũng không sao — mình cần biết bạn đang nghĩ theo hướng nào.",
+          "Trong đề, dữ kiện nào bạn thấy quan trọng nhất? Kể ra là mình dẫn tiếp ngay.",
+        ];
         const msg = en
           ? "Before I give a hint — tell me how you got that. What was your reasoning?"
-          : "Trước khi mình gợi ý, bạn kể xem mình đã nghĩ thế nào để ra kết quả đó nhé? (Cứ thử lại, mình sẽ dẫn từng bước.)";
+          : ASK_VI[Math.min(attemptNo - minAttempts, ASK_VI.length - 1)] ?? ASK_VI[0]!;
         persist("tutor", msg, "engine", { gate: gate.action, matched });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
@@ -915,7 +944,7 @@ Deno.serve(async (req: Request) => {
       // ── A1 · CỔNG Ý ĐỊNH cho bài GÕ (không kèm tệp): "ok" / lời xin trợ giúp
       // KHÔNG phải bài nộp — trả lời ngay, không gọi AI, KHÔNG tạo dòng hàng đợi
       // cho giáo viên. (Lỗi 8: sáu bản nộp "ok" thật đã lọt vào hàng đợi 28/07.)
-      if (workText && !filePath && (isJunkOpenAnswer(workText) || isHelpRequest(workText))) {
+      if (workText && !filePath && (isJunkOpenAnswer(workText, String(q.dap_an ?? "")) || isHelpRequest(workText))) {
         const msg = isHelpRequest(workText)
           ? "Bạn đang cần gợi ý đúng không? Ô này là chỗ NỘP bài làm hoàn chỉnh — muốn được dẫn từng bước, bạn quay về câu hỏi và bấm xin gợi ý nhé."
           : "Bài nộp cần lời giải đầy đủ của bạn (viết thành câu, có lập luận). Bạn viết rõ rồi nộp lại nhé — lượt này mình chưa ghi nhận.";

@@ -89,6 +89,13 @@ export default function NopBaiBox({
 
   async function send() {
     if (busy || (!text.trim() && !file)) return;
+    // Chặn TẠI CHỖ trước khi chạm server: mở phiên học rồi mới biết bài không
+    // hợp lệ là đẻ một `learning_sessions` rác + ăn một lượt rate-limit của
+    // diagnose, mỗi lần em gõ hụt.
+    if (!file && text.trim().split(/\s+/).filter(Boolean).length < 3) {
+      setMsg("Bài nộp cần lời giải của bạn — viết thêm vài câu, hoặc chụp ảnh bài trên giấy nhé.");
+      return;
+    }
     setBusy(true);
     setErr(null);
     setMsg(null);

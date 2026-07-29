@@ -1792,7 +1792,7 @@ export default function TutorApp() {
               type="button"
               className="reflect-early"
               disabled={busy}
-              onClick={() => void sendReflect("Mình đang bí, gợi ý giúp mình bước đầu với")}
+              onClick={() => void sendReflect("Mình chưa biết làm, gợi ý giúp mình với")}
             >
               💡 Bí quá? Xin sư tử gợi ý
             </button>
@@ -1935,7 +1935,11 @@ export default function TutorApp() {
                 className="btn btn-ghost reflect-hint"
                 disabled={busy}
                 title="Xin sư tử một câu gợi mở — phải kể cách nghĩ trước thì gợi ý mới sâu dần"
-                onClick={() => void sendReflect(reflectText.trim() || "Mình đang bí, gợi ý giúp mình bước đầu với")}
+                /* Chuỗi mồi CỐ Ý không chứa từ lập luận ("bước", "vì", "suy ra"):
+                   server chấm chất lượng suy nghĩ theo nội dung, nên một chuỗi
+                   sẵn mà nghe như đang lập luận sẽ mở cổng nỗ lực bằng một cú
+                   bấm. Server cũng đã tự chặn (isHelpRequest → 0 điểm). */
+                onClick={() => void sendReflect(reflectText.trim() || "Mình chưa biết làm, gợi ý giúp mình với")}
               >
                 💡 Xin gợi ý
               </button>

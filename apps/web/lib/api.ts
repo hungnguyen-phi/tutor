@@ -37,7 +37,15 @@ export function warmUpFunctions(fns: string[] = ["learning-path", "diagnose", "r
   for (const fn of fns) {
     void fetch(`${FUNCTIONS_BASE}/${fn}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        // PHẢI có Authorization: các function bật `verify_jwt` nên thiếu header
+        // này là CỔNG Supabase chặn 401 TRƯỚC khi dựng isolate — tức là không
+        // hâm nóng được gì. Khoá anon đủ qua cổng; hàm bên trong vẫn trả
+        // "unauthorized" (không có phiên học sinh), nhưng isolate đã tỉnh.
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
       body: "{}",
       keepalive: true,
     }).catch(() => {});

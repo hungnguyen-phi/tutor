@@ -104,7 +104,9 @@ export default function ReviewView({
   const total = queue?.total ?? 0;
   // RỖNG THẬT = chưa thành thạo bài nào. Khác hẳn "hôm nay chưa tới hạn" —
   // hai chuyện này trước đây bị gộp thành cùng một câu "Chưa có gì để ôn".
-  const nothingYet = total === 0;
+  // LỖI TẢI cũng KHÔNG phải rỗng: `queue` là null thì tuyệt đối không được nói
+  // "bạn chưa thành thạo bài nào" — đó là nói sai về chính công sức của em.
+  const nothingYet = !!queue && total === 0;
   const restingToday = total > 0 && due.length === 0;
 
   const card = (it: ReviewItem, overdue: boolean) => (
@@ -199,7 +201,11 @@ export default function ReviewView({
         </div>
       </div>
 
-      {nothingYet ? (
+      {!queue ? (
+        /* Không đọc được lịch (mạng/hàm chưa deploy) — banner lỗi ở trên đã nói.
+           Ở đây KHÔNG vẽ gì thêm, tuyệt đối không hiện "chưa có gì để ôn". */
+        null
+      ) : nothingYet ? (
         /* RỖNG THẬT — chưa thành thạo bài nào. Một câu + một nút. */
         <section className="ws-panel rv-empty">
           <h2 className="ws-panel-title">Chưa có gì để ôn</h2>

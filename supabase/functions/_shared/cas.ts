@@ -52,11 +52,18 @@ export async function checkAnswer(
   // LƯỢT HAI — chuẩn hoá số kiểu Việt rồi chấm lại. Chỉ chạy khi lượt nguyên
   // bản đã SAI (nên chỉ MỞ RỘNG chấp nhận, không lật kết quả đúng thành sai),
   // và chỉ khi phép chuẩn hoá thực sự đổi được gì.
-  const a2 = normalizeVnNumbers(a);
-  const b2 = normalizeVnNumbers(b);
-  if (a2 !== a || b2 !== b) {
-    const second = await gradeExpr(a2, b2);
-    if (second.correct) return second;
+  //
+  // BỎ QUA khi chuỗi có ngoặc/ngoặc nhọn/chấm phẩy: ở đó dấu phẩy là DẤU NGĂN
+  // (toạ độ "(1,2)", tập "{1,3}") chứ không phải dấu thập phân — đổi bừa thì
+  // học sinh gõ số 1.2 lại được tính đúng cho ĐIỂM (1;2).
+  const hasSeparatorComma = /[()[\]{};]/.test(a) || /[()[\]{};]/.test(b);
+  if (!hasSeparatorComma) {
+    const a2 = normalizeVnNumbers(a);
+    const b2 = normalizeVnNumbers(b);
+    if (a2 !== a || b2 !== b) {
+      const second = await gradeExpr(a2, b2);
+      if (second.correct) return second;
+    }
   }
   return first;
 }

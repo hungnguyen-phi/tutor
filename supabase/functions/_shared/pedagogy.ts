@@ -80,8 +80,12 @@ export function evaluateEffortGate(i: EffortGateInput): EffortGateDecision {
       reason: "Chưa thể hiện suy nghĩ thật — yêu cầu giải thích cách làm.",
     };
   }
-  if (i.currentRung + 1 >= i.totalRungs) {
-    return { action: "bottom_out", reason: "Vượt trần số bậc → mở đáy kèm lý do." };
+  // `currentRung` = SỐ BẬC ĐÃ TRAO. Mở đáy chỉ khi đã đi HẾT thang.
+  // Sửa 29/07: điều kiện cũ `currentRung + 1 >= totalRungs` khiến bậc CUỐI
+  // (giàn giáo mạnh — chỗ chia nhỏ quy trình, ngay trước khi hé hướng giải)
+  // không bao giờ được trao: thang 4 bậc thực chất chỉ dùng 3.
+  if (i.currentRung >= i.totalRungs) {
+    return { action: "bottom_out", reason: "Đã đi hết thang → mở đáy kèm lý do." };
   }
   return { action: "advance_rung", reason: "Đủ nỗ lực + suy nghĩ thật → lên bậc gợi ý." };
 }

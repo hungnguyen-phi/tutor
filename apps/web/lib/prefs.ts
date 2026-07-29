@@ -120,9 +120,12 @@ export function setPresenceOptIn(on: boolean) {
 export function applyToHtml() {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
-  // Chỉ còn giao diện sáng: gỡ hẳn data-theme và DỌN khoá cũ trong máy người
-  // dùng (ai từng chọn "tối" sẽ tự về sáng ở lần mở đầu tiên sau cập nhật).
-  delete el.dataset.theme;
+  // Chỉ còn giao diện sáng. PHẢI GẮN data-theme="light", KHÔNG được chỉ xoá:
+  // các khối CSS nền tối viết là
+  //   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {…} }
+  // nên xoá thuộc tính đi là máy nào để hệ điều hành ở chế độ tối sẽ ăn nguyên
+  // bảng màu tối — mà mục Cài đặt đã gỡ nên người dùng không còn đường thoát.
+  el.dataset.theme = "light";
   if (get(KEYS.theme) !== null) set(KEYS.theme, null);
   const font = getFont();
   if (font === "md") delete el.dataset.font;

@@ -104,6 +104,48 @@ t("gọt d) Đúng —",
   "nhầm hai tập rời nhau");
 t("rỗng → rỗng", intent.safeMisconception(null), "");
 
+
+// ══ HỒI QUY sau vòng audit đối kháng 29/07 — khoá lại đúng các lỗ đã vá ══
+
+// P0-1 · Câu ĐIỀN KHUYẾT đáp án ngắn KHÔNG được coi là rác (trước đây học sinh
+//        gõ đúng y đáp án vẫn bị đuổi về, và kẹt vĩnh viễn vì cổng chặn trước
+//        cả việc ghi lượt thử).
+t("điền khuyết 'giao' vs đáp án 'giao' → KHÔNG rác",
+  intent.isJunkOpenAnswer("giao", "giao"), false);
+t("điền khuyết 'trái dấu a' → KHÔNG rác",
+  intent.isJunkOpenAnswer("trái dấu a", "trái dấu a"), false);
+t("vẫn chặn 'ok' dù đáp án ngắn", intent.isJunkOpenAnswer("ok", "giao"), true);
+t("đáp án ĐOẠN VĂN thì mới đòi viết dài",
+  intent.isJunkOpenAnswer("vì nó sai", "Mệnh đề là câu khẳng định mà ta có thể xác định được tính đúng hoặc sai của nó, không thể vừa đúng vừa sai"), true);
+t("plausible: đáp án ngắn thì bài ngắn vẫn tin được",
+  intent.plausibleOpenAnswer("giao", "giao"), true);
+
+// P0-2 · isHelpRequest KHÔNG được nuốt bài làm thật.
+t("KHÔNG help: 'Cách làm của bạn sai ở bước 2 vì quên đổi dấu'",
+  intent.isHelpRequest("Cách làm của bạn sai ở bước 2 vì quên đổi dấu bất phương trình"), false);
+t("KHÔNG help: câu dài có 'làm sao'",
+  intent.isHelpRequest("Ta xét hàm số và làm sao cho vế trái bằng vế phải nên suy ra x = 2"), false);
+t("KHÔNG help: 'hướng dẫn' trong bài có phép tính",
+  intent.isHelpRequest("Bước 1: hướng dẫn của thầy là dùng x = -b/2a"), false);
+t("VẪN help: 'gợi ý giúp em với'", intent.isHelpRequest("gợi ý giúp em với"), true);
+t("VẪN help: 'em không biết làm'", intent.isHelpRequest("em không biết làm"), true);
+
+// P1-6 · safeMisconception phải gọt được cả câu tiếng Việt có dấu.
+t("gọt 'Đáp án là B vì…'",
+  intent.safeMisconception("Đáp án là B vì học sinh nhầm dấu."), "");
+t("gọt 'Kết quả là 5 nên nhầm.'",
+  intent.safeMisconception("Kết quả là 5 nên nhầm."), "");
+
+// P1-9 · Chuẩn hoá số kiểu Việt KHÔNG được phá toạ độ / tập hợp.
+t("số 1,2 KHÔNG được tính đúng cho điểm (1,2)",
+  (await cas.checkAnswer("1,2", "(1,2)")).correct, false);
+t("số 1.3 KHÔNG được tính đúng cho tập {1,3}",
+  (await cas.checkAnswer("1.3", "{1,3}")).correct, false);
+t("toạ độ (1,2) vs (1,2) vẫn đúng",
+  (await cas.checkAnswer("(1,2)", "(1,2)")).correct, true);
+t("thập phân thường vẫn chạy: 0,2 vs 0.2",
+  (await cas.checkAnswer("0,2", "0.2")).correct, true);
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
 

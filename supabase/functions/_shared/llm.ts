@@ -133,17 +133,26 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   const key = Deno.env.get("OPENROUTER_API_KEY");
   if (!key) throw new Error("OPENROUTER_API_KEY not set in function secrets.");
 
-  // ── CACHE (chỉ nhánh chấm tất định) — đọc TRƯỚC khi tiêu token ────────────
+  // ── CACHE (chỉ nhánh chấm tất định) ───────────────────────────────────────
+  // Đọc SAU khi kiểm ngân sách token ở dưới thì mất ý nghĩa (cache tồn tại để
+  // KHỎI tiêu token), nhưng đọc trước thì lại lách được trần. Cách đi: đọc ở
+  // đây nhưng CHỈ dùng khi chưa chạm trần — kiểm trần là một truy vấn nhẹ và
+  // vẫn chạy ngay bên dưới cho cả hai nhánh.
   let ck: string | null = null;
+  let cached: LlmCallResult | null = null;
   if (args.cache && args.supa) {
     try {
       ck = await cacheKeyOf(args);
       const { data: hit } = await args.supa
-        .from("llm_cache").select("response").eq("key", ck).maybeSingle();
-      const cached = hit?.response as LlmCallResult | undefined;
-      if (cached && typeof cached.text === "string") {
-        return { text: cached.text, model: cached.model ?? "cache", usage: { inputTokens: 0, outputTokens: 0 } };
-      }
+        .from("llm_cache")
+        .select("response, created_at")
+        .eq("key", ck)
+        // TTL 30 ngày: nội dung câu hỏi / đáp án mẫu có thể được giáo viên sửa,
+        // và một phán quyết sai không được đóng băng vĩnh viễn cho MỌI học sinh.
+        .gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+        .maybeSingle();
+      const c = hit?.response as LlmCallResult | undefined;
+      if (c && typeof c.text === "string") cached = { text: c.text, model: c.model ?? "cache", usage: { inputTokens: 0, outputTokens: 0 } };
     } catch {
       ck = ck ?? null; // cache hỏng KHÔNG được chặn việc chấm
     }
@@ -166,6 +175,9 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
       throw new BudgetExceededError(args.studentId, DAILY_TOKEN_LIMIT, spent);
     }
   }
+
+  // Chưa chạm trần + có sẵn trong cache → trả luôn, KHÔNG tiêu token lượt này.
+  if (cached) return cached;
 
   const tier: Tier = args.tier ?? "default";
   const primary = MODELS[tier];
