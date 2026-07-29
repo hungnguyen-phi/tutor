@@ -11414,3 +11414,10 @@ textarea {
   .reflect-row { flex-wrap: wrap; }
   .reflect-input { flex-basis: 100%; }
 }
+
+/* Ô KẾT LUẬN trong bước cuối của đề nhiều bước (lỗi 17) — sống trong thẻ bước,
+   không phải ở đáy trang, nên bám lề trái của .step-body và hẹp hơn ô độc lập. */
+.step-input {
+  margin-top: 10px;
+  width: 100%;
+}

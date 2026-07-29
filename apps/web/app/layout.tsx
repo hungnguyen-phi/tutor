@@ -58,7 +58,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var e=document.documentElement,t=localStorage.getItem('va-theme');(t==='dark'||t==='light')&&(e.dataset.theme=t);var f=localStorage.getItem('va-font');(f==='sm'||f==='lg')&&(e.dataset.font=f);localStorage.getItem('va-motion')==='reduce'&&(e.dataset.motion='reduce')}catch(n){}})()",
+              // Giao diện tối đã GỠ (29/07): không đọc va-theme nữa, và XOÁ khoá
+              // cũ ngay trong script chống-nháy — ai từng bật tối sẽ về sáng ở
+              // lần mở đầu tiên, không kẹt nền tối vì một khoá còn sót.
+              "(function(){try{var e=document.documentElement;localStorage.removeItem('va-theme');var f=localStorage.getItem('va-font');(f==='sm'||f==='lg')&&(e.dataset.font=f);localStorage.getItem('va-motion')==='reduce'&&(e.dataset.motion='reduce')}catch(n){}})()",
           }}
         />
         {/* App-shell 1:1 viewport (yêu cầu chủ dự án): body khoá cuộn, mọi

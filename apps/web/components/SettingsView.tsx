@@ -24,8 +24,6 @@ import {
   Check,
   Eraser,
   KeyRound,
-  Monitor,
-  Moon,
   PencilLine,
   Settings,
   ShieldCheck,
@@ -57,7 +55,6 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   const uid = session?.user.id;
 
   // Tuỳ chọn hiện hành — đọc một lần lúc mount (prefs là nguồn sự thật)
-  const [theme, setThemeState] = useState<Prefs.ThemeMode>("system");
   const [font, setFontState] = useState<Prefs.FontScale>("md");
   const [motion, setMotionState] = useState(false);
   const [presence, setPresenceState] = useState(false);
@@ -81,7 +78,6 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   const [askClear, setAskClear] = useState(false);
 
   useEffect(() => {
-    setThemeState(Prefs.getTheme());
     setFontState(Prefs.getFont());
     setMotionState(Prefs.getReduceMotion());
     setPresenceState(Prefs.getPresenceOptIn());
@@ -109,10 +105,6 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   const shownName = Prefs.displayNameOf(officialName) ?? officialName;
   const initial = shownName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "V";
 
-  const pickTheme = (m: Prefs.ThemeMode) => {
-    Prefs.setTheme(m);
-    setThemeState(m);
-  };
   const pickFont = (s: Prefs.FontScale) => {
     Prefs.setFont(s);
     setFontState(s);
@@ -400,23 +392,9 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
               <Sun aria-hidden strokeWidth={2.25} />
               Giao diện
             </h2>
-            <div className="st-row">
-              <b className="st-row-title">Chế độ màu</b>
-              <div className="st-seg st-seg-3" role="radiogroup" aria-label="Chế độ màu">
-                <button type="button" role="radio" aria-checked={theme === "light"} onClick={() => pickTheme("light")}>
-                  <Sun aria-hidden strokeWidth={2.25} />
-                  Sáng
-                </button>
-                <button type="button" role="radio" aria-checked={theme === "dark"} onClick={() => pickTheme("dark")}>
-                  <Moon aria-hidden strokeWidth={2.25} />
-                  Tối
-                </button>
-                <button type="button" role="radio" aria-checked={theme === "system"} onClick={() => pickTheme("system")}>
-                  <Monitor aria-hidden strokeWidth={2.25} />
-                  Theo máy
-                </button>
-              </div>
-            </div>
+            {/* Chế độ màu đã GỠ (quyết định chủ dự án 29/07, lỗi 7): app chỉ còn
+                giao diện sáng. Cỡ chữ + giảm chuyển động ở lại — đó là TRỢ NĂNG,
+                không phải sở thích thẩm mỹ. */}
             <div className="st-row">
               <b className="st-row-title">
                 <Type aria-hidden strokeWidth={2.25} />

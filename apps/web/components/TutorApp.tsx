@@ -151,6 +151,9 @@ export default function TutorApp() {
   const [aiPassed, setAiPassed] = useState(false); // AI sơ khảo ĐẠT bài gõ của câu hiện tại
   const [stepAns, setStepAns] = useState<Record<number, string>>({}); // Có/Không từng bước của đề nhiều bước
   const [verdict, setVerdict] = useState<Verdict>(null);
+  /** XP server vừa cộng ở lượt gần nhất — chip "+N XP" phải nói số THẬT, vì từ
+   *  29/07 XP "đúng" chỉ phát ở lần thử đầu (bịt rò đoán mò). */
+  const [lastGain, setLastGain] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [earned, setEarned] = useState(0);
   const [finished, setFinished] = useState<EndResult | null>(null);
@@ -603,7 +606,11 @@ export default function TutorApp() {
     const serverXp = res.xp;
     if (serverXp) {
       if (serverXp.gained > 0) setEarned((e) => e + serverXp.gained);
+      setLastGain(serverXp.gained);
       setProgress(G.syncFromServer(serverXp));
+    } else {
+      // Function cũ chưa trả xp → ước lượng theo luật hiện hành để chip không câm.
+      setLastGain(res.correct && attemptNo === 1 ? G.XP.correct : attemptNo >= 2 ? G.XP.persistence : 0);
     }
 
     if (res.correct) {
@@ -1415,6 +1422,37 @@ export default function TutorApp() {
                           ))}
                         </div>
                       )}
+                      {/* LỖI 17 — ô KẾT LUẬN nằm NGAY TRONG bước cuối, không còn
+                          rơi xuống đáy trang. Trước đây làm sai một lần là phải
+                          cuộn lên đầu sửa Có/Không rồi cuộn xuống cuối gõ lại
+                          kết luận (người thử 3 báo 29/07). Giờ cả chuỗi suy luận
+                          nằm gọn một chỗ. */}
+                      {stepInteractive && stepNeedsText && i === stepParsed.steps.length - 1 && (
+                        <textarea
+                          className="ans-input step-input"
+                          rows={1}
+                          placeholder="Kết luận của em…"
+                          value={text}
+                          disabled={busy || verdict === "retry"}
+                          onChange={(e) => {
+                            setText(e.target.value);
+                            const el = e.currentTarget;
+                            el.style.height = "auto";
+                            el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" || e.shiftKey) return;
+                            e.preventDefault();
+                            if (canCheck && !busy) check();
+                          }}
+                          inputMode="text"
+                          enterKeyHint="go"
+                          autoComplete="off"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                        />
+                      )}
                     </div>
                   </li>
                 ))}
@@ -1574,8 +1612,10 @@ export default function TutorApp() {
 
       {/* Đề nhiều bước tương tác: ô gõ CHỈ mở khi đã trả lời hết các bước
           Có/Không (và bước cuối là bước cần viết kết luận). */}
+      {/* Ô nhập ĐỘC LẬP — chỉ cho câu KHÔNG phải nhiều-bước-tương-tác. Câu nhiều
+          bước đã có ô kết luận nằm trong bước cuối (lỗi 17). */}
       {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" &&
-        (!stepParsed || !stepInteractive || (stepsDone && stepNeedsText)) && (
+        (!stepParsed || !stepInteractive) && (
         /* Ô TỰ CAO DẦN, không phải ô một dòng: cùng một dạng "nhập đáp án" có câu
            chỉ điền một cụm từ, có câu đòi giải thích cả đoạn (đáp án mẫu dài trên
            200 chữ). Ô một dòng làm học sinh gõ đoạn dài mà không thấy mình viết
@@ -1809,10 +1849,15 @@ export default function TutorApp() {
       {verdict === "ok" && (
         <div className="lfoot" data-verdict="ok" role="status">
           <div className="lfoot-inner">
-            <div className="lfoot-row">
-              <CheckCircle2 aria-hidden strokeWidth={2.25} />
+            {/* LỖI 10 — "đúng thì cộng XP mà không reo": trước đây màn đúng chỉ
+                có một dòng chữ + dấu tích. Sư tử reo là phần thưởng tinh thần
+                chính của app, không thể vắng đúng lúc em làm được. */}
+            <div className="lfoot-says">
+              <Lion mood="cheer" size={56} decorative />
               <b className="lfoot-title">Chính xác!</b>
-              <span className="xp-chip num">+{G.XP.correct} XP</span>
+              {/* XP nói THẬT: server chỉ cộng +10 ở lần thử đầu (bịt rò đoán mò),
+                  nên chip phải theo số server vừa trả, không phải hằng số. */}
+              {lastGain > 0 && <span className="xp-chip num">+{lastGain} XP</span>}
             </div>
             <button className="btn btn-gold btn-block" data-loading={busy || undefined} onClick={advance}>
               {last ? "HOÀN THÀNH" : "TIẾP TỤC"}

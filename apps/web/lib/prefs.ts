@@ -45,13 +45,18 @@ const set = (k: string, v: string | null) => {
   }
 };
 
-// ── Giao diện sáng/tối ────────────────────────────────────────────────────
+// ── Giao diện sáng/tối — ĐÃ GỠ (quyết định chủ dự án 29/07, lỗi 7) ────────
+// App chỉ còn giao diện SÁNG. Hai cửa bật (nút trên thanh nav + mục trong Cài
+// đặt) đã gỡ; hàm dưới đây giữ lại để mọi nơi gọi cũ không vỡ, nhưng luôn trả
+// "light" và tự DỌN khoá `va-theme` cũ — người từng bật tối sẽ không bị kẹt
+// nền tối vĩnh viễn sau khi cập nhật.
+// KHỐI CSS [data-theme="dark"] trong globals.css được GIỮ NGUYÊN làm mã chết:
+// xoá hơn 1.000 dòng ngay giữa pilot là tự rước rủi ro; dọn sau, thành việc riêng.
 export function getTheme(): ThemeMode {
-  const v = get(KEYS.theme);
-  return v === "light" || v === "dark" ? v : "system";
+  return "light";
 }
-export function setTheme(mode: ThemeMode) {
-  set(KEYS.theme, mode === "system" ? null : mode);
+export function setTheme(_mode: ThemeMode) {
+  set(KEYS.theme, null);
   applyToHtml();
 }
 
@@ -115,9 +120,10 @@ export function setPresenceOptIn(on: boolean) {
 export function applyToHtml() {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
-  const theme = getTheme();
-  if (theme === "system") delete el.dataset.theme;
-  else el.dataset.theme = theme;
+  // Chỉ còn giao diện sáng: gỡ hẳn data-theme và DỌN khoá cũ trong máy người
+  // dùng (ai từng chọn "tối" sẽ tự về sáng ở lần mở đầu tiên sau cập nhật).
+  delete el.dataset.theme;
+  if (get(KEYS.theme) !== null) set(KEYS.theme, null);
   const font = getFont();
   if (font === "md") delete el.dataset.font;
   else el.dataset.font = font;
