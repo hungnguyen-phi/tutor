@@ -13,6 +13,8 @@
  * đúng. Trả về null cho dạng không thuộc nhóm này → nơi gọi rơi về CAS.
  */
 
+import { normalizeVnNumbers } from "./cas.ts";
+
 export type InteractiveDang = "dung_sai" | "sap_xep" | "noi_cot";
 
 export interface InteractiveVerdict {
@@ -162,7 +164,11 @@ export function gradeInteractive(
     const want = splitTop(correct, [";"]).filter(Boolean);
     const got = student.split(";;").map((x) => x.trim());
     if (want.length >= 2 && got.length === want.length) {
-      const ok = want.every((w, i) => norm(got[i] ?? "") === norm(w));
+      // Từng ô so chữ đã chuẩn hoá; số kiểu Việt cũng phải khớp số kiểu máy —
+      // "0,2" điền vào ô có đáp án "0.2" là ĐÚNG (lỗi 16, 29/07).
+      const eq = (a: string, b: string) =>
+        norm(a) === norm(b) || norm(normalizeVnNumbers(a)) === norm(normalizeVnNumbers(b));
+      const ok = want.every((w, i) => eq(got[i] ?? "", w));
       return { correct: ok, method: "blanks" };
     }
   }

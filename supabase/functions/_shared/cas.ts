@@ -25,6 +25,20 @@ export function applyParams(expr: string, params?: Record<string, number | strin
   return expr.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
 }
 
+/**
+ * Số kiểu VIỆT → kiểu máy: "0,2"→"0.2", "-1,67"→"-1.67", "1.234,5"→"1234.5".
+ * Học sinh lớp 10 viết thập phân bằng DẤU PHẨY (chuẩn VN) còn CAS/mathjs chỉ
+ * hiểu dấu chấm — trước đây gõ "0,2" đúng nghĩa vẫn bị chấm SAI (lỗi 16, người
+ * thử 3 báo 29/07). Chỉ đổi cụm "chữ-số , chữ-số" (kèm dấu chấm ngăn nghìn nếu
+ * có) — KHÔNG đụng dấu phẩy ngăn cách của toạ độ "(1, 2)" (có khoảng trắng hoặc
+ * đã được splitTuple xử lý ở lượt chấm nguyên bản trước đó).
+ */
+export function normalizeVnNumbers(s: string): string {
+  return (s ?? "").replace(/\d{1,3}(?:\.\d{3})+,\d+|\d+,\d+/g, (m) =>
+    m.replace(/\./g, "").replace(",", "."),
+  );
+}
+
 export async function checkAnswer(
   student: string,
   correct: string,
@@ -33,6 +47,21 @@ export async function checkAnswer(
   const a = applyParams((student ?? "").trim(), params);
   const b = applyParams((correct ?? "").trim(), params);
   if (!a) return { correct: false, method: "text", detail: "empty" };
+  const first = await gradeExpr(a, b);
+  if (first.correct) return first;
+  // LƯỢT HAI — chuẩn hoá số kiểu Việt rồi chấm lại. Chỉ chạy khi lượt nguyên
+  // bản đã SAI (nên chỉ MỞ RỘNG chấp nhận, không lật kết quả đúng thành sai),
+  // và chỉ khi phép chuẩn hoá thực sự đổi được gì.
+  const a2 = normalizeVnNumbers(a);
+  const b2 = normalizeVnNumbers(b);
+  if (a2 !== a || b2 !== b) {
+    const second = await gradeExpr(a2, b2);
+    if (second.correct) return second;
+  }
+  return first;
+}
+
+async function gradeExpr(a: string, b: string): Promise<CasResult> {
 
   // 0) KHỚP CHỮ chính xác (đã chuẩn hoá) → ĐÚNG NGAY, KHÔNG đưa qua CAS. Cứu câu
   //    trắc nghiệm có đáp án là NHÃN chữ cái (A/B/C/D) hay chữ nghĩa: 'A','B','C'
