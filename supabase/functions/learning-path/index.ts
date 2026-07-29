@@ -395,9 +395,8 @@ Deno.serve(async (req: Request) => {
     // không có policy đọc nên đường dẫn thô vô dụng với client; ký ở đây thì
     // học sinh mở được tờ giấy đã chữa mà KHÔNG cần thêm một endpoint nữa.
     // Chỉ ký cho bài BỊ TRẢ (hiếm) nên không phải chi phí của mọi lượt gọi.
-    const toSign = items.flatMap((it) =>
-      [...(it.redo ?? []), ...(it.praise ?? [])].filter((r) => r.noteFilePath),
-    );
+    const noteRows = items.flatMap((it) => [...(it.redo ?? []), ...(it.praise ?? [])]);
+    const toSign = noteRows.filter((r) => r.noteFilePath);
     if (toSign.length) {
       await Promise.all(toSign.map(async (r) => {
         const path = String(r.noteFilePath);
@@ -408,9 +407,12 @@ Deno.serve(async (req: Request) => {
           r.noteFileUrl = signed.signedUrl;
           r.noteFileName = path.split("/").pop() ?? "tep-chua-bai";
         }
-        delete r.noteFilePath; // đường dẫn thô không cần lộ ra client
       }));
     }
+    // Xoá khoá nội bộ trên MỌI dòng, không chỉ dòng vừa ký: dòng không có tệp
+    // vẫn kèm `noteFilePath: null` ra tới client — không lộ gì, nhưng là khoá
+    // của server nằm trong dữ liệu của client, người sau đọc dễ tưởng dùng được.
+    for (const r of noteRows) delete r.noteFilePath;
 
     return json({ version_id: version.id, version_label: version.label, nodes: items });
   } catch (e) {
