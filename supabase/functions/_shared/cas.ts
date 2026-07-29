@@ -53,17 +53,19 @@ export async function checkAnswer(
   // bản đã SAI (nên chỉ MỞ RỘNG chấp nhận, không lật kết quả đúng thành sai),
   // và chỉ khi phép chuẩn hoá thực sự đổi được gì.
   //
-  // BỎ QUA khi chuỗi có ngoặc/ngoặc nhọn/chấm phẩy: ở đó dấu phẩy là DẤU NGĂN
-  // (toạ độ "(1,2)", tập "{1,3}") chứ không phải dấu thập phân — đổi bừa thì
-  // học sinh gõ số 1.2 lại được tính đúng cho ĐIỂM (1;2).
-  const hasSeparatorComma = /[()[\]{};]/.test(a) || /[()[\]{};]/.test(b);
-  if (!hasSeparatorComma) {
-    const a2 = normalizeVnNumbers(a);
-    const b2 = normalizeVnNumbers(b);
-    if (a2 !== a || b2 !== b) {
-      const second = await gradeExpr(a2, b2);
-      if (second.correct) return second;
-    }
+  // Bài của HỌC SINH luôn được chuẩn hoá. ĐÁP ÁN MẪU thì KHÔNG, nếu nó được
+  // bọc ngoặc: ở đó dấu phẩy là DẤU NGĂN của bộ/tập ("(1,2)", "{1,3}"), đổi
+  // thành dấu thập phân là biến ĐIỂM (1;2) thành số 1.2 — rồi học sinh gõ "1,2"
+  // lại được tính đúng cho một toạ độ.
+  //   · "sqrt(0,25)", "2*(1,5+2)"  → không bọc ngoặc ở NGOÀI CÙNG ⇒ vẫn chuẩn hoá.
+  //   · "(1.5; 2)", "{0.5}"        → không có cụm "chữ-số,chữ-số" ⇒ vốn không đổi.
+  // Lượt hai chỉ MỞ RỘNG chấp nhận (chỉ trả về khi đúng), không lật đúng thành sai.
+  const refWrapped = /^\s*[([{][\s\S]*[)\]}]\s*$/.test(b);
+  const a2 = normalizeVnNumbers(a);
+  const b2 = refWrapped ? b : normalizeVnNumbers(b);
+  if (a2 !== a || b2 !== b) {
+    const second = await gradeExpr(a2, b2);
+    if (second.correct) return second;
   }
   return first;
 }

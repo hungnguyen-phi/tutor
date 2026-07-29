@@ -59,10 +59,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // `currentRung` = SỐ BẬC ĐÃ TRAO (đổi nghĩa 29/07 cùng evaluateEffortGate).
+    // Client tự khai nên PHẢI kẹp: gửi 99 là mở đáy vô điều kiện, gửi số âm là
+    // lệch thang. Kẹp [0, totalRungs] giữ nguyên ngữ nghĩa mà không tin client.
+    const rung = Math.max(0, Math.min(Number(currentRung) || 0, totalRungs));
     const decision = evaluateEffortGate({
       attempts: count ?? 0,
       thinkingQuality,
-      currentRung: currentRung ?? 0,
+      currentRung: rung,
       totalRungs,
       minAttempts,
     });

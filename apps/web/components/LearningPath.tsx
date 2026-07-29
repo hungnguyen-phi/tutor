@@ -384,7 +384,12 @@ export default function LearningPath({
         <div className="redo-notice" role="status">
           <Undo2 aria-hidden strokeWidth={2.25} />
           <div className="redo-body">
-            <b>Thầy cô đã chấm — {redoNodes.length} bài cần làm lại</b>
+            {/* Đếm theo CÂU, khớp đúng số nút bên dưới — đếm theo bài thì hiện
+                "1 bài cần làm lại" mà dưới lại có hai nút. */}
+            <b>
+              Thầy cô đã chấm —{" "}
+              {redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0)} bài cần làm lại
+            </b>
             {/* Mỗi bài một NÚT: bấm là vào ĐÚNG câu bị trả, kèm LỜI NHẮN của
                 thầy cô hiện ngay tại đây. Trước đây đây là <div> chết: em biết
                 "có 1 bài cần làm lại" mà không biết bài nào, sai gì, và phải

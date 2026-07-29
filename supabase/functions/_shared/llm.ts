@@ -244,7 +244,13 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     const bg = (async () => {
       // Ghi cache TRƯỚC audit: đây là thứ lượt sau đọc để khỏi tiêu token lại.
       if (ck && text) {
-        await supa.from("llm_cache").upsert({ key: ck, response: { text, model } }, { onConflict: "key" });
+        // PHẢI ghi lại created_at: upsert không kèm cột này thì ON CONFLICT giữ
+        // nguyên mốc cũ ⇒ dòng quá 30 ngày là trượt TTL vĩnh viễn (mỗi lượt sau
+        // đều trả tiền token rồi ghi đè mà vẫn không bao giờ đọc lại được).
+        await supa.from("llm_cache").upsert(
+          { key: ck, response: { text, model }, created_at: new Date().toISOString() },
+          { onConflict: "key" },
+        );
       }
       await supa.from("audit_logs").insert({
         tenant_id: args.tenantId ?? null,

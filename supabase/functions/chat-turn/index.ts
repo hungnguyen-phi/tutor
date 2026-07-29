@@ -21,7 +21,7 @@ import { awardXp, type XpEventInput } from "../_shared/xp.ts";
 import { recomputeNodeState } from "../_shared/mastery-state.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit, type QOverride } from "../_shared/overrides.ts";
 import { detectSafety, recordSafetyFlag, supportiveReply } from "../_shared/safety.ts";
-import { isHelpRequest, isJunkOpenAnswer, plausibleOpenAnswer, safeMisconception } from "../_shared/intent.ts";
+import { contentWordCount, isHelpRequest, isJunkOpenAnswer, plausibleOpenAnswer, safeMisconception } from "../_shared/intent.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { orderedOptions } from "../_shared/options.ts";
 
@@ -459,17 +459,24 @@ Deno.serve(async (req: Request) => {
         // Lời XIN GỢI Ý không phải là "đã thể hiện suy nghĩ" — nếu tính thì bấm
         // một nhát nút 💡 là mở được cổng (chuỗi mồi sẵn có chữ "bước" đủ để
         // thinkingContentSignal cho 0,6). Xin giúp vẫn được đáp, chỉ không mua bậc.
-        const signal = isHelpRequest(reasoning) ? 0 : thinkingContentSignal(reasoning);
+        // Lời ngắn cụt KHÔNG mua được bậc: `thinkingContentSignal` cho 0,6 chỉ
+        // vì thấy chữ "vì"/"bước", nên gõ "1 vì" bốn lượt là moi được đáy. Đòi
+        // tối thiểu 5 từ có nghĩa mới tính là "đã trình bày suy nghĩ".
+        const signal =
+          isHelpRequest(reasoning) || contentWordCount(reasoning) < 5
+            ? Math.min(0.3, thinkingContentSignal(reasoning))
+            : thinkingContentSignal(reasoning);
         const [attRes, { data: ladders }] = await Promise.all([
-          supa.from("attempts").select("id, thinking_quality", { count: "exact" })
+          supa.from("attempts").select("id, attempt_no, thinking_quality")
             .eq("session_id", s.id).eq("question_id", q.id)
-            .order("attempt_no", { ascending: false }).limit(1),
+            .order("attempt_no", { ascending: true }),
           supa.from("socratic_ladders").select("rungs, bottom_out, cong_no_luc")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .eq("status", "active").limit(1),
         ]);
-        const attempts = attRes.count ?? 0;
-        const lastAtt = (attRes.data ?? [])[0] as { id: string; thinking_quality: number | null } | undefined;
+        const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
+        const attempts = attRows.length;
+        const lastAtt = attRows[attRows.length - 1];
         const best = Math.max(signal, Number(lastAtt?.thinking_quality ?? 0));
         if (lastAtt && best > Number(lastAtt.thinking_quality ?? 0)) {
           await supa.from("attempts").update({ thinking_quality: best }).eq("id", lastAtt.id);
@@ -479,10 +486,20 @@ Deno.serve(async (req: Request) => {
         const totalRungs = rungs.length > 0 ? rungs.length : 4;
         const minAtt =
           (ladder?.cong_no_luc as { so_lan_thu_toi_thieu?: number } | null)?.so_lan_thu_toi_thieu ?? 2;
+        // CÙNG MỘT THƯỚC với nhánh chấm (đếm bậc ĐÃ TRAO), nếu không thì hai
+        // đường dùng hai con trỏ khác nhau và thang nhảy loạn: em kể một câu ở
+        // lượt 6 là được ngay bậc sâu nhất trong khi nhánh chấm mới ở bậc 2.
+        const rungTurnsR = attRows.slice(Math.max(0, minAtt - 1));
+        const engagedR = rungTurnsR.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
+        // Lượt này vừa trình bày đủ → tính luôn, nhưng KHÔNG vượt bậc cuối.
+        const currentRungR = Math.min(
+          engagedR + (best >= 0.5 && attempts >= minAtt ? 0 : 0),
+          Math.max(0, totalRungs - 1),
+        );
         const gate = evaluateEffortGate({
           attempts,
           thinkingQuality: best,
-          currentRung: Math.max(0, attempts - minAtt),
+          currentRung: currentRungR,
           totalRungs,
           minAttempts: minAtt,
         });
@@ -498,8 +515,7 @@ Deno.serve(async (req: Request) => {
         } else {
           // advance_rung / bottom_out: QUA ĐƯỜNG ĐỐI THOẠI không bao giờ mở đáy
           // (B4 — chặn moi đáp án bằng cách chat nhiều); sâu nhất chỉ tới bậc cuối.
-          const idx = Math.min(Math.max(0, attempts - minAtt), rungs.length - 1);
-          const rung = rungs[idx];
+          const rung = rungs[Math.min(currentRungR, Math.max(0, rungs.length - 1))];
           const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
           msg = rungText
             ? `${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
@@ -560,8 +576,6 @@ Deno.serve(async (req: Request) => {
       // Suy nghĩ CAO NHẤT em từng thể hiện ở câu này (gồm cả lượt "kể cách nghĩ"
       // — B0 ghi đè lên lần thử gần nhất). Cổng nhớ, không bắt kể lại từ đầu.
       const prevThinking = prevRows.reduce((m, r) => Math.max(m, Number(r.thinking_quality ?? 0)), 0);
-      // Số lần em THỰC SỰ trình bày suy nghĩ = số bậc thang đã "mua" được.
-      const engaged = prevRows.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
 
       // Dạng tương tác (dung_sai/sap_xep/noi_cot) chấm CẤU TRÚC tất định (so dãy /
       // tập cặp / đúng-sai) — CAS không phủ được. Còn lại (mcq/điền/toán) dùng CAS:
@@ -770,9 +784,13 @@ Deno.serve(async (req: Request) => {
       const thinkingQuality = Math.min(1, Math.max(thinkSignal, prevThinking, stuckLong ? 0.5 : 0));
       // Chốt chặn cuối: quá nhiều lần mà vẫn kẹt thì mở đáy/vá nền, đừng để em
       // quay vòng vô tận trên cùng một câu.
-      // KHÔNG kẹp `engaged` xuống totalRungs-1: `currentRung` là SỐ BẬC ĐÃ TRAO,
-      // phải chạm được totalRungs thì đáy mới mở (xem evaluateEffortGate). Kẹp
-      // lại là bậc cuối vĩnh viễn không tới lượt.
+      // `currentRung` = SỐ BẬC ĐÃ TRAO trước lượt này (0 ⇒ sắp trao bậc 1).
+      // Bậc CHỈ được trao ở những lượt SAU trần tối thiểu, nên đếm từ đó —
+      // đếm cả các lượt đầu là bậc 1 (siêu nhận thức) bị nhảy cóc, thành ra em
+      // nào chịu khó kể lại càng bị bỏ qua đúng bậc quan trọng nhất.
+      // KHÔNG kẹp xuống totalRungs-1: phải chạm được totalRungs thì đáy mới mở.
+      const rungTurns = prevRows.slice(Math.max(0, minAttempts - 1));
+      const engaged = rungTurns.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
       const exhausted = attemptNo >= minAttempts + totalRungs + 2;
       const currentRung = exhausted ? totalRungs : engaged;
 
@@ -944,7 +962,11 @@ Deno.serve(async (req: Request) => {
       // ── A1 · CỔNG Ý ĐỊNH cho bài GÕ (không kèm tệp): "ok" / lời xin trợ giúp
       // KHÔNG phải bài nộp — trả lời ngay, không gọi AI, KHÔNG tạo dòng hàng đợi
       // cho giáo viên. (Lỗi 8: sáu bản nộp "ok" thật đã lọt vào hàng đợi 28/07.)
-      if (workText && !filePath && (isJunkOpenAnswer(workText, String(q.dap_an ?? "")) || isHelpRequest(workText))) {
+      // CHỈ chặn theo "rác", KHÔNG chặn theo isHelpRequest: ở nhánh này chặn
+      // nhầm là MẤT LUÔN bài làm của em (không có dòng hàng đợi cho giáo viên).
+      // Lời cầu cứu thật vốn ngắn nên đã rơi vào lưới "rác" rồi.
+      const refW = [q.dap_an, q.loi_giai].filter(Boolean).join(" ");
+      if (workText && !filePath && isJunkOpenAnswer(workText, refW)) {
         const msg = isHelpRequest(workText)
           ? "Bạn đang cần gợi ý đúng không? Ô này là chỗ NỘP bài làm hoàn chỉnh — muốn được dẫn từng bước, bạn quay về câu hỏi và bấm xin gợi ý nhé."
           : "Bài nộp cần lời giải đầy đủ của bạn (viết thành câu, có lập luận). Bạn viết rõ rồi nộp lại nhé — lượt này mình chưa ghi nhận.";

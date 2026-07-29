@@ -10,17 +10,19 @@ function gate({ attempts, thinkingQuality, currentRung }) {
 }
 function run(label, signalOf) {
   const rows = [];
-  let prevThinking = 0, engaged = 0;
+  let prevThinking = 0; const hist = [];
   for (let attemptNo = 1; attemptNo <= 9; attemptNo++) {
     const thinkSignal = signalOf(attemptNo);
     const stuckLong = attemptNo >= minAttempts + 4;
     const tq = Math.min(1, Math.max(thinkSignal, prevThinking, stuckLong ? 0.5 : 0));
     const exhausted = attemptNo >= minAttempts + totalRungs + 2;
+    const rungTurns = hist.slice(Math.max(0, minAttempts - 1));
+    const engaged = rungTurns.filter((v) => v >= threshold).length;
     const currentRung = exhausted ? totalRungs : engaged;
     const g = gate({ attempts: attemptNo, thinkingQuality: tq, currentRung });
     rows.push(`${attemptNo}:${g}${g === "advance_rung" ? `(bậc ${currentRung + 1})` : ""}`);
     prevThinking = Math.max(prevThinking, thinkSignal);
-    if (thinkSignal >= threshold) engaged++;
+    hist.push(thinkSignal);
   }
   console.log(label.padEnd(34), rows.join("  "));
 }

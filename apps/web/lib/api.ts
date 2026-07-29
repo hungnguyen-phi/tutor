@@ -28,9 +28,10 @@ export class ApiError extends Error {
  * learning-path, nên cú cold start rơi đúng vào lúc em chờ màn lộ trình.
  *
  * Gọi lúc MỞ MÀN ĐĂNG NHẬP: trong lúc em gõ email/mật khẩu (vài giây) thì các
- * function đã tỉnh. Request cố ý KHÔNG kèm token → server trả 401 ngay, chưa
- * chạm DB, nhưng isolate đã dựng xong. Mọi lỗi nuốt im lặng: đây là tối ưu,
- * không phải chức năng.
+ * function đã tỉnh. Request kèm khoá ANON (đủ qua cổng verify_jwt của Supabase,
+ * thiếu là bị chặn 401 TRƯỚC khi isolate kịp dựng — tức không hâm nóng được gì);
+ * hàm bên trong vẫn trả "unauthorized" vì không có phiên học sinh, nhưng isolate
+ * đã sống. Mọi lỗi nuốt im lặng: đây là tối ưu, không phải chức năng.
  */
 export function warmUpFunctions(fns: string[] = ["learning-path", "diagnose", "review-queue"]): void {
   if (typeof fetch === "undefined") return;

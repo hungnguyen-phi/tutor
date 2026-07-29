@@ -4,9 +4,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { createRequire } from "module"; const require2 = createRequire(import.meta.url); const ts = require2("../node_modules/typescript/lib/typescript.js");
+import { createRequire } from "module"; const require2 = createRequire(import.meta.url); const ts = require2(path.join(path.dirname(fileURLToPath(import.meta.url)), "../node_modules/typescript/lib/typescript.js"));
 
-const ROOT = "../supabase/functions/_shared";
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "../supabase/functions/_shared");
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "build");
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -131,10 +131,14 @@ t("VẪN help: 'gợi ý giúp em với'", intent.isHelpRequest("gợi ý giúp 
 t("VẪN help: 'em không biết làm'", intent.isHelpRequest("em không biết làm"), true);
 
 // P1-6 · safeMisconception phải gọt được cả câu tiếng Việt có dấu.
-t("gọt 'Đáp án là B vì…'",
-  intent.safeMisconception("Đáp án là B vì học sinh nhầm dấu."), "");
-t("gọt 'Kết quả là 5 nên nhầm.'",
-  intent.safeMisconception("Kết quả là 5 nên nhầm."), "");
+// QUYẾT ĐỊNH sau audit vòng 2: KHÔNG cắt theo cụm "đáp án là…" nữa. Đã tra
+// 3.641 dòng dữ liệu sống — 0 dòng lộ đáp án, trong khi cắt tới dấu chấm gần
+// nhất thì băm nát chẩn đoán thật ("Nhầm dấu: kết quả là số dương chứ không âm"
+// → "Nhầm dấu"). Chỉ giữ bộ gọt NHÃN đầu câu — đó mới là lỗ thật.
+t("giữ nguyên nội dung có chữ 'đáp án là' (không băm)",
+  intent.safeMisconception("Đáp án là B vì học sinh nhầm dấu."), "Đáp án là B vì học sinh nhầm dấu");
+t("KHÔNG băm chẩn đoán có chữ 'kết quả là'",
+  intent.safeMisconception("Nhầm dấu: kết quả là số dương chứ không âm"), "Nhầm dấu: kết quả là số dương chứ không âm");
 
 // P1-9 · Chuẩn hoá số kiểu Việt KHÔNG được phá toạ độ / tập hợp.
 t("số 1,2 KHÔNG được tính đúng cho điểm (1,2)",
@@ -145,6 +149,25 @@ t("toạ độ (1,2) vs (1,2) vẫn đúng",
   (await cas.checkAnswer("(1,2)", "(1,2)")).correct, true);
 t("thập phân thường vẫn chạy: 0,2 vs 0.2",
   (await cas.checkAnswer("0,2", "0.2")).correct, true);
+
+
+// ══ HỒI QUY vòng audit 2 — khoá lại các regression do chính bản vá vòng 1 ══
+
+// Guard chuẩn hoá số KHÔNG được chặn nhầm hàm/biểu thức có ngoặc.
+t("sqrt(0,25) vs 0.5 → ĐÚNG", (await cas.checkAnswer("sqrt(0,25)", "0.5")).correct, true);
+t("2*(1,5+2) vs 7 → ĐÚNG", (await cas.checkAnswer("2*(1,5+2)", "7")).correct, true);
+t("(1,5; 2) vs (1.5; 2) → ĐÚNG", (await cas.checkAnswer("(1,5; 2)", "(1.5; 2)")).correct, true);
+t("{0,5} vs {0.5} → ĐÚNG", (await cas.checkAnswer("{0,5}", "{0.5}")).correct, true);
+
+// isHelpRequest không được nuốt đáp án ngắn hợp lệ (TA10, trắc nghiệm).
+t("KHÔNG help: 'cách làm 2' (đáp án)", intent.isHelpRequest("cách làm 2"), false);
+t("KHÔNG help: 'hint' (từ vựng TA10)", intent.isHelpRequest("hint"), false);
+t("KHÔNG help: 'hướng dẫn' (điền khuyết)", intent.isHelpRequest("hướng dẫn"), false);
+t("KHÔNG help: 'help me' (đáp án TA10)", intent.isHelpRequest("help me"), false);
+t("KHÔNG help: 'Cách làm của bạn Nam sai'",
+  intent.isHelpRequest("Cách làm của bạn Nam sai"), false);
+t("VẪN help: 'làm sao để giải câu này'", intent.isHelpRequest("làm sao để giải câu này"), true);
+t("VẪN help: 'em chưa biết'", intent.isHelpRequest("em chưa biết"), true);
 
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);

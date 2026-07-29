@@ -34,10 +34,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f9fd" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1428" },
-  ],
+  // MỘT màu duy nhất: app chỉ còn giao diện sáng (29/07). Giữ mục dark thì trên
+  // điện thoại để hệ điều hành ở chế độ tối, thanh địa chỉ navy đè lên trang sáng.
+  themeColor: "#f6f9fd",
   viewportFit: "cover", // để env(safe-area-inset-*) có giá trị thật trên iPhone
   // Android/Chrome: bàn phím mở thì layout viewport CO LẠI → 100dvh thu theo,
   // .lfoot (fixed đáy) nổi trên bàn phím thay vì bị che. iOS bỏ qua key này —

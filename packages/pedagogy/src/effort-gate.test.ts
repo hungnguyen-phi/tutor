@@ -53,11 +53,25 @@ describe("effort gate — inviolable hard minimum", () => {
     expect(d.action).toBe("advance_rung");
   });
 
-  it("bottoms out only past the rung ceiling with effort satisfied", () => {
+  // Bậc CUỐI vẫn phải được trao trước khi mở đáy — đây chính là bậc "giàn giáo
+  // mạnh", chỗ chia nhỏ quy trình ngay trước khi hé hướng giải. Luật cũ
+  // (`currentRung + 1 >= totalRungs`) nhảy cóc mất nó.
+  it("still serves the LAST rung before bottoming out", () => {
     const d = evaluateEffortGate({
       attempts: 3,
       thinkingQuality: 0.9,
-      currentRung: 3,
+      currentRung: 3, // đã trao 3 bậc → bậc thứ 4 vẫn còn
+      totalRungs: 4,
+      rule,
+    });
+    expect(d.action).toBe("advance_rung");
+  });
+
+  it("bottoms out only after every rung has been given", () => {
+    const d = evaluateEffortGate({
+      attempts: 3,
+      thinkingQuality: 0.9,
+      currentRung: 4, // đã trao đủ 4 bậc
       totalRungs: 4,
       rule,
     });

@@ -29,16 +29,23 @@ function normVi(s: string): string {
 
 /** CỤM xin trợ giúp — bắt theo CỤM TỪ (không bắt từ đơn, kẻo "không" của câu
  *  Đúng/Sai bị hiểu nhầm). Chỉ áp khi câu KHÔNG khớp nguyên văn một phương án. */
+// ⚠️ ĐÃ GỌT (audit vòng 2): bỏ "cach lam", "huong dan", "hint", "help me" —
+// chúng là ĐÁP ÁN hợp lệ của nhiều câu (Tiếng Anh 10 hỏi nghĩa từ "hint";
+// Toán hỏi "cách làm nào đúng?" → em gõ "cách làm 2"). Chỉ giữ những cụm mà
+// KHÔNG câu nào có thể lấy làm đáp án.
 const HELP_PATTERNS: RegExp[] = [
-  /goi y/, // "gợi ý"
-  /giup (em|minh|toi|tui|voi)/,
-  /(khong|chua|chua the|k|ko|hong) (biet|hieu|lam duoc|ro)/,
-  /huong dan/,
-  /lam (sao|the nao|nhu the nao)/,
-  /cach lam/,
-  /chi (em|minh|tui|toi) (cach|voi)/,
-  /bo tay|chiu thua|em chiu|minh chiu/,
-  /\bhint\b|\bhelp me\b|how to (do|solve)/,
+  /goi y (giup|cho|di|voi)|cho (em|minh|tui|toi) goi y|xin goi y/,
+  /giup (em|minh|toi|tui) (voi|di|cai|phat)/,
+  /(khong|chua|k|ko|hong) (biet lam|biet giai|hieu de|lam duoc)/,
+  /(em|minh|tui|toi) (chua|khong) biet/,
+  /chi (em|minh|tui|toi) (cach|voi|di)/,
+  // "làm sao/làm thế nào" GIỮ LẠI được: ba chốt chặn ở isHelpRequest (câu dài,
+  // có phép tính, có từ nối lập luận) đã loại hết ca "…và làm sao cho vế trái
+  // bằng vế phải nên suy ra x = 2". Còn "cách làm" thì KHÔNG giữ nổi — "Cách
+  // làm của bạn Nam sai" là bài làm thật, ngắn, không toán, không từ nối.
+  /lam (sao|the nao|nhu the nao) (de|ma|day|vay|ha|a)?/,
+  /bo tay|chiu thua|em chiu|minh chiu|be tac/,
+  /how do i (do|solve)|i (dont|don t|do not) know how/,
   /dap an la gi|cho (em|minh) dap an/,
 ];
 
@@ -130,12 +137,15 @@ export function plausibleOpenAnswer(text: string, reference = ""): boolean {
 export function safeMisconception(s: string | null | undefined): string {
   let t = String(s ?? "").trim();
   if (!t) return "";
-  // Bỏ nhãn phán quyết đứng ĐẦU: "(b) SAI vì…", "b) Đúng —", "① SAI:"…
+  // CHỈ bỏ nhãn phán quyết đứng ĐẦU: "(b) SAI vì…", "b) Đúng —", "① SAI:".
+  // Đây là lỗ THẬT: với câu Đúng/Sai chùm ý thì riêng cái nhãn đã là một phần
+  // đáp án. Phần còn lại của câu là chẩn đoán, phải giữ NGUYÊN VĂN.
   t = t.replace(/^[(\[]?\s*[a-dA-D①-⑨]\s*[)\].:]?\s*(ĐÚNG|SAI|Đúng|Sai|đúng|sai)(?![\p{L}])\s*[-–—:,]?\s*/u, "");
-  // Bỏ câu tự khai đáp án nếu lỡ có. KHÔNG dùng \b: `\w` không tính chữ có dấu
-  // nên `\bđáp` và `là\b` không bao giờ khớp — phải neo bằng ranh giới KHÔNG-chữ.
-  t = t.replace(/(^|[^\p{L}])(đáp án (đúng )?là|kết quả là|phải chọn)[^.;]*/giu, "$1");
-  // Dọn dấu câu mồ côi còn lại sau khi cắt ("Đáp án là B vì…." → "." → "").
+  // KHÔNG cắt theo cụm "kết quả là…/phải chọn…": đã tra 3.641 dòng dữ liệu sống,
+  // 0 dòng lộ đáp án, trong khi cắt tới dấu chấm gần nhất thì băm nát chẩn đoán
+  // thật ("Nhầm dấu: kết quả là số dương chứ không âm" → "Nhầm dấu"). Bộ cắt đó
+  // chỉ có hại trên kho hiện tại; nếu sau này có nội dung lộ đáp án thì chặn ở
+  // khâu DUYỆT nội dung, không phải cắt mù ở đây.
   t = t.replace(/^[\s.,;:—–-]+|[\s.,;:—–-]+$/gu, "");
   return t.slice(0, 220);
 }

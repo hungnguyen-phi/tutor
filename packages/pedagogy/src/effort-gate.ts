@@ -60,10 +60,14 @@ export function evaluateEffortGate(input: EffortGateInput): EffortGateDecision {
   }
 
   // Both gates passed → escalate help, but only bottom-out past the rung ceiling.
-  if (input.currentRung + 1 >= input.totalRungs) {
+  // `currentRung` = SỐ BẬC ĐÃ TRAO. Sửa 29/07 (giữ đồng bộ với bản Deno ở
+  // supabase/functions/_shared/pedagogy.ts): điều kiện cũ `currentRung + 1 >=`
+  // khiến bậc CUỐI (giàn giáo mạnh) không bao giờ được trao — thang 4 bậc chỉ
+  // dùng 3, đúng bậc quan trọng nhất trước khi hé hướng giải thì bỏ qua.
+  if (input.currentRung >= input.totalRungs) {
     return {
       action: "bottom_out",
-      reason: "Vượt trần số bậc Socratic → mở đáy (hé đáp án kèm lý do).",
+      reason: "Đã đi hết thang Socratic → mở đáy (hé đáp án kèm lý do).",
     };
   }
 
