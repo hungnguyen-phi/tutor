@@ -26,6 +26,7 @@ import Hud from "./Hud";
 import SubjectPicker, { type SubjectInfo } from "./SubjectPicker";
 import PresenceStrip from "./PresenceStrip";
 import LearningPath, { type PathNode } from "./LearningPath";
+import CameraShot from "./CameraShot";
 import Lion from "./Lion";
 import LessonView from "./LessonView";
 import KhoBauView from "./KhoBauView";
@@ -1752,6 +1753,8 @@ export default function TutorApp() {
                 className="sr-only"
                 type="file"
                 accept="image/*,.pdf,.doc,.docx,.txt"
+                /* Điện thoại: mở thẳng camera sau thay vì thư viện ảnh. */
+                capture="environment"
                 disabled={busy}
                 onChange={(e) => {
                   setWorkFile(e.target.files?.[0] ?? null);
@@ -1765,6 +1768,12 @@ export default function TutorApp() {
                   : "Đính kèm ảnh bài làm (nếu có hình vẽ)"}
               </span>
             </label>
+            {/* Đ1 — chụp thẳng bằng camera máy. Ô "chọn tệp" chỉ tiện trên điện
+                thoại; em học bằng máy của trường thì không có đường nào đưa bài
+                giấy lên. Cùng khối với kho báu (CameraShot). */}
+            {!workFile && (
+              <CameraShot disabled={busy} onCapture={setWorkFile} onError={setError} label="Chụp bài bằng camera" />
+            )}
             {workFile && (
               <button type="button" className="submit-unattach" onClick={() => setWorkFile(null)} aria-label="Gỡ tệp">
                 <X aria-hidden strokeWidth={2.5} />

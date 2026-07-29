@@ -8,6 +8,9 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 
 // "redo": bài đã nộp nhưng giáo viên chấm CHƯA ĐẠT — bàn chân đỏ, mời làm lại.
+
+/** Lời nhận xét trên bài ĐÃ ĐẠT chỉ hiện trong 14 ngày — xem là đủ, không tồn kho. */
+const PRAISE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 type NodeState = "mastered" | "stale" | "current" | "available" | "locked" | "redo";
 
 interface NodeRow {
@@ -128,7 +131,7 @@ Deno.serve(async (req: Request) => {
         .from("submissions")
         // teacher_note đi kèm: học sinh phải THẤY lời nhắn của thầy cô khi bị
         // trả bài (lỗi 2 — "làm lại mà không biết mình sai gì").
-        .select("node_key, question_id, status, teacher_note, created_at")
+        .select("node_key, question_id, status, teacher_note, teacher_file_path, created_at, graded_at")
         .eq("student_id", ctx.userId)
         .eq("kind", "upload")
         .order("created_at", { ascending: true }),
@@ -216,20 +219,38 @@ Deno.serve(async (req: Request) => {
     // lên lần bị trả trước đó → dấu đỏ tự tắt, khỏi cần sửa dữ liệu cũ.
     const latestByQuestion = new Map<
       string,
-      { node_key: string | null; status: string; teacher_note: string | null }
+      {
+        node_key: string | null;
+        status: string;
+        teacher_note: string | null;
+        teacher_file_path: string | null;
+        graded_at: string | null;
+      }
     >();
     for (const s of subRes.data ?? []) {
       latestByQuestion.set(String(s.question_id), {
         node_key: s.node_key,
         status: String(s.status),
         teacher_note: (s as { teacher_note?: string | null }).teacher_note ?? null,
+        teacher_file_path: (s as { teacher_file_path?: string | null }).teacher_file_path ?? null,
+        graded_at: (s as { graded_at?: string | null }).graded_at ?? null,
       });
     }
     const redo = new Set<string>();
     const redoCount = new Map<string, number>();
     // CÂU NÀO bị trả + LỜI NHẮN của giáo viên — trước đây server biết mà vứt đi,
     // học sinh chỉ được báo "1 bài cần làm lại" rồi tự mò (lỗi 2, cả ba lớp).
-    const redoQuestions = new Map<string, Array<{ questionId: string; note: string | null }>>();
+    const redoQuestions = new Map<
+      string,
+      Array<{ questionId: string; note: string | null; noteFilePath: string | null }>
+    >();
+    // Bài ĐÃ ĐẠT nhưng thầy cô có lời nhắn / tệp chữa: cũng phải tới tay em.
+    // Không gom ở đây thì cô đính bài chữa rồi bấm "Đạt" là tệp rơi vào hư
+    // không — cô tưởng đã gửi, em không bao giờ thấy.
+    const praise = new Map<
+      string,
+      Array<{ questionId: string; note: string | null; noteFilePath: string | null }>
+    >();
     const pendingCount = new Map<string, number>();
     for (const [qid, s] of latestByQuestion) {
       if (!s.node_key || !byKey.has(s.node_key)) continue;
@@ -237,8 +258,19 @@ Deno.serve(async (req: Request) => {
         redo.add(s.node_key);
         redoCount.set(s.node_key, (redoCount.get(s.node_key) ?? 0) + 1);
         const arr = redoQuestions.get(s.node_key) ?? [];
-        arr.push({ questionId: qid, note: s.teacher_note });
+        arr.push({ questionId: qid, note: s.teacher_note, noteFilePath: s.teacher_file_path });
         redoQuestions.set(s.node_key, arr);
+      }
+      // Chỉ nhận xét MỚI (14 ngày). Không chặn thì thẻ khen phình mãi: học hết
+      // học kỳ là em mở lộ trình ra thấy một trang lời nhắn từ tháng trước, còn
+      // lời nhắn hôm nay nằm tít dưới đáy.
+      if (
+        s.status === "passed" && (s.teacher_note || s.teacher_file_path) &&
+        s.graded_at && Date.now() - Date.parse(s.graded_at) < PRAISE_WINDOW_MS
+      ) {
+        const arr = praise.get(s.node_key) ?? [];
+        arr.push({ questionId: qid, note: s.teacher_note, noteFilePath: s.teacher_file_path });
+        praise.set(s.node_key, arr);
       }
       // Bài đang CHỜ THẦY CÔ CHẤM: node phải nói ra điều đó ("⏳ chờ chấm"),
       // không thì học sinh nộp xong thấy lộ trình đứng im, tưởng app nuốt bài.
@@ -274,7 +306,22 @@ Deno.serve(async (req: Request) => {
       /** Số bài nộp đang chờ giáo viên chấm trên node này. */
       pending?: number;
       /** Bài bị TRẢ VỀ: đúng những câu cần làm lại + lời nhắn của thầy cô. */
-      redo?: Array<{ questionId: string; note: string | null }>;
+      redo?: Array<{
+        questionId: string;
+        note: string | null;
+        /** Đường dẫn thô — CHỈ dùng nội bộ, bị xoá trước khi trả về client. */
+        noteFilePath?: string | null;
+        noteFileUrl?: string | null;
+        noteFileName?: string | null;
+      }>;
+      /** Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm / gửi bài chữa. */
+      praise?: Array<{
+        questionId: string;
+        note: string | null;
+        noteFilePath?: string | null;
+        noteFileUrl?: string | null;
+        noteFileName?: string | null;
+      }>;
       /** Kho báu học liệu cạnh bài: có mức nào, em đã đi tới mức mấy. */
       khoBau?: { mucCoSan: number[]; mucDaQua: number };
     }
@@ -310,6 +357,7 @@ Deno.serve(async (req: Request) => {
       }
       if (pendingCount.has(n.node_key)) item.pending = pendingCount.get(n.node_key)!;
       if (redoQuestions.has(n.node_key)) item.redo = redoQuestions.get(n.node_key)!;
+      if (praise.has(n.node_key)) item.praise = praise.get(n.node_key)!;
       // Kho báu đứng CẠNH bài chứ không nằm trong bài, nhưng KHOÁ THEO BÀI:
       // client tự chặn khi state = locked (bài chưa mở thì kho báu cũng chưa),
       // giữ đúng lối đi tuần tự của mastery learning.
@@ -341,6 +389,27 @@ Deno.serve(async (req: Request) => {
       for (let i = curIdx + 1; i < items.length; i++) {
         if (items[i]!.state === "available") items[i]!.state = "locked";
       }
+    }
+
+    // Đ2 — TỆP CHỮA BÀI của thầy cô: ký link 1 giờ ngay tại đây. Bucket private
+    // không có policy đọc nên đường dẫn thô vô dụng với client; ký ở đây thì
+    // học sinh mở được tờ giấy đã chữa mà KHÔNG cần thêm một endpoint nữa.
+    // Chỉ ký cho bài BỊ TRẢ (hiếm) nên không phải chi phí của mọi lượt gọi.
+    const toSign = items.flatMap((it) =>
+      [...(it.redo ?? []), ...(it.praise ?? [])].filter((r) => r.noteFilePath),
+    );
+    if (toSign.length) {
+      await Promise.all(toSign.map(async (r) => {
+        const path = String(r.noteFilePath);
+        const { data: signed } = await supa.storage.from("learning-assets").createSignedUrl(path, 3600);
+        // Ký hụt (tệp bị xoá tay chẳng hạn) thì bỏ qua — mất tệp đính kèm còn
+        // hơn hỏng cả lộ trình. Lời nhắn CHỮ vẫn tới tay em.
+        if (signed?.signedUrl) {
+          r.noteFileUrl = signed.signedUrl;
+          r.noteFileName = path.split("/").pop() ?? "tep-chua-bai";
+        }
+        delete r.noteFilePath; // đường dẫn thô không cần lộ ra client
+      }));
     }
 
     return json({ version_id: version.id, version_label: version.label, nodes: items });

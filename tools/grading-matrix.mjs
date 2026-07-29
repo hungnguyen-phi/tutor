@@ -40,23 +40,23 @@ const t = (name, got, want) => {
 };
 
 // ── LỖI 16: số kiểu Việt ────────────────────────────────────────────────────
-t("0,2 vs 0.2", (await cas.checkAnswer("0,2", "0.2")).correct, true);
-t("-0,2 vs -0.2", (await cas.checkAnswer("-0,2", "-0.2")).correct, true);
-t("1.234,5 vs 1234.5", (await cas.checkAnswer("1.234,5", "1234.5")).correct, true);
-t("0,2 vs 0.3 → SAI", (await cas.checkAnswer("0,2", "0.3")).correct, false);
-t("2356 vs 2356", (await cas.checkAnswer("2356", "2356")).correct, true);
-t("đáp án VN-phẩy trong bank: 0.2 vs 0,2", (await cas.checkAnswer("0.2", "0,2")).correct, true);
+t("0,2 vs 0.2", ((await cas.checkAnswer("0,2", "0.2"))).correct, true);
+t("-0,2 vs -0.2", ((await cas.checkAnswer("-0,2", "-0.2"))).correct, true);
+t("1.234,5 vs 1234.5", ((await cas.checkAnswer("1.234,5", "1234.5"))).correct, true);
+t("0,2 vs 0.3 → SAI", ((await cas.checkAnswer("0,2", "0.3"))).correct, false);
+t("2356 vs 2356", ((await cas.checkAnswer("2356", "2356"))).correct, true);
+t("đáp án VN-phẩy trong bank: 0.2 vs 0,2", ((await cas.checkAnswer("0.2", "0,2"))).correct, true);
 
 // ── Hồi quy CAS cũ không được vỡ ────────────────────────────────────────────
-t("tuple (1,2) vs (1;2)", (await cas.checkAnswer("(1,2)", "(1;2)")).correct, true);
-t("set x=1;x=3 vs {1;3}", (await cas.checkAnswer("x=1; x=3", "{1;3}")).correct, true);
-t("set 1,3 vs {1;3}", (await cas.checkAnswer("1,3", "{1;3}")).correct, true);
-t("MCQ chữ B vs B", (await cas.checkAnswer("B", "B")).correct, true);
-t("MCQ b vs B (hoa/thường)", (await cas.checkAnswer("b", "B")).correct, true);
-t("chuỗi rỗng → SAI", (await cas.checkAnswer("", "42")).correct, false);
-t("1/2 vs 0.5", (await cas.checkAnswer("1/2", "0.5")).correct, true);
-t("1/2 vs 0,5 (bank phẩy)", (await cas.checkAnswer("1/2", "0,5")).correct, true);
-t("số bất kỳ 7 vs 42 → SAI", (await cas.checkAnswer("7", "42")).correct, false);
+t("tuple (1,2) vs (1;2)", ((await cas.checkAnswer("(1,2)", "(1;2)"))).correct, true);
+t("set x=1;x=3 vs {1;3}", ((await cas.checkAnswer("x=1; x=3", "{1;3}"))).correct, true);
+t("set 1,3 vs {1;3}", ((await cas.checkAnswer("1,3", "{1;3}"))).correct, true);
+t("MCQ chữ B vs B", ((await cas.checkAnswer("B", "B"))).correct, true);
+t("MCQ b vs B (hoa/thường)", ((await cas.checkAnswer("b", "B"))).correct, true);
+t("chuỗi rỗng → SAI", ((await cas.checkAnswer("", "42"))).correct, false);
+t("1/2 vs 0.5", ((await cas.checkAnswer("1/2", "0.5"))).correct, true);
+t("1/2 vs 0,5 (bank phẩy)", ((await cas.checkAnswer("1/2", "0,5"))).correct, true);
+t("số bất kỳ 7 vs 42 → SAI", ((await cas.checkAnswer("7", "42"))).correct, false);
 
 // ── LỖI 9/11/14: cổng ý định ────────────────────────────────────────────────
 t("help: 'gợi ý giúp em với'", intent.isHelpRequest("gợi ý giúp em với"), true);
@@ -91,6 +91,20 @@ t("sap_xep sai thứ tự → SAI", inter.gradeInteractive("sap_xep", "a c b", "
 t("checklist a:dung,b:sai đủ", inter.gradeInteractive("mcq", "a:dung,b:sai", "a) Đ; b) S")?.correct, true);
 t("checklist thiếu ý → SAI", inter.gradeInteractive("mcq", "a:dung", "a) Đ; b) S")?.correct ?? false, false);
 
+
+// ── LỖI "phải nhập ĐÚNG đáp án": ký tự SÁCH IN vs BÀN PHÍM (rà 29/07) ───────
+// Đo trên 1.868 câu đang hoạt động: 1.199 câu có x₀ · 592 có √ · 584 có ≥≤
+// · 297 có A² · 203 có dấu trừ − (U+2212) · 39 có ≠. Em KHÔNG gõ được chúng.
+t("cas: -f(x) vs −f(x)", (await cas.checkAnswer("-f(x)", "−f(x)")).correct, true);
+t("cas: f(x0) vs f(x₀)", (await cas.checkAnswer("f(x0)", "f(x₀)")).correct, true);
+t("cas: a^2+b^2 vs a²+b²", (await cas.checkAnswer("a^2 + b^2", "a² + b²")).correct, true);
+t("cas: >= vs ≥", (await cas.checkAnswer(">=", "≥")).correct, true);
+t("cas: KHÔNG nhận x0 cho x₁", (await cas.checkAnswer("x0", "x₁")).correct, false);
+t("cas: KHÔNG nhận >= cho ≤", (await cas.checkAnswer(">=", "≤")).correct, false);
+t("blanks: 2 ô ký tự sách in",
+  inter.gradeInteractive("dien_dap_an", "x0;;-3", "x₀; −3")?.correct, true);
+t("blanks: sách in mà sai vẫn SAI",
+  inter.gradeInteractive("dien_dap_an", "x0;;3", "x₀; −3")?.correct, false);
 
 // ── Chốt chặn quan niệm sai (bảo mật: không lộ đáp án) ─────────────────────
 t("giữ nguyên quan niệm sai bình thường",
@@ -142,22 +156,22 @@ t("KHÔNG băm chẩn đoán có chữ 'kết quả là'",
 
 // P1-9 · Chuẩn hoá số kiểu Việt KHÔNG được phá toạ độ / tập hợp.
 t("số 1,2 KHÔNG được tính đúng cho điểm (1,2)",
-  (await cas.checkAnswer("1,2", "(1,2)")).correct, false);
+  ((await cas.checkAnswer("1,2", "(1,2)"))).correct, false);
 t("số 1.3 KHÔNG được tính đúng cho tập {1,3}",
-  (await cas.checkAnswer("1.3", "{1,3}")).correct, false);
+  ((await cas.checkAnswer("1.3", "{1,3}"))).correct, false);
 t("toạ độ (1,2) vs (1,2) vẫn đúng",
-  (await cas.checkAnswer("(1,2)", "(1,2)")).correct, true);
+  ((await cas.checkAnswer("(1,2)", "(1,2)"))).correct, true);
 t("thập phân thường vẫn chạy: 0,2 vs 0.2",
-  (await cas.checkAnswer("0,2", "0.2")).correct, true);
+  ((await cas.checkAnswer("0,2", "0.2"))).correct, true);
 
 
 // ══ HỒI QUY vòng audit 2 — khoá lại các regression do chính bản vá vòng 1 ══
 
 // Guard chuẩn hoá số KHÔNG được chặn nhầm hàm/biểu thức có ngoặc.
-t("sqrt(0,25) vs 0.5 → ĐÚNG", (await cas.checkAnswer("sqrt(0,25)", "0.5")).correct, true);
-t("2*(1,5+2) vs 7 → ĐÚNG", (await cas.checkAnswer("2*(1,5+2)", "7")).correct, true);
-t("(1,5; 2) vs (1.5; 2) → ĐÚNG", (await cas.checkAnswer("(1,5; 2)", "(1.5; 2)")).correct, true);
-t("{0,5} vs {0.5} → ĐÚNG", (await cas.checkAnswer("{0,5}", "{0.5}")).correct, true);
+t("sqrt(0,25) vs 0.5 → ĐÚNG", ((await cas.checkAnswer("sqrt(0,25)", "0.5"))).correct, true);
+t("2*(1,5+2) vs 7 → ĐÚNG", ((await cas.checkAnswer("2*(1,5+2)", "7"))).correct, true);
+t("(1,5; 2) vs (1.5; 2) → ĐÚNG", ((await cas.checkAnswer("(1,5; 2)", "(1.5; 2)"))).correct, true);
+t("{0,5} vs {0.5} → ĐÚNG", ((await cas.checkAnswer("{0,5}", "{0.5}"))).correct, true);
 
 // isHelpRequest không được nuốt đáp án ngắn hợp lệ (TA10, trắc nghiệm).
 t("KHÔNG help: 'cách làm 2' (đáp án)", intent.isHelpRequest("cách làm 2"), false);

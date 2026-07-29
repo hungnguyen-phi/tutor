@@ -14,9 +14,10 @@
  * nút "Chụp bằng webcam" lo phần laptop qua getUserMedia.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { Camera, Check, Paperclip, Send, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Paperclip, Send, X } from "lucide-react";
 import { diagnose, submitWork, uploadWork, type Subject } from "../lib/api";
+import CameraShot from "./CameraShot";
 import Lion from "./Lion";
 
 export default function NopBaiBox({
@@ -34,58 +35,6 @@ export default function NopBaiBox({
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-
-  // ── Webcam (Đ1) ──────────────────────────────────────────────────────────
-  const [camOn, setCamOn] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  const stopCam = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setCamOn(false);
-  };
-  // Tắt camera khi rời màn — đèn webcam còn sáng sau khi đóng là mất tin cậy.
-  useEffect(() => () => stopCam(), []);
-
-  async function openCam() {
-    setErr(null);
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 } },
-        audio: false,
-      });
-      streamRef.current = s;
-      setCamOn(true);
-      // videoRef chỉ tồn tại sau khi camOn → gán ở lượt render kế.
-      queueMicrotask(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          void videoRef.current.play().catch(() => {});
-        }
-      });
-    } catch {
-      setErr("Không mở được camera — bạn kiểm tra quyền camera của trình duyệt, hoặc chọn ảnh có sẵn nhé.");
-    }
-  }
-
-  function snap() {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return;
-    const c = document.createElement("canvas");
-    c.width = v.videoWidth;
-    c.height = v.videoHeight;
-    c.getContext("2d")?.drawImage(v, 0, 0);
-    c.toBlob(
-      (b) => {
-        if (!b) return;
-        setFile(new File([b], `bai-lam-${Date.now()}.jpg`, { type: "image/jpeg" }));
-        stopCam();
-      },
-      "image/jpeg",
-      0.9,
-    );
-  }
 
   async function send() {
     if (busy || (!text.trim() && !file)) return;
@@ -164,22 +113,6 @@ export default function NopBaiBox({
         spellCheck={false}
       />
 
-      {camOn && (
-        <div className="nb-cam">
-          {/* muted + playsInline: iOS/Safari chặn autoplay video có tiếng. */}
-          <video ref={videoRef} className="nb-cam-view" muted playsInline />
-          <div className="nb-cam-row">
-            <button type="button" className="btn btn-check" onClick={snap}>
-              <Camera aria-hidden strokeWidth={2.25} />
-              Chụp
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={stopCam}>
-              Huỷ
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="nb-row">
         <label className="submit-attach">
           <input
@@ -196,12 +129,7 @@ export default function NopBaiBox({
           <Paperclip aria-hidden strokeWidth={2.25} />
           <span>{file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : "Chọn ảnh / tệp bài làm"}</span>
         </label>
-        {!camOn && !file && (
-          <button type="button" className="btn btn-ghost nb-cam-btn" disabled={busy} onClick={openCam}>
-            <Camera aria-hidden strokeWidth={2.25} />
-            Chụp bằng webcam
-          </button>
-        )}
+        {!file && <CameraShot disabled={busy} onCapture={setFile} onError={setErr} />}
         {file && (
           <button type="button" className="submit-unattach" onClick={() => setFile(null)} aria-label="Gỡ tệp">
             <X aria-hidden strokeWidth={2.5} />

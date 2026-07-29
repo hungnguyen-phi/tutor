@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Paperclip, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 import { MathText } from "../lib/mathrender";
@@ -30,7 +30,20 @@ export type PathNode = {
   /** Số bài nộp đang chờ giáo viên chấm. */
   pending?: number;
   /** Bài bị TRẢ VỀ: đúng câu cần làm lại + lời nhắn của thầy cô. */
-  redo?: Array<{ questionId: string; note: string | null }>;
+  redo?: Array<{
+    questionId: string;
+    note: string | null;
+    /** Tệp chữa bài thầy cô gửi kèm — link ký sẵn, hạn 1 giờ (Đ2). */
+    noteFileUrl?: string | null;
+    noteFileName?: string | null;
+  }>;
+  /** Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm / gửi bài chữa. */
+  praise?: Array<{
+    questionId: string;
+    note: string | null;
+    noteFileUrl?: string | null;
+    noteFileName?: string | null;
+  }>;
   /** Kho báu học liệu đứng CẠNH bài — mức nào có, em đã đi tới mức mấy. */
   khoBau?: { mucCoSan: number[]; mucDaQua: number };
 };
@@ -169,6 +182,10 @@ export default function LearningPath({
   const chapterDesc = restParts.join(" · ");
   const hasLocked = nodes.some((n) => n.state === "locked");
   const redoNodes = nodes.filter((n) => n.state === "redo");
+  // Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm — khen hay chữa nốt chỗ chưa gọn. Không
+  // hiện ở đây thì lời nhắn của cô chỉ tới được em khi bài BỊ TRẢ, nghĩa là em
+  // chỉ nghe thầy cô lúc làm sai.
+  const praiseNodes = nodes.filter((n) => (n.praise?.length ?? 0) > 0);
 
   // ── CHẶNG theo chương (điểm dừng — chủ dự án: "lướt trong vô vọng…
   // phải có điểm dừng"). Node mang `chapter` → gom thành chặng: chặng đang
@@ -400,7 +417,9 @@ export default function LearningPath({
                 và các câu còn lại không có lối vào. */}
             <div className="redo-list">
               {redoNodes.flatMap((n) => {
-                const items = n.redo?.length ? n.redo : [{ questionId: undefined, note: null }];
+                const items = n.redo?.length
+                  ? n.redo
+                  : [{ questionId: undefined, note: null, noteFileUrl: null, noteFileName: null }];
                 return items.map((r, i) => (
                   <div key={`${n.key}:${r.questionId ?? i}`} className="redo-item">
                     <button
@@ -421,9 +440,61 @@ export default function LearningPath({
                         <b>Thầy cô nhắn:</b> <MathText>{r.note}</MathText>
                       </p>
                     )}
+                    {/* Đ2 — bài cô chữa tay. Bài hình học thì một tờ giấy đã
+                        chữa nói được nhiều hơn cả đoạn nhắn. Link ký hạn 1 giờ:
+                        mở ngay thì được, gửi cho bạn khác thì hết hạn. */}
+                    {r.noteFileUrl && (
+                      <a
+                        className="redo-file"
+                        href={r.noteFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={r.noteFileName ?? undefined}
+                      >
+                        <Paperclip aria-hidden strokeWidth={2.25} />
+                        Xem bài thầy cô chữa
+                      </a>
+                    )}
                   </div>
                 ));
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm. Cùng khuôn với thẻ "cần làm lại"
+          nhưng tông xanh — đây là tin vui, không phải bài bị trả. */}
+      {praiseNodes.length > 0 && (
+        <div className="praise-notice" role="status">
+          <Award aria-hidden strokeWidth={2.25} />
+          <div className="redo-body">
+            <b>Thầy cô nhận xét bài em đã đạt</b>
+            <div className="redo-list">
+              {praiseNodes.flatMap((n) =>
+                (n.praise ?? []).map((r, i) => (
+                  <div key={`${n.key}:${r.questionId ?? i}`} className="redo-item">
+                    <span className="praise-node">{n.label}</span>
+                    {r.note && (
+                      <p className="redo-note">
+                        <b>Thầy cô nhắn:</b> <MathText>{r.note}</MathText>
+                      </p>
+                    )}
+                    {r.noteFileUrl && (
+                      <a
+                        className="redo-file"
+                        href={r.noteFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={r.noteFileName ?? undefined}
+                      >
+                        <Paperclip aria-hidden strokeWidth={2.25} />
+                        Xem bài thầy cô chữa
+                      </a>
+                    )}
+                  </div>
+                )),
+              )}
             </div>
           </div>
         </div>

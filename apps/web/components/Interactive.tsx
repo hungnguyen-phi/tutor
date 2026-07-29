@@ -27,6 +27,9 @@ export interface ChecklistParsed {
 export interface BlanksParsed {
   segments: string[];
   count: number;
+  /** Gợi ý KIỂU nội dung từng ô ("một số", "biểu thức"…) — server suy từ hình
+   *  dạng đáp án, KHÔNG chứa giá trị đáp án. Bản cũ chưa có nên để tuỳ chọn. */
+  hints?: string[];
 }
 
 // ── sap_xep: danh sách xếp lại được ──────────────────────────────────────────
@@ -231,7 +234,15 @@ export function BlanksQuestion({
                 className="iq-blank"
                 value={vals[i] ?? ""}
                 disabled={disabled}
-                aria-label={`Chỗ trống thứ ${i + 1}`}
+                /* Gợi ý KIỂU nội dung ("một số", "biểu thức"…) do server suy từ
+                   hình dạng đáp án — không lộ giá trị. Em biết phải gõ kiểu gì
+                   thay vì đoán (Người thử 3, 29/07). */
+                placeholder={parsed.hints?.[i] ?? ""}
+                aria-label={
+                  parsed.hints?.[i]
+                    ? `Chỗ trống thứ ${i + 1} — điền ${parsed.hints[i]}`
+                    : `Chỗ trống thứ ${i + 1}`
+                }
                 onChange={(e) =>
                   setVals((v) => { const a = [...v]; a[i] = e.target.value; return a; })
                 }

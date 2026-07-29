@@ -15,6 +15,7 @@ import {
   Info,
   LayoutGrid,
   LogOut,
+  Paperclip,
   Printer,
   ScanSearch,
   ShieldAlert,
@@ -29,6 +30,7 @@ import {
   gradingList,
   gradingFile,
   gradingGrade,
+  uploadTeacherNoteFile,
   type GradingItem,
   recomputeQuestionStats,
   createOverride,
@@ -719,6 +721,8 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Đ2 — tệp chữa bài đính kèm lời nhắn, theo từng bài đang chấm.
+  const [noteFiles, setNoteFiles] = useState<Record<string, File>>({});
 
   async function load(s = status) {
     setItems(null);
@@ -748,7 +752,12 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
   async function grade(id: string, pass: boolean) {
     setBusyId(id);
     try {
-      await gradingGrade(id, pass, notes[id] ?? "");
+      // Tải tệp TRƯỚC rồi mới chấm: chấm xong mà tệp hỏng là lời nhắn đã gửi đi
+      // thiếu phần chữa bài, không rút lại được.
+      const f = noteFiles[id];
+      const path = f ? await uploadTeacherNoteFile(f) : undefined;
+      await gradingGrade(id, pass, notes[id] ?? "", path);
+      setNoteFiles((m) => { const n = { ...m }; delete n[id]; return n; });
       await load(status);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -835,6 +844,31 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
                       Em sẽ thấy: <MathText>{notes[it.id] ?? ""}</MathText>
                     </p>
                   )}
+                  {/* Đ2 — gửi kèm TỆP CHỮA BÀI (người thử 2 đề nghị). Bài có hình
+                      vẽ thì lời nhắn chữ không nói hết; cô chụp tờ giấy đã chữa
+                      tay là em nhìn phát hiểu ngay. */}
+                  <label className="grade-note-attach">
+                    <input
+                      className="sr-only"
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        setNoteFiles((m) => {
+                          const n = { ...m };
+                          if (f) n[it.id] = f;
+                          else delete n[it.id];
+                          return n;
+                        });
+                      }}
+                    />
+                    <Paperclip aria-hidden strokeWidth={2.25} />
+                    <span>
+                      {noteFiles[it.id]
+                        ? `${noteFiles[it.id]!.name} (${Math.round(noteFiles[it.id]!.size / 1024)} KB)`
+                        : "Đính bài chữa gửi em (không bắt buộc)"}
+                    </span>
+                  </label>
                   <button
                     className="btn"
                     disabled={busyId === it.id}

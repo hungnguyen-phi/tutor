@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
       const { data: subs, error } = pick.length
         ? await supa
           .from("submissions")
-          .select("id, student_id, question_id, node_key, text_content, feedback, file_path, mime, size_bytes, status, teacher_note, created_at, graded_at")
+          .select("id, student_id, question_id, node_key, text_content, feedback, file_path, mime, size_bytes, status, teacher_note, teacher_file_path, created_at, graded_at")
           .in("id", pick)
           .order("created_at", { ascending: true })
         : { data: [], error: null };
@@ -96,6 +96,7 @@ Deno.serve(async (req: Request) => {
           sizeKb: r.size_bytes ? Math.round(r.size_bytes / 1024) : null,
           status: r.status,
           note: r.teacher_note,
+          noteFileName: r.teacher_file_path ? String(r.teacher_file_path).split("/").pop() : null,
           submittedAt: r.created_at,
           gradedAt: r.graded_at,
         })),
@@ -132,11 +133,24 @@ Deno.serve(async (req: Request) => {
       // treo của cùng (học sinh, câu). Chỉ đóng bản mới nhất thì bản cũ vẫn
       // 'pending' → lượt mở hàng đợi sau nó nổi lên MỘT MÌNH như bài chưa chấm,
       // giáo viên chấm lại bài đã lỗi thời và ĐÈ ngược phán quyết vừa đưa.
+      // Đ2 — tệp chữa bài thầy cô gửi kèm. Nhận ĐƯỜNG DẪN đã tải lên (client
+      // ghi thẳng vào bucket qua policy `teacher_note_file_insert`), nhưng vẫn
+      // kiểm lại prefix ở đây: thân yêu cầu là dữ liệu người gửi, tin thẳng thì
+      // gõ tay `bai-lam/<trường khác>/…` là đính bài của học sinh trường khác
+      // vào lời nhắn rồi ký link cho cả lớp xem.
+      const rawNoteFile = String(body.noteFilePath ?? "").trim();
+      const notePrefix = `cham-bai/${ctx.tenantId}/${ctx.userId}/`;
+      const noteFilePath = rawNoteFile && rawNoteFile.startsWith(notePrefix) ? rawNoteFile : null;
+      if (rawNoteFile && !noteFilePath) return json({ error: "bad file path" }, 400, req);
+
       const { error: upErr } = await supa
         .from("submissions")
         .update({
           status: pass ? "passed" : "redo",
           teacher_note: String(body.note ?? "").slice(0, 500) || null,
+          // Không đính tệp lượt này thì XOÁ tệp cũ: chấm lại mà tờ giấy chữa của
+          // lượt trước còn treo là học sinh đọc nhầm bản chữa đã lỗi thời.
+          teacher_file_path: noteFilePath,
           graded_by: ctx.userId,
           graded_at: new Date().toISOString(),
         })

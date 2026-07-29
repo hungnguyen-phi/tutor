@@ -13,7 +13,7 @@
  * đúng. Trả về null cho dạng không thuộc nhóm này → nơi gọi rơi về CAS.
  */
 
-import { normalizeVnNumbers } from "./cas.ts";
+import { normalizeVnNumbers, normalizeTypography } from "./cas.ts";
 
 export type InteractiveDang = "dung_sai" | "sap_xep" | "noi_cot";
 
@@ -166,8 +166,16 @@ export function gradeInteractive(
     if (want.length >= 2 && got.length === want.length) {
       // Từng ô so chữ đã chuẩn hoá; số kiểu Việt cũng phải khớp số kiểu máy —
       // "0,2" điền vào ô có đáp án "0.2" là ĐÚNG (lỗi 16, 29/07).
-      const eq = (a: string, b: string) =>
-        norm(a) === norm(b) || norm(normalizeVnNumbers(a)) === norm(normalizeVnNumbers(b));
+      // Ký tự sách in (x₀, √, ≥, dấu trừ U+2212) học sinh KHÔNG gõ được →
+      // quy đổi về bàn phím trước khi so, y như checkAnswer (rà 29/07).
+      const eq = (a: string, b: string) => {
+        const ta = normalizeTypography(a);
+        const tb = normalizeTypography(b);
+        return (
+          norm(ta) === norm(tb) ||
+          norm(normalizeVnNumbers(ta)) === norm(normalizeVnNumbers(tb))
+        );
+      };
       const ok = want.every((w, i) => eq(got[i] ?? "", w));
       return { correct: ok, method: "blanks" };
     }
@@ -200,8 +208,11 @@ export interface InteractiveStruct {
   order?: { mode: "label" | "word"; intro: string; items: OrderItem[] };
   match?: { intro: string; left: OrderItem[]; right: OrderItem[] };
   checklist?: { intro: string; items: OrderItem[] };
-  /** Điền khuyết NHIỀU ô: câu bị cắt tại mỗi chỗ trống → n+1 mảnh chữ, n ô nhập. */
-  blanks?: { segments: string[]; count: number };
+  /** Điền khuyết NHIỀU ô: câu bị cắt tại mỗi chỗ trống → n+1 mảnh chữ, n ô nhập.
+   *  `hints` = gợi ý KIỂU nội dung cho từng ô ("số", "biểu thức", "một cụm từ"…),
+   *  suy từ HÌNH DẠNG đáp án — KHÔNG lộ đáp án. Người thử 3 đề nghị: em cần biết
+   *  trước phải gõ kiểu gì thay vì đoán. */
+  blanks?: { segments: string[]; count: number; hints: string[] };
 }
 
 /** Chỗ trống trong đề: từ 2 gạch dưới liền trở lên ("___", "______"). */
@@ -212,7 +223,22 @@ const BLANK_RE = /_{2,}/g;
  *  MỘT ô nhập nên học sinh phải gõ nguyên chuỗi "độ lệch chuẩn; số trung bình"
  *  mới đúng — và các ô trống sau vẫn trơ "______" trên màn hình.
  *  Trả null nếu số ô ≠ số phần đáp án (không suy diễn bừa). */
-function parseBlanks(noiDung: string, dapAn: string): { segments: string[]; count: number } | null {
+/** Gợi ý KIỂU nội dung của một ô, suy từ đáp án. CHỈ nói DẠNG, tuyệt đối không
+ *  nói giá trị — "12" và "97" đều ra "một số", nên không moi được đáp án. */
+function blankHint(part: string): string {
+  const p = (part ?? "").trim();
+  if (!p) return "…";
+  if (/^[-+]?[\d.,]+$/.test(p)) return "một số";
+  if (/^[<>=≥≤≠!]+$/.test(p)) return "dấu so sánh";
+  if (/[=+\-*/^√()]|[₀-₉]|[²³]/.test(p)) return "biểu thức";
+  const words = p.split(/\s+/).filter(Boolean).length;
+  return words > 1 ? `một cụm ${words} từ` : "một từ";
+}
+
+function parseBlanks(
+  noiDung: string,
+  dapAn: string,
+): { segments: string[]; count: number; hints: string[] } | null {
   const text = noiDung ?? "";
   const holes = text.match(BLANK_RE);
   if (!holes || holes.length < 2) return null;
@@ -220,7 +246,7 @@ function parseBlanks(noiDung: string, dapAn: string): { segments: string[]; coun
   if (parts.length !== holes.length) return null;
   const segments = text.split(BLANK_RE);
   if (segments.length !== holes.length + 1) return null;
-  return { segments, count: holes.length };
+  return { segments, count: holes.length, hints: parts.map(blankHint) };
 }
 
 /* Đáp án học sinh cho dạng nhiều ô: client nối các ô bằng ";;" — người gõ tay

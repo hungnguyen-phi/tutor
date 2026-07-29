@@ -128,8 +128,9 @@ export interface InteractiveStruct {
   match?: { intro: string; left: InteractiveItem[]; right: InteractiveItem[] };
   /** "Đúng/Sai chùm ý": nhiều ý con a/b/c/d, mỗi ý tick Đúng hoặc Sai. */
   checklist?: { intro: string; items: InteractiveItem[] };
-  /** Điền khuyết NHIỀU ô: n+1 mảnh chữ xen n ô nhập. */
-  blanks?: { segments: string[]; count: number };
+  /** Điền khuyết NHIỀU ô: n+1 mảnh chữ xen n ô nhập. `hints` gợi ý KIỂU nội dung
+   *  từng ô ("một số", "biểu thức"…) — suy từ hình dạng đáp án, không lộ giá trị. */
+  blanks?: { segments: string[]; count: number; hints?: string[] };
 }
 
 export interface DiagnoseQuestion {
@@ -387,6 +388,8 @@ export interface GradingItem {
   sizeKb: number | null;
   status: "pending" | "passed" | "redo";
   note: string | null;
+  /** Tên tệp chữa bài thầy cô đã đính ở lượt chấm trước (Đ2). */
+  noteFileName: string | null;
   submittedAt: string;
   gradedAt: string | null;
 }
@@ -396,13 +399,36 @@ export const gradingList = (status: "pending" | "passed" | "redo" = "pending") =
 export const gradingFile = (id: string) =>
   callFn<{ url: string }>("teacher-grading", { action: "file", id });
 /** `pass=false` → bài về trạng thái "làm lại": lộ trình học sinh hiện bàn chân đỏ. */
-export const gradingGrade = (id: string, pass: boolean, note: string) =>
+export const gradingGrade = (id: string, pass: boolean, note: string, noteFilePath?: string) =>
   callFn<{ ok: boolean; status: string; mastered?: boolean }>("teacher-grading", {
     action: "grade",
     id,
     pass,
     note,
+    ...(noteFilePath ? { noteFilePath } : {}),
   });
+
+/**
+ * Đ2 — tải TỆP CHỮA BÀI của thầy cô lên bucket private, trả đường dẫn để gửi
+ * kèm lời nhắn. Cùng lối với `uploadWork` của học sinh, khác prefix để policy
+ * `teacher_note_file_insert` bắt đúng: cham-bai/<trường>/<giáo viên>/…
+ */
+export async function uploadTeacherNoteFile(file: File): Promise<string> {
+  const { data: sess } = await supabase.auth.getSession();
+  const uid = sess.session?.user?.id;
+  if (!uid) throw new Error("Bạn cần đăng nhập lại.");
+  const { data: prof } = await supabase.from("profiles").select("tenant_id").eq("id", uid).single();
+  const tenant = prof?.tenant_id;
+  if (!tenant) throw new Error("Không đọc được thông tin trường.");
+  const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-60);
+  const path = `cham-bai/${tenant}/${uid}/${Date.now()}-${safe}`;
+  const { error } = await supabase.storage.from("learning-assets").upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(`Tải tệp lên không được: ${error.message}`);
+  return path;
+}
 
 // ── Lớp phủ nội dung GV (H5) — ẩn/sửa câu + lý do; áp lúc phục vụ ─────────────
 export interface ContentOverride {
@@ -498,7 +524,20 @@ export interface LearningPathNode {
   /** Số bài nộp đang chờ giáo viên chấm trên node này. */
   pending?: number;
   /** Bài bị TRẢ VỀ: đúng những câu cần làm lại + lời nhắn của thầy cô. */
-  redo?: Array<{ questionId: string; note: string | null }>;
+  redo?: Array<{
+    questionId: string;
+    note: string | null;
+    /** Tệp chữa bài thầy cô gửi kèm — link đã ký, hạn 1 giờ (Đ2). */
+    noteFileUrl?: string | null;
+    noteFileName?: string | null;
+  }>;
+  /** Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm / gửi bài chữa. */
+  praise?: Array<{
+    questionId: string;
+    note: string | null;
+    noteFileUrl?: string | null;
+    noteFileName?: string | null;
+  }>;
   /** Kho báu học liệu đứng CẠNH bài (không nằm trong bài). */
   khoBau?: { mucCoSan: number[]; mucDaQua: number };
 }

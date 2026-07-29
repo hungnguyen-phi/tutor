@@ -1749,6 +1749,31 @@ ul {
   height: 24px;
   color: var(--err);
 }
+/* Cùng khuôn thẻ "cần làm lại" nhưng tông XANH LÁ: bài đã đạt, thầy cô chỉ
+   nhắn thêm. Dùng chung .redo-body/.redo-list/.redo-item/.redo-note bên dưới. */
+.praise-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--ok-tint);
+  border: 2px solid color-mix(in oklab, var(--ok) 40%, var(--ok-tint));
+  border-radius: var(--r);
+  color: var(--ink);
+}
+.praise-notice svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  color: var(--ok);
+}
+.praise-node {
+  font-weight: 800;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
 .redo-body {
   display: flex;
   flex-direction: column;
@@ -1797,6 +1822,23 @@ ul {
   color: var(--ink-2);
 }
 .redo-note b { color: var(--ink); }
+/* Đ2 — bài thầy cô chữa tay gửi kèm lời nhắn. Đứng dưới lời nhắn, dạng liên kết
+   có gạch chân để đọc rõ là "mở ra xem", không lẫn với nút "Làm lại". */
+.redo-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 2px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.redo-file:hover { color: var(--navy-press); }
+.redo-file svg { width: 16px; height: 16px; }
 
 .node[data-state="current"] {
   --paw-face: var(--navy);
@@ -6192,6 +6234,25 @@ html[data-motion="reduce"] .spin {
   line-height: 1.5;
   color: var(--ink-2);
 }
+/* Ô đính bài chữa — cùng khuôn với ô đính tệp của học sinh (.submit-attach),
+   chiếm trọn dòng để tên tệp dài không đẩy hai nút Đạt / Cho làm lại xuống. */
+.grade-note-attach {
+  display: inline-flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm, 10px);
+  background: var(--surface);
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.grade-note-attach:hover { border-color: var(--navy); color: var(--ink); }
+.grade-note-attach svg { flex: 0 0 auto; width: 16px; height: 16px; }
+.grade-note-attach span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .grade-redo {
   color: var(--err);
   border-color: color-mix(in oklab, var(--err) 40%, transparent);
@@ -6717,8 +6778,15 @@ html[data-motion="reduce"] .think-dots::after {
    khung đứt nét to đùng như bản trước (bản đó dạy sai thứ tự ưu tiên). */
 .submit-row {
   display: flex;
+  flex-wrap: wrap; /* nút camera xuống dòng thay vì bóp nhãn tệp trên máy hẹp */
   align-items: center;
   gap: 8px;
+}
+/* Khung ngắm webcam chiếm TRỌN dòng — nằm cạnh nhãn tệp thì bé như con tem,
+   em không canh nổi tờ giấy vào khung. */
+.submit-row > .nb-cam,
+.nb-row > .nb-cam {
+  flex: 1 0 100%;
 }
 .submit-attach {
   display: inline-flex;
@@ -7030,8 +7098,8 @@ html[data-motion="reduce"] .think-dots::after {
   color: var(--ink);
 }
 .iq-blank {
-  width: 10ch;
-  min-width: 10ch;
+  width: 11ch;
+  min-width: 11ch;
   margin: 0 4px;
   padding: 2px 8px;
   border: 0;
@@ -7043,6 +7111,15 @@ html[data-motion="reduce"] .think-dots::after {
   font-size: 1rem;
   font-weight: 700;
   text-align: center;
+}
+/* Gợi ý KIỂU nội dung: chữ nhỏ, nhạt, nghiêng — thấy rõ đây là LỜI NHẮC chứ
+   không phải chữ em đã gõ. Mất ngay khi em bắt đầu điền. */
+.iq-blank::placeholder {
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--muted); /* 4.6:1 trên nền trắng — đọc được, không đánh lừa */
+  opacity: 1; /* Firefox tự làm mờ thêm */
 }
 .iq-blank:focus {
   outline: none;

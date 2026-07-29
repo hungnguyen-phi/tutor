@@ -39,13 +39,62 @@ export function normalizeVnNumbers(s: string): string {
   );
 }
 
+/**
+ * KÝ TỰ SÁCH IN → KÝ TỰ BÀN PHÍM (rà 29/07 — gốc thật của "phải nhập đúng đáp án").
+ *
+ * Ngân hàng soạn theo lối sách giáo khoa nên đáp án đầy ký tự học sinh KHÔNG
+ * GÕ ĐƯỢC. Đo trên 1.868 câu đang hoạt động:
+ *   chỉ số dưới x₀ : 1.199 câu · căn √ : 592 · ≥≤ : 584
+ *   chỉ số trên A² :   297 câu · dấu trừ − (U+2212, khác hyphen) : 203 · ≠ : 39
+ * Đáp án lưu "−f(x)" mà em gõ "-f(x)" là chấm SAI — dù em hiểu bài hoàn toàn.
+ *
+ * Đây thuần là phép quy đổi BÀN PHÍM, không nới lỏng ngữ nghĩa: "≠" và "!=" là
+ * một; "x₀" và "x0" là một. Không có đường nào biến đáp án SAI thành đúng.
+ */
+export function normalizeTypography(s: string): string {
+  let t = s ?? "";
+  // Dấu trừ/gạch kiểu sách in → hyphen bàn phím.
+  t = t.replace(/[−‒–—―]/g, "-");
+  // Chỉ số DƯỚI ₀₁₂… → chữ số thường (x₀ → x0).
+  t = t.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080));
+  // Chỉ số TRÊN ⁰¹²³… → ^n (A² → A^2). ¹²³ nằm ở khối Latin-1, không liên tiếp.
+  const SUP: Record<string, string> = {
+    "¹": "1", "²": "2", "³": "3",
+    "⁰": "0", "⁴": "4", "⁵": "5", "⁶": "6",
+    "⁷": "7", "⁸": "8", "⁹": "9",
+  };
+  t = t.replace(/[¹²³⁰⁴-⁹]+/g, (m) =>
+    "^" + [...m].map((c) => SUP[c] ?? "").join(""),
+  );
+  // Toán tử so sánh.
+  t = t.replace(/≠/g, "!=").replace(/≥/g, ">=").replace(/≤/g, "<=");
+  // Nhân/chia kiểu sách in.
+  t = t.replace(/[×·∙⋅∗]/g, "*").replace(/÷/g, "/");
+  // Căn √ → sqrt(...). Sách in viết "√3", "2√3", "√(x+1)"; mathjs KHÔNG đọc nổi
+  // ký tự √ nên câu nào có căn mà kèm biến là chấm hụt. Chỉ đổi khi thấy rõ phần
+  // dưới căn (số, một tên, hoặc một cặp ngoặc không lồng) — không rõ thì để yên
+  // cho bộ tính số tự lo, thà bỏ sót còn hơn hiểu sai phạm vi căn.
+  t = t.replace(
+    /√\s*(\([^()]*\)|\d+(?:[.,]\d+)?|[A-Za-z][A-Za-z0-9]*)/g,
+    (_m, g: string) => (g.startsWith("(") ? `sqrt${g}` : `sqrt(${g})`),
+  );
+  // Nháy cong → nháy thẳng (đáp án chữ hay dính khi copy từ Word).
+  t = t.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  // Khoảng trắng lạ (nbsp, thin space) → khoảng trắng thường.
+  t = t.replace(/[    ]/g, " ");
+  return t;
+}
+
 export async function checkAnswer(
   student: string,
   correct: string,
   params?: Record<string, number | string>,
 ): Promise<CasResult> {
-  const a = applyParams((student ?? "").trim(), params);
-  const b = applyParams((correct ?? "").trim(), params);
+  // Quy đổi ký tự sách-in → bàn phím NGAY TỪ ĐẦU, cho CẢ hai vế. Đây không phải
+  // "nới lỏng": "x₀" với "x0" vốn là một, chỉ khác cách gõ. Không quy đổi thì
+  // 1.199 câu có chỉ số dưới là học sinh không tài nào gõ trúng.
+  const a = normalizeTypography(applyParams((student ?? "").trim(), params));
+  const b = normalizeTypography(applyParams((correct ?? "").trim(), params));
   if (!a) return { correct: false, method: "text", detail: "empty" };
   const first = await gradeExpr(a, b);
   if (first.correct) return first;
@@ -272,6 +321,16 @@ export function evalNumeric(expr: string): number | null {
   const toks: NumTok[] = [];
   let i = 0;
   const prev = () => toks[toks.length - 1];
+  // PHÉP NHÂN NGẦM — "2√3", "2(3+1)", "2pi" là lối viết sách giáo khoa. Trước đây
+  // chuỗi thiếu dấu * làm ngăn xếp thừa toán hạng → trả null → rơi xuống so chữ →
+  // chấm SAI. Chèn "*" khi một TOÁN HẠNG mới đứng ngay sau một toán hạng đã đóng
+  // (số hoặc ngoặc đóng). Ưu tiên của "*" ngầm bằng "*" thường: "1/2√3" đọc là
+  // (1/2)·√3 = √3/2 — đúng nghĩa sách giáo khoa.
+  const pushAtom = (tk: NumTok) => {
+    const p = prev();
+    if (p && (p.t === "num" || p.t === "rp")) toks.push({ t: "op", v: "*" });
+    toks.push(tk);
+  };
   while (i < src.length) {
     const c = src[i]!;
     if (c === " " || c === "\t") { i++; continue; }
@@ -285,7 +344,7 @@ export function evalNumeric(expr: string): number | null {
       if (dots > 1) return null;
       const num = Number(src.slice(i, j));
       if (!isFinite(num)) return null;
-      toks.push({ t: "num", v: num });
+      pushAtom({ t: "num", v: num });
       i = j;
       continue;
     }
@@ -293,13 +352,13 @@ export function evalNumeric(expr: string): number | null {
       let j = i;
       while (j < src.length && /[a-zA-Z]/.test(src[j]!)) j++;
       const id = src.slice(i, j).toLowerCase();
-      if (id in CONSTS) { toks.push({ t: "num", v: CONSTS[id]! }); i = j; continue; }
-      if (id in FNS) { toks.push({ t: "fn", v: id }); i = j; continue; }
+      if (id in CONSTS) { pushAtom({ t: "num", v: CONSTS[id]! }); i = j; continue; }
+      if (id in FNS) { pushAtom({ t: "fn", v: id }); i = j; continue; }
       return null; // định danh lạ → coi là biến → symbolic
     }
-    if (c === "(") { toks.push({ t: "lp" }); i++; continue; }
+    if (c === "(") { pushAtom({ t: "lp" }); i++; continue; }
     if (c === ")") { toks.push({ t: "rp" }); i++; continue; }
-    if (c === "√") { toks.push({ t: "fn", v: "sqrt" }); i++; continue; }
+    if (c === "√") { pushAtom({ t: "fn", v: "sqrt" }); i++; continue; }
     if (c === "·" || c === "×" || c === "∗") { toks.push({ t: "op", v: "*" }); i++; continue; }
     if (c === "+" || c === "-" || c === "*" || c === "/" || c === "^") {
       const p = prev();

@@ -66,3 +66,45 @@ describe("số thập phân kiểu Việt", () => {
     expect(ok("0,2", "0.3")).toBe(false);
   });
 });
+
+// ── Ký tự SÁCH IN vs BÀN PHÍM (rà 29/07: 1.199 câu có x₀, 592 có √, 584 có ≥) ──
+// Học sinh KHÔNG gõ được các ký tự này; không quy đổi là chấm sai người hiểu bài.
+describe("ký tự sách in → bàn phím", () => {
+  it("dấu trừ U+2212 ≡ hyphen bàn phím", () => {
+    expect(ok("-f(x)", "−f(x)")).toBe(true);
+    expect(ok("-b/(2a)", "−b/(2a)")).toBe(true);
+  });
+  it("chỉ số dưới x₀ ≡ x0", () => {
+    expect(ok("f(x0)", "f(x₀)")).toBe(true);
+    expect(ok("2h-x0", "2h−x₀")).toBe(true);
+  });
+  it("chỉ số trên A² ≡ A^2", () => {
+    expect(ok("a^2 + b^2", "a² + b²")).toBe(true);
+  });
+  it("≠ ≥ ≤ ≡ != >= <=", () => {
+    expect(ok("!=", "≠")).toBe(true);
+    expect(ok(">=", "≥")).toBe(true);
+    expect(ok("<=", "≤")).toBe(true);
+  });
+  it("KHÔNG biến đáp án sai thành đúng", () => {
+    expect(ok("x0", "x₁")).toBe(false);
+    expect(ok(">=", "≤")).toBe(false);
+    expect(ok("f(x)", "−f(x)")).toBe(false);
+  });
+});
+
+// Căn √ có BIẾN — chỉ nhánh mathjs mới chấm được (bộ tính số bỏ qua vì có chữ).
+describe("căn √ sách in", () => {
+  it("√ với biến ≡ sqrt()", () => {
+    expect(ok("2*sqrt(x)", "2√x")).toBe(true);
+    expect(ok("sqrt(x+1)", "√(x+1)")).toBe(true);
+    expect(ok("sqrt(x)/2", "√x/2")).toBe(true);
+  });
+  it("√ với số", () => {
+    expect(ok("2*sqrt(3)", "2√3")).toBe(true);
+  });
+  it("KHÔNG nhận căn khác", () => {
+    expect(ok("2*sqrt(x)", "3√x")).toBe(false);
+    expect(ok("sqrt(x)", "√y")).toBe(false);
+  });
+});
