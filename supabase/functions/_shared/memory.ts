@@ -31,6 +31,7 @@
  */
 
 import { anonymize } from "./llm.ts";
+import { isHelpRequest } from "./intent.ts";
 
 /** TRẦN CỨNG cho cả khối trí nhớ (ký tự). Tiếng Việt ~3,2 ký tự/token ⇒ ~300
  *  token. Đây là con số vào ngân sách, không phải "thường thì khoảng". */
@@ -66,6 +67,17 @@ export interface TutorMemory {
   daNoi: boolean;
   /** Tổng số ký tự thực gửi đi — để đo, và để test khoá được trần. */
   size: number;
+  /**
+   * Số lượt XIN GIÚP LIÊN TIẾP ở cuối cuộc trò chuyện ("em chưa hiểu", "gợi ý
+   * giúp mình với", hoặc lời cụt lủn).
+   *
+   * Vì sao cần đếm (rà 29/07): lời xin giúp bị hạ tín hiệu suy nghĩ xuống 0,3
+   * để không ai bấm nút gợi ý mà mua được bậc thang. Đúng với em lười — nhưng
+   * em KẸT THẬT cũng gõ đúng mấy chữ đó, và em không bao giờ nhích được bậc
+   * nào: sư tử hỏi lại cùng một câu cho tới khi em bỏ cuộc. Đo trên hội thoại
+   * thật: hai lượt "chưa hiểu" liền nhận về gần như y hệt một câu trả lời.
+   */
+  xinGiupLienTiep: number;
 }
 
 const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
@@ -150,6 +162,15 @@ export async function buildMemory(
   const rows = ([...(turnsRes.data ?? [])].reverse() as Array<{ role: string; content: string }>)
     .filter((r) => !(omit && r.role === "student" && clip(r.content, 400) === omit));
   const daNoi = rows.some((r) => r.role === "student" && isSpoken(r.content));
+  // Đếm NGƯỢC từ cuối: chỉ tính chuỗi xin giúp LIỀN NHAU sát lượt hiện tại. Em
+  // xin giúp ở đầu buổi rồi tự làm được thì không tính là đang kẹt.
+  let xinGiupLienTiep = 0;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i]!;
+    if (r.role !== "student") continue;
+    if (isHelpRequest(r.content) || !isSpoken(r.content)) xinGiupLienTiep++;
+    else break;
+  }
 
   const recent = rows.slice(-VERBATIM_TURNS);
   const older = rows.slice(0, Math.max(0, rows.length - VERBATIM_TURNS));
@@ -207,5 +228,6 @@ export async function buildMemory(
     hoSo,
     daNoi,
     size: soTay.length + safeHistory.length + hoSo.length,
+    xinGiupLienTiep,
   };
 }

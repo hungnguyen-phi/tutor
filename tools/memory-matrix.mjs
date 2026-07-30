@@ -148,7 +148,30 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
   t("không đọc lời vừa gõ hai lần", !m.lichSu.includes(vua), m.lichSu);
 }
 
-// ── Ca 6: buổi mới tinh — không có gì để nhớ ────────────────────────────────
+// ── Ca 6: em KẸT THẬT — "chưa hiểu" liên tiếp phải đếm được ─────────────────
+{
+  const turns = [
+    { role: "student", content: "em nghĩ là câu B vì nó hỏi được đúng sai" },
+    { role: "tutor", content: "Thử so B với A xem khác nhau chỗ nào?" },
+    { role: "student", content: "em chưa hiểu" },
+    { role: "tutor", content: "Nhìn câu A nhé." },
+    { role: "student", content: "gợi ý giúp mình với" },
+  ].reverse();
+  const m = await mem.buildMemory(fakeSupa({ turns }), { sessionId: "s", studentId: "u", names: [] });
+  t("đếm được 2 lượt xin giúp liên tiếp", m.xinGiupLienTiep === 2, `${m.xinGiupLienTiep}`);
+}
+{
+  // Xin giúp ở ĐẦU buổi rồi tự làm được → KHÔNG tính là đang kẹt.
+  const turns = [
+    { role: "student", content: "em chưa hiểu" },
+    { role: "tutor", content: "Thử đọc lại đề nhé." },
+    { role: "student", content: "à em hiểu rồi, tại vì câu A khẳng định được đúng sai" },
+  ].reverse();
+  const m = await mem.buildMemory(fakeSupa({ turns }), { sessionId: "s", studentId: "u", names: [] });
+  t("xin giúp ở đầu buổi rồi gỡ được → không tính kẹt", m.xinGiupLienTiep === 0, `${m.xinGiupLienTiep}`);
+}
+
+// ── Ca 7: buổi mới tinh — không có gì để nhớ ────────────────────────────────
 {
   const m = await mem.buildMemory(fakeSupa({}), { sessionId: "s", studentId: "u", names: [] });
   t("buổi trống: khối trí nhớ rỗng", m.size === 0, `${m.size}`);

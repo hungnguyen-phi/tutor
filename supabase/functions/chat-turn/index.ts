@@ -591,12 +591,28 @@ Deno.serve(async (req: Request) => {
         // lượt 6 là được ngay bậc sâu nhất trong khi nhánh chấm mới ở bậc 2.
         const rungTurnsR = attRows.slice(Math.max(0, minAtt - 1));
         const engagedR = rungTurnsR.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
-        // KHÔNG cộng thêm cho lượt hiện tại: cộng là nhảy thẳng sang bậc 2, bỏ
-        // qua đúng bậc 1 (siêu nhận thức) — chính lỗi vừa vá ở nhánh chấm.
-        const currentRungR = Math.min(engagedR, Math.max(0, totalRungs - 1));
+
+        // ── VAN CHO EM KẸT THẬT (vá 29/07, chủ dự án đưa hội thoại thật) ─────
+        // Lời xin giúp bị hạ tín hiệu suy nghĩ xuống 0,3 để không ai bấm nút gợi
+        // ý mà mua được bậc thang. Đúng với em lười — nhưng em KẸT THẬT cũng gõ
+        // đúng mấy chữ đó ("em chưa hiểu"), và vì tín hiệu bị hạ nên `engagedR`
+        // đứng im ⇒ mãi ở bậc 1 ⇒ sư tử hỏi lại cùng một câu tới khi em bỏ cuộc.
+        // Đo được: hai lượt "chưa hiểu" liền nhận về gần như y hệt một câu.
+        //
+        // Từ lượt xin giúp THỨ HAI LIÊN TIẾP: coi là kẹt thật, cho đi tiếp một
+        // bậc mỗi lượt. AN TOÀN vì bậc thang là CÂU HỎI gợi mở do giáo viên
+        // soạn, KHÔNG phải đáp án — và `bottomOut` vẫn KHÔNG bao giờ được
+        // truyền qua đường đối thoại này. Xin giúp nhiều nhất chỉ đi hết thang,
+        // không bao giờ chạm đáy.
+        const ketThat = Math.max(0, (mem?.xinGiupLienTiep ?? 0) - 1);
+        const currentRungR = Math.min(engagedR + ketThat, Math.max(0, totalRungs - 1));
+        // Kẹt thật thì cũng phải QUA được cổng, không thì stage kẹt ở
+        // "need_think" và bậc thang vừa mở ra lại không được dùng.
+        const bestR = ketThat > 0 ? Math.max(best, 0.5) : best;
+
         const gate = evaluateEffortGate({
           attempts,
-          thinkingQuality: best,
+          thinkingQuality: bestR,
           currentRung: currentRungR,
           totalRungs,
           minAttempts: minAtt,
@@ -664,7 +680,11 @@ Deno.serve(async (req: Request) => {
               // Chỗ em ngồi chờ chữ hiện ra → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
               maxTokens: 200,
-              temperature: 0.4,
+              // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
+              // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
+              // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
+              // đúng/sai vẫn tất định, và bậc thang vẫn do giáo viên soạn.
+              temperature: 0.65,
               studentId: s.student_id,
               tenantId: s.tenant_id,
               supa,
@@ -1059,7 +1079,11 @@ Deno.serve(async (req: Request) => {
               // Đối thoại = chỗ em ngồi chờ chữ → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
               maxTokens: 200,
-              temperature: 0.4,
+              // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
+              // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
+              // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
+              // đúng/sai vẫn tất định, và bậc thang vẫn do giáo viên soạn.
+              temperature: 0.65,
               studentId: s.student_id,
               tenantId: s.tenant_id,
               supa,
