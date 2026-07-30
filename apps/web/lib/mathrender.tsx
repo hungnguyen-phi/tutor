@@ -10,16 +10,60 @@
 //     riêng một dòng canh giữa; chữ cái đầu câu viết hoa (`cap`).
 
 import React from "react";
-import katex from "katex";
 import { segmentMath, displayFlags, capitalizeLead } from "./mathtex";
 
 export { segmentMath, capitalizeLead };
 export type { Seg } from "./mathtex";
 
+/**
+ * KaTeX NẠP RỜI, không nằm trong gói đầu tiên (đo 30/07).
+ *
+ * Đo trên bản dựng thật: `/learn` tải 301 KB JS (đã nén) ở lần đầu, trong đó
+ * riêng KaTeX là 75 KB — ĐÚNG MỘT PHẦN TƯ. Mà màn đầu của `/learn` là LỘ TRÌNH:
+ * toàn nhãn bài và dấu chân, không có công thức nào. Học sinh ngồi ở nhà lúc 8
+ * giờ tối, trên điện thoại, tải 75 KB cho thứ chưa dùng tới.
+ *
+ * Nạp rời mà làm ẩu thì công thức NHÁY: hiện `$x^2$` thô rồi mới thành công
+ * thức. Với một app dạy toán, đó là hỏng chứ không phải nhanh. Nên:
+ *   · lệnh nạp bắn NGAY khi mô-đun này được nạp — chạy song song với mọi thứ
+ *     khác, không nằm trên đường tới hình đầu tiên;
+ *   · component nào đang gắn thì được ĐÁNH THỨC khi KaTeX về, vẽ lại một lần;
+ *   · trong lúc chờ, giữ nguyên văn — `mathtex.ts` vốn đã trả text gốc khi
+ *     KaTeX parse hụt, nên đây đi đúng đường lui CÓ SẴN, không đẻ nhánh mới.
+ *
+ * Thực tế: KaTeX về sau vài trăm mili-giây, còn lâu mới tới lúc em mở bài — nên
+ * quãng "chờ" gần như không ai gặp. Chỉ lời nhắn của thầy cô trên thẻ đỏ (hiếm,
+ * và hiếm khi có công thức) là có thể kịp thấy.
+ */
+type Katex = { renderToString: (t: string, o: Record<string, unknown>) => string };
+let katex: Katex | null = null;
+const thucGiac = new Set<() => void>();
+
+// Bắn NGAY khi mô-đun được nạp (tức lúc app khởi động), không chờ ai gọi.
+void import("katex")
+  .then((m) => {
+    katex = (m.default ?? m) as unknown as Katex;
+    for (const f of [...thucGiac]) f();
+  })
+  .catch(() => { /* mạng hỏng → mọi công thức hiện nguyên văn, không vỡ màn */ });
+
+/** Vẽ lại đúng một lần khi KaTeX về. Chưa về thì đăng ký chờ; về rồi thì thôi. */
+function useKatex(): boolean {
+  const [xong, datXong] = React.useState(() => katex != null);
+  React.useEffect(() => {
+    if (katex != null) { if (!xong) datXong(true); return; }
+    const f = () => datXong(true);
+    thucGiac.add(f);
+    return () => { thucGiac.delete(f); };
+  }, [xong]);
+  return xong;
+}
+
 // Bỏ ghi chú soạn bài lọt vào nội dung (metadata của GV, HS không cần thấy).
 const stripNote = (s: string) => (s ?? "").replace(/\s*\(khu[ôo]n tham s[ốo][^)]*\)/gi, "");
 
 function katexHtml(tex: string, display: boolean): string | null {
+  if (!katex) return null; // chưa về → nơi gọi rơi về text gốc (đường lui sẵn có)
   try { return katex.renderToString(tex, { throwOnError: true, displayMode: display }); }
   catch { return null; } // parse fail → để nơi gọi rơi về text gốc
 }
@@ -93,6 +137,8 @@ export function MathText({ children, block = false, cap = false }: {
   block?: boolean;
   cap?: boolean;
 }): React.ReactElement {
+  // Đăng ký chờ KaTeX: về tới nơi thì component này vẽ lại, công thức hiện ra.
+  useKatex();
   let src = stripNote(String(children ?? ""));
   if (cap) src = capitalizeLead(src);
   const parts = src.split(/\*\*([^*]+)\*\*/g); // lẻ = đậm
