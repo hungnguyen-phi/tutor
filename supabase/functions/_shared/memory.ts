@@ -1,5 +1,5 @@
 /**
- * TRÍ NHỚ CỦA SƯ TỬ — ba lớp, dựng từ dữ liệu ĐÃ CÓ, không thêm bảng nào.
+ * TRÍ NHỚ CỦA SƯ TỬ — ba lớp TÓM TẮT, dựng từ dữ liệu ĐÃ CÓ, không thêm bảng nào.
  *
  * Vì sao có (rà 29/07, chủ dự án đưa một đoạn hội thoại thật): trong 7 lượt sư
  * tử trả lời thì 4 lượt là câu soạn sẵn, 3 lượt còn lại có gọi mô hình nhưng
@@ -9,33 +9,54 @@
  *   · lượt cuối mô hình mở lời bằng "Chào bạn!" GIỮA cuộc trò chuyện, rồi
  *     giảng lại đúng cái định nghĩa em vừa nêu chuẩn hai lượt trước.
  *
- * Ba lớp, xếp theo giá:
- *   1. SỔ TAY   (~100 token) — trạng thái rút từ `attempts`: em đã thử mấy lần,
- *      sai vào phương án nào, quan niệm sai nào lộ ra, đã kể cách nghĩ chưa.
- *   2. LỊCH SỬ  (~260 token) — 6 lượt qua lại gần nhất trong `session_turns`.
- *      Bảng này VỐN ĐÃ GHI ĐỦ, chỉ là chưa ai đọc lại.
- *   3. HỒ SƠ    (~40 token)  — quan niệm sai LẶP LẠI của em qua nhiều buổi,
- *      đếm thẳng trên `attempts.matched_misconception`. KHÔNG tốn lượt gọi mô
- *      hình nào để tóm tắt: đây là phép đếm, không phải phép hiểu.
+ * ── TRẦN CỨNG, không phải "trung bình" (chủ dự án chốt 29/07) ───────────────
+ * Bản đầu gửi NGUYÊN VĂN 12 lượt gần nhất. Trung bình chỉ ~400 token vì em gõ
+ * ngắn (21 ký tự) — nhưng TRẦN là 1.031 token, gấp 2,6 lần con số trung bình,
+ * và trần mới là thứ quyết định hoá đơn khi 500 em cùng học: $24 → $47/tháng.
+ * Trung bình không phải thứ để lập ngân sách.
  *
- * Đo trên prod: em gõ trung bình 21 ký tự, sư tử 114 → cả ba lớp cộng lại còn
- * NHẸ HƠN lời dặn vai (536 token) vẫn gửi mỗi lượt. Trí nhớ không phải thứ đắt;
- * thứ đắt là SỐ LƯỢT GỌI.
+ * Nay MỌI lớp đi qua một cái van chung `MEM_BUDGET`, cắt theo thứ tự ưu tiên
+ * ngược: lịch sử cắt trước, hồ sơ cắt sau, sổ tay giữ tới cùng. Sổ tay là thứ
+ * ĐẮT NHẤT về thông tin trên mỗi token — nó nói thẳng "em đã kể rồi" và "em đã
+ * sai ở phương án nào", tức là đúng hai lỗi cần chặn.
+ *
+ * Ba lớp:
+ *   1. SỔ TAY  — trạng thái rút từ `attempts` ở CÂU ĐANG LÀM.
+ *   2. LỊCH SỬ — 4 lượt gần nhất NGUYÊN VĂN (ngắn) + một dòng CÔ ĐỌNG cho phần
+ *      cũ hơn. Cái cần nhớ ở phần cũ không phải câu chữ, mà là "em đã nêu ý gì"
+ *      và "mình đã hỏi gì rồi" — đúng hai thứ chặn việc hỏi lại và giảng lại.
+ *   3. HỒ SƠ   — quan niệm sai LẶP LẠI qua nhiều buổi, đếm trên
+ *      `attempts.matched_misconception`, ưu tiên gần đây. KHÔNG tốn lượt gọi mô
+ *      hình nào để tóm tắt: đây là phép đếm, không phải phép hiểu.
  */
 
 import { anonymize } from "./llm.ts";
 
-/** Số lượt qua lại gần nhất mang theo. 6 lượt ≈ 12 dòng ≈ 260 token. */
-const TURN_WINDOW = 12;
-/** Cắt mỗi dòng: một bài tự luận dài dán vào chat không được nuốt cả cửa sổ. */
-const LINE_CAP = 220;
+/** TRẦN CỨNG cho cả khối trí nhớ (ký tự). Tiếng Việt ~3,2 ký tự/token ⇒ ~300
+ *  token. Đây là con số vào ngân sách, không phải "thường thì khoảng". */
+const MEM_BUDGET = 960;
+/** Phần dành cho từng lớp, cộng lại vừa đúng trần. Cắt ngược từ dưới lên. */
+const CAP_SO_TAY = 300;
+const CAP_HO_SO = 140;
+const CAP_LICH_SU = MEM_BUDGET - CAP_SO_TAY - CAP_HO_SO; // 520
+
+/** Số lượt gần nhất giữ NGUYÊN VĂN. Bốn lượt = hai nhịp qua lại, đủ để bám
+ *  mạch mà không phình. */
+const VERBATIM_TURNS = 4;
+/** Mỗi lượt nguyên văn tối đa bấy nhiêu ký tự. */
+const VERBATIM_CAP = 110;
+/** Đọc bấy nhiêu dòng để dựng phần cô đọng (không phải để gửi đi). */
+const TURN_SCAN = 14;
 /** Quan niệm sai phải lặp ÍT NHẤT 2 lần mới vào hồ sơ — một lần là tai nạn. */
 const RECURRING_MIN = 2;
+/** Chỉ đếm trên bấy nhiêu lượt thử GẦN ĐÂY. Vừa nén "theo thời gian" (nét cũ
+ *  của em không đè nét hiện tại), vừa chặn một truy vấn phình theo tháng học. */
+const PROFILE_SCAN = 150;
 
 export interface TutorMemory {
   /** Trạng thái câu đang làm. */
   soTay: string;
-  /** Hội thoại gần nhất, đã ẩn danh. */
+  /** Hội thoại gần nhất — đã tóm tắt, đã ẩn danh. */
   lichSu: string;
   /** Nét lặp lại của em qua nhiều buổi. */
   hoSo: string;
@@ -43,9 +64,11 @@ export interface TutorMemory {
    *  Quyết định có gọi mô hình ở nhánh "mời kể cách nghĩ" hay không: chưa nói
    *  câu nào thì chẳng có gì để nhớ, gọi mô hình chỉ tốn thêm một vòng chờ. */
   daNoi: boolean;
+  /** Tổng số ký tự thực gửi đi — để đo, và để test khoá được trần. */
+  size: number;
 }
 
-const clip = (s: unknown, n = LINE_CAP) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
 /** Bấm một đáp án ("A", "C", "0,5") khác hẳn KỂ một suy nghĩ. Chỉ lời kể mới
  *  đáng gọi là "em đã nói" — bấm chữ cái thì không có gì để bám vào. */
@@ -53,6 +76,31 @@ function isSpoken(content: string): boolean {
   const t = clip(content, 400);
   if (t.length < 12) return false;
   return t.split(/\s+/).filter(Boolean).length >= 3;
+}
+
+/**
+ * Cô đọng phần hội thoại CŨ thành MỘT dòng.
+ *
+ * Giữ nguyên văn cả đoạn cũ là cách tốn token nhất mà lại ít tác dụng nhất:
+ * thứ cần nhớ ở đó không phải câu chữ, mà là hai điều —
+ *   · em đã NÊU ra ý gì (để đừng giảng lại thứ em đã nói đúng);
+ *   · mình đã HỎI gì rồi (để đừng hỏi lại y một câu).
+ * Chọn "ý dài nhất" của em làm đại diện: lời dài nhất gần như luôn là lời có
+ * nội dung nhất, còn "A", "C", "ừ" thì không mang thông tin nào.
+ */
+function condense(old: Array<{ role: string; content: string }>): string {
+  if (!old.length) return "";
+  const said = old.filter((r) => r.role === "student" && isSpoken(r.content))
+    .map((r) => clip(r.content, 300))
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 2);
+  const asked = old.filter((r) => r.role !== "student")
+    .map((r) => clip(r.content, 300))
+    .slice(-1);
+  const parts: string[] = [`trước đó ${old.length} lượt`];
+  if (said.length) parts.push(`bạn ấy đã nêu: ${said.map((x) => `"${clip(x, 70)}"`).join(" · ")}`);
+  if (asked.length) parts.push(`mình đã hỏi: "${clip(asked[0]!, 70)}"`);
+  return parts.join(" — ");
 }
 
 export async function buildMemory(
@@ -74,78 +122,90 @@ export async function buildMemory(
   const [turnsRes, attRes, recurRes] = await Promise.all([
     supa
       .from("session_turns")
-      .select("role, content, meta, created_at")
+      .select("role, content")
       .eq("session_id", opts.sessionId)
       .order("created_at", { ascending: false })
-      .limit(TURN_WINDOW),
+      .limit(TURN_SCAN),
     opts.questionId
       ? supa
         .from("attempts")
-        .select("attempt_no, raw_answer, is_correct, matched_misconception, thinking_quality")
+        .select("attempt_no, raw_answer, is_correct, matched_misconception")
         .eq("session_id", opts.sessionId)
         .eq("question_id", opts.questionId)
         .order("attempt_no", { ascending: true })
         .limit(20)
       : Promise.resolve({ data: [] }),
-    // Hồ sơ dài hạn: đếm quan niệm sai lặp lại của em, MỌI buổi. Trần 400 dòng
-    // để một em học nhiều tháng không kéo cả lịch sử về.
+    // Hồ sơ dài hạn: đếm quan niệm sai lặp lại, chỉ trên các lượt GẦN ĐÂY.
     supa
       .from("attempts")
       .select("matched_misconception")
       .eq("student_id", opts.studentId)
       .not("matched_misconception", "is", null)
       .order("created_at", { ascending: false })
-      .limit(400),
+      .limit(PROFILE_SCAN),
   ]);
 
   // ── Lớp 2: lịch sử (đảo lại cho đúng thứ tự thời gian) ────────────────────
   const omit = clip(opts.omitContent ?? "", 400);
   const rows = ([...(turnsRes.data ?? [])].reverse() as Array<{ role: string; content: string }>)
     .filter((r) => !(omit && r.role === "student" && clip(r.content, 400) === omit));
-  const lichSu = rows
-    .map((r) => `${r.role === "student" ? "BẠN ẤY" : "MÌNH"}: ${clip(r.content)}`)
-    .join("\n");
   const daNoi = rows.some((r) => r.role === "student" && isSpoken(r.content));
+
+  const recent = rows.slice(-VERBATIM_TURNS);
+  const older = rows.slice(0, Math.max(0, rows.length - VERBATIM_TURNS));
+  const lines: string[] = [];
+  const gist = condense(older);
+  if (gist) lines.push(`(${gist})`);
+  for (const r of recent) {
+    lines.push(`${r.role === "student" ? "BẠN ẤY" : "MÌNH"}: ${clip(r.content, VERBATIM_CAP)}`);
+  }
+  // Vẫn quá trần thì BỎ TỪ ĐẦU — dòng cũ nhất đi trước, lượt gần nhất giữ tới
+  // cùng. Không dùng clip() ở đây: nó gộp mọi khoảng trắng nên nuốt luôn xuống
+  // dòng, mà xuống dòng chính là thứ tách các lượt ra cho mô hình đọc.
+  while (lines.join("\n").length > CAP_LICH_SU && lines.length > 1) lines.shift();
+  const lichSu = lines.join("\n").slice(0, CAP_LICH_SU);
 
   // ── Lớp 1: sổ tay câu đang làm ────────────────────────────────────────────
   const att = (attRes.data ?? []) as Array<{
-    attempt_no: number;
     raw_answer: string | null;
     is_correct: boolean | null;
     matched_misconception: string | null;
-    thinking_quality: number | null;
   }>;
   const soTayParts: string[] = [];
   if (att.length) {
-    const sai = att.filter((a) => a.is_correct === false).map((a) => clip(a.raw_answer, 40)).filter(Boolean);
     soTayParts.push(`đã thử ${att.length} lần ở câu này`);
-    if (sai.length) soTayParts.push(`đã chọn/điền rồi mà chưa đúng: ${[...new Set(sai)].join(" · ")}`);
+    const sai = [...new Set(
+      att.filter((a) => a.is_correct === false).map((a) => clip(a.raw_answer, 24)).filter(Boolean),
+    )].slice(0, 5);
+    if (sai.length) soTayParts.push(`đã thử rồi mà chưa đúng: ${sai.join(" · ")}`);
     const qn = [...new Set(att.map((a) => a.matched_misconception).filter(Boolean))] as string[];
-    if (qn.length) soTayParts.push(`chỗ hiểu lệch đã lộ ra: ${qn.map((x) => clip(x, 90)).join(" · ")}`);
+    if (qn.length) soTayParts.push(`chỗ hiểu lệch đã lộ: ${clip(qn[0], 80)}`);
   }
-  if (daNoi) soTayParts.push("bạn ấy ĐÃ kể cách nghĩ rồi — ĐỪNG hỏi lại như thể chưa nghe gì");
+  if (daNoi) soTayParts.push("bạn ấy ĐÃ kể cách nghĩ — ĐỪNG hỏi lại như chưa nghe gì");
 
   // ── Lớp 3: hồ sơ dài hạn ──────────────────────────────────────────────────
   const tally = new Map<string, number>();
   for (const r of (recurRes.data ?? []) as Array<{ matched_misconception: string | null }>) {
-    const k = clip(r.matched_misconception, 90);
+    const k = clip(r.matched_misconception, 70);
     if (k) tally.set(k, (tally.get(k) ?? 0) + 1);
   }
   const recurring = [...tally.entries()]
     .filter(([, n]) => n >= RECURRING_MIN)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
+    .slice(0, 2)
     .map(([k, n]) => `${k} (${n} lần)`);
 
-  // Ẩn danh MỘT LƯỢT cho cả ba lớp rồi vứt bảng tra: prompt không cần tên thật,
-  // và lời sư tử nói ra sau đó do nhánh gọi tự rehydrate phần của nó.
-  const { text: safeHistory } = anonymize(lichSu, opts.names);
-  const { text: safeNote } = anonymize(soTayParts.join(" · "), opts.names);
+  // Ẩn danh MỘT LƯỢT rồi vứt bảng tra: prompt không cần tên thật, và lời sư tử
+  // nói ra sau đó do nhánh gọi tự hoàn nguyên phần của nó.
+  const soTay = clip(anonymize(soTayParts.join(" · "), opts.names).text, CAP_SO_TAY);
+  const hoSo = recurring.length ? clip(`hay vướng lại: ${recurring.join(" · ")}`, CAP_HO_SO) : "";
+  const safeHistory = anonymize(lichSu, opts.names).text.slice(0, CAP_LICH_SU);
 
   return {
-    soTay: safeNote,
+    soTay,
     lichSu: safeHistory,
-    hoSo: recurring.length ? `hay vướng lại: ${recurring.join(" · ")}` : "",
+    hoSo,
     daNoi,
+    size: soTay.length + safeHistory.length + hoSo.length,
   };
 }

@@ -46,10 +46,15 @@ export function buildGuideUser(parts: {
   lichSu?: string;
   studentSaid?: string;
 }): string {
+  // Trần ở đây khớp ĐÚNG trần trong memory.ts (CAP_HO_SO / CAP_SO_TAY /
+  // CAP_LICH_SU). Hai chỗ cùng siết là cố ý: đây là cửa cuối trước khi chữ rời
+  // khỏi máy, nên dù ai đó sau này nới trong memory.ts thì hoá đơn vẫn không nổ.
+  // KHÔNG dùng clip() cho lịch sử — clip gộp mọi khoảng trắng nên nuốt luôn dấu
+  // xuống dòng ngăn giữa các lượt, dồn cả đoạn hội thoại thành một dòng liền.
   const out: string[] = [];
-  if (parts.hoSo) out.push(`<ho_so>${clip(parts.hoSo, 300)}</ho_so>`);
-  if (parts.soTay) out.push(`<so_tay>${clip(parts.soTay, 600)}</so_tay>`);
-  if (parts.lichSu) out.push(`<lich_su>\n${clip(parts.lichSu, 2400)}\n</lich_su>`);
+  if (parts.hoSo) out.push(`<ho_so>${clip(parts.hoSo, 140)}</ho_so>`);
+  if (parts.soTay) out.push(`<so_tay>${clip(parts.soTay, 300)}</so_tay>`);
+  if (parts.lichSu) out.push(`<lich_su>\n${parts.lichSu.slice(0, 520)}\n</lich_su>`);
   out.push(`<hoc_sinh>${clip(parts.studentSaid ?? "", 1200)}</hoc_sinh>`);
   return out.join("\n");
 }

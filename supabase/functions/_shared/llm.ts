@@ -46,24 +46,30 @@ const MODELS: Record<Tier, string> = {
 const FALLBACK = ["deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v3.2"];
 
 /**
- * ĐỊNH TUYẾN NHANH cho lượt đối thoại.
+ * ĐỊNH TUYẾN cho lượt ĐỐI THOẠI — cân giữa tốc độ và tiền, theo đúng thứ tự ưu tiên.
  *
- * `sort: "throughput"` = đúng hậu tố `:nitro`: bỏ cân bằng tải theo giá, chọn
- * nhà cung cấp SINH CHỮ NHANH NHẤT tại thời điểm gọi. Chênh lệch giữa các nhà
- * cung cấp lớn hơn hẳn chênh lệch giữa flash và pro, nên đây là đòn bẩy tốc độ
- * mạnh nhất — và nó ĐỘNG, không phải danh sách cứng: một cái tên nhanh tuần này
- * có thể chậm tuần sau, OpenRouter có số sống mà mình không có.
+ * `order: ["deepseek"]` — nhà cung cấp DUY NHẤT có LƯU ĐỆM TIỀN TỐ NGẦM cho
+ * v4-flash: phần prompt lặp lại giữa các lượt chỉ tính $0.003/1M thay vì $0.140
+ * — RẺ 50 LẦN, tự động, không cần cấu hình gì thêm. Đúng chỗ ăn tiền nhất của
+ * app: lời dặn vai 536 token + đề bài + bậc thang là y hệt nhau suốt cả một câu
+ * hỏi, lượt nào cũng gửi lại. Đây cũng chính là endpoint gốc 81 t/s.
  *
- * `quantizations: fp8/fp16/bf16` — kèm theo vì nếu không, việc xếp theo tốc độ
- * có thể rơi trúng một nhà cung cấp phục vụ bản fp4. Đo trên chính v4-flash
- * (21 nhà cung cấp): 10 bản fp8 · 6 chưa rõ · **5 bản fp4**. Sư tử nói tiếng
- * Việt với học sinh, mà lượng tử hoá sâu làm hỏng độ trôi chảy ở ngôn ngữ ít
- * dữ liệu trước tiên. Lọc đi vẫn còn 10 nhà cung cấp để chọn — không mất tốc độ.
+ * `sort: "throughput"` (= hậu tố `:nitro`) — áp cho phần CÒN LẠI. Uptime của
+ * deepseek là 95,1%, THẤP NHẤT trong nhóm, nên cứ 20 lượt có 1 lượt phải đi
+ * đường khác; lúc đó chọn nhà cung cấp sinh chữ nhanh nhất tại thời điểm gọi.
+ * Không cắm cứng tên: OpenRouter có số sống mà mình không có, và nhanh tuần này
+ * có thể chậm tuần sau.
+ *
+ * `quantizations` — chặn bản fp4. Đo trên chính v4-flash (21 nhà cung cấp): 10
+ * bản fp8 · 6 chưa rõ · 5 bản fp4. Sư tử nói TIẾNG VIỆT với học sinh, mà lượng
+ * tử hoá sâu làm hỏng độ trôi chảy ở ngôn ngữ ít dữ liệu trước tiên. Phải để
+ * "unknown" trong danh sách vì endpoint gốc deepseek nằm ở nhóm đó.
  */
 const FAST_PROVIDER = {
+  order: ["deepseek"],
   sort: "throughput",
-  quantizations: ["fp8", "fp16", "bf16"],
-  // Còn 10 nhà cung cấp fp8 → luôn có đường lui, không sợ kẹt vì một bên chết.
+  quantizations: ["fp8", "fp16", "bf16", "unknown"],
+  // Bắt buộc: deepseek chết 4,9% thời gian, không có đường lui là em kẹt.
   allow_fallbacks: true,
 } as const;
 
@@ -162,7 +168,7 @@ async function cacheKeyOf(a: LlmCallArgs): Promise<string> {
 export interface LlmCallResult {
   text: string;
   model: string;
-  usage: { inputTokens: number; outputTokens: number };
+  usage: { inputTokens: number; outputTokens: number; cachedTokens?: number };
 }
 
 /** Tripwire: never let a raw email reach the provider. */
@@ -279,6 +285,10 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   const usage = {
     inputTokens: (data.usage as { prompt_tokens?: number } | undefined)?.prompt_tokens ?? 0,
     outputTokens: (data.usage as { completion_tokens?: number } | undefined)?.completion_tokens ?? 0,
+    // Token ĐỌC LẠI TỪ ĐỆM — phần này chỉ tính $0.003/1M thay vì $0.140. Ghi lại
+    // để biết lưu đệm có thật sự ăn không, thay vì tin là nó đang chạy.
+    cachedTokens: (data.usage as { prompt_tokens_details?: { cached_tokens?: number } } | undefined)
+      ?.prompt_tokens_details?.cached_tokens ?? 0,
   };
 
   recordCall(args, { text, model, tier, usage, ck, ms: Date.now() - t0 });
@@ -363,7 +373,7 @@ export async function callLLMStream(
 
   let text = "";
   let model = primary;
-  let usage = { inputTokens: 0, outputTokens: 0 };
+  let usage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
@@ -385,13 +395,18 @@ export async function callLLMStream(
             const j = JSON.parse(payload) as {
               model?: string;
               choices?: Array<{ delta?: { content?: string } }>;
-              usage?: { prompt_tokens?: number; completion_tokens?: number };
+              usage?: {
+                prompt_tokens?: number;
+                completion_tokens?: number;
+                prompt_tokens_details?: { cached_tokens?: number };
+              };
             };
             if (j.model) model = j.model;
             if (j.usage) {
               usage = {
                 inputTokens: j.usage.prompt_tokens ?? 0,
                 outputTokens: j.usage.completion_tokens ?? 0,
+                cachedTokens: j.usage.prompt_tokens_details?.cached_tokens ?? 0,
               };
             }
             const d = j.choices?.[0]?.delta?.content;
@@ -423,7 +438,7 @@ function recordCall(
     text: string;
     model: string;
     tier: Tier;
-    usage: { inputTokens: number; outputTokens: number };
+    usage: { inputTokens: number; outputTokens: number; cachedTokens?: number };
     ck: string | null;
     /** Thời gian lượt gọi, mili-giây — để KIỂM CHỨNG thay vì đoán: sau khi bật
      *  định tuyến nhanh, đọc thẳng trên audit_logs xem có nhanh lên thật không,
