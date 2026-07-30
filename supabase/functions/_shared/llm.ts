@@ -45,6 +45,28 @@ const MODELS: Record<Tier, string> = {
 };
 const FALLBACK = ["deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v3.2"];
 
+/**
+ * ĐỊNH TUYẾN NHANH cho lượt đối thoại.
+ *
+ * `sort: "throughput"` = đúng hậu tố `:nitro`: bỏ cân bằng tải theo giá, chọn
+ * nhà cung cấp SINH CHỮ NHANH NHẤT tại thời điểm gọi. Chênh lệch giữa các nhà
+ * cung cấp lớn hơn hẳn chênh lệch giữa flash và pro, nên đây là đòn bẩy tốc độ
+ * mạnh nhất — và nó ĐỘNG, không phải danh sách cứng: một cái tên nhanh tuần này
+ * có thể chậm tuần sau, OpenRouter có số sống mà mình không có.
+ *
+ * `quantizations: fp8/fp16/bf16` — kèm theo vì nếu không, việc xếp theo tốc độ
+ * có thể rơi trúng một nhà cung cấp phục vụ bản fp4. Đo trên chính v4-flash
+ * (21 nhà cung cấp): 10 bản fp8 · 6 chưa rõ · **5 bản fp4**. Sư tử nói tiếng
+ * Việt với học sinh, mà lượng tử hoá sâu làm hỏng độ trôi chảy ở ngôn ngữ ít
+ * dữ liệu trước tiên. Lọc đi vẫn còn 10 nhà cung cấp để chọn — không mất tốc độ.
+ */
+const FAST_PROVIDER = {
+  sort: "throughput",
+  quantizations: ["fp8", "fp16", "bf16"],
+  // Còn 10 nhà cung cấp fp8 → luôn có đường lui, không sợ kẹt vì một bên chết.
+  allow_fallbacks: true,
+} as const;
+
 export interface AnonymizeResult {
   text: string;
   map: Record<string, string>;
@@ -122,6 +144,9 @@ export interface LlmCallArgs {
    * CHỈ bật cho ĐỐI THOẠI — chỗ học sinh ngồi chờ chữ hiện ra. KHÔNG bật cho
    * nhánh CHẤM: ở đó phán quyết quyết định mastery, ưu tiên tốc độ mà rơi vào
    * một nhà cung cấp phục vụ bản lượng tử hoá nhẹ hơn là đánh đổi sai chỗ.
+   *
+   * Tương đương hậu tố `:nitro` của OpenRouter, nhưng viết dạng đầy đủ để còn
+   * GHÉP ĐƯỢC với bộ lọc mức lượng tử hoá bên dưới — `:nitro` thì không.
    */
   fastRoute?: boolean;
 }
@@ -226,7 +251,7 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     // thought, and leaving it on made glm-5.2 take ~25s. enabled:false → fast
     // responses + no CoT to leak. exclude:true kept as a belt-and-braces signal.
     reasoning: { enabled: false, exclude: true },
-    ...(args.fastRoute ? { provider: { sort: "throughput" } } : {}),
+    ...(args.fastRoute ? { provider: FAST_PROVIDER } : {}),
   });
 
   // ONLY use final content. Never display reasoning/CoT to a student.
@@ -325,7 +350,7 @@ export async function callLLMStream(
       max_tokens: args.maxTokens ?? 420,
       temperature: args.temperature ?? 0.3,
       reasoning: { enabled: false, exclude: true },
-      ...(args.fastRoute ? { provider: { sort: "throughput" } } : {}),
+      ...(args.fastRoute ? { provider: FAST_PROVIDER } : {}),
       stream: true,
       // Không có cờ này thì mẩu cuối KHÔNG kèm usage ⇒ token_usage cộng 0 và
       // trần token/ngày thành vô hiệu cho mọi lượt phát dần.
