@@ -77,10 +77,10 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
 // ── Ca 1: bình thường ────────────────────────────────────────────────────────
 {
   const turns = [
-    { role: "tutor", content: "Bạn thử nghĩ xem mệnh đề cần tính chất gì?" },
-    { role: "student", content: "câu mang tính khẳng định" },
-    { role: "tutor", content: "Đúng hướng rồi! Vậy câu nào là khẳng định?" },
-    { role: "student", content: "D" },
+    { role: "tutor", content: "Bạn thử nghĩ xem mệnh đề cần tính chất gì?", meta: { questionId: "q" } },
+    { role: "student", content: "câu mang tính khẳng định", meta: { questionId: "q" } },
+    { role: "tutor", content: "Đúng hướng rồi! Vậy câu nào là khẳng định?", meta: { questionId: "q" } },
+    { role: "student", content: "D", meta: { questionId: "q" } },
   ].reverse();
   const m = await mem.buildMemory(fakeSupa({ turns, attempts: [
     { raw_answer: "A", is_correct: false, matched_misconception: "nhầm câu cầu khiến" },
@@ -97,7 +97,7 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
 {
   const turns = [];
   for (let i = 0; i < 40; i++) {
-    turns.push({ role: i % 2 ? "student" : "tutor", content: long(3000, "dài" + i) });
+    turns.push({ role: i % 2 ? "student" : "tutor", content: long(3000, "dài" + i), meta: { questionId: "q" } });
   }
   const attempts = Array.from({ length: 20 }, (_, i) => ({
     raw_answer: long(500, "đáp" + i), is_correct: false, matched_misconception: long(400, "sai" + i),
@@ -178,6 +178,62 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
   t("buổi trống: daNoi = false (đừng gọi mô hình)", m.daNoi === false, `${m.daNoi}`);
 }
 
+
+// ── Ca 9: TRÍ NHỚ KHÔNG ĐƯỢC TRÀN TỪ CÂU NÀY SANG CÂU KHÁC ─────────────────
+// Lỗi thật 30/07: em chuyển sang câu mới, hỏi câu đầu tiên, sư tử đáp "bạn đã
+// thử ba lần và vẫn ra cùng một đáp án" — chuyện của CÂU TRƯỚC. Lịch sử lúc đó
+// chỉ lọc theo phiên học, không lọc theo câu. Trí nhớ mà bịa ra quá khứ không
+// có thật thì tệ hơn hẳn không có trí nhớ.
+{
+  const turns = [
+    { role: "student", content: "em chọn A vì nó khẳng định được", meta: { questionId: "q_CU" } },
+    { role: "tutor", content: "Bạn đã thử ba lần và vẫn ra cùng một đáp án đó", meta: { questionId: "q_CU" } },
+    { role: "student", content: "em vẫn chọn A", meta: { questionId: "q_CU" } },
+    { role: "student", content: "câu nào sai ạ", meta: { questionId: "q_MOI" } },
+  ].reverse();
+  const m = await mem.buildMemory(fakeSupa({ turns }),
+    { sessionId: "s", studentId: "u", questionId: "q_MOI", names: [] });
+  t("câu mới: KHÔNG kéo theo hội thoại câu cũ",
+    !m.lichSu.includes("ba lần") && !m.lichSu.includes("chọn A"), m.lichSu);
+  t("câu mới: không bịa ra là em đã nói nhiều", m.daNoi === false, `daNoi=${m.daNoi}`);
+}
+{
+  // Ngược lại: cùng một câu thì PHẢI nhớ đủ.
+  const turns = [
+    { role: "student", content: "em nghĩ mệnh đề là câu khẳng định được đúng sai", meta: { questionId: "q1" } },
+    { role: "tutor", content: "Đúng hướng rồi, vậy câu nào là khẳng định?", meta: { questionId: "q1" } },
+  ].reverse();
+  const m = await mem.buildMemory(fakeSupa({ turns }),
+    { sessionId: "s", studentId: "u", questionId: "q1", names: [] });
+  t("cùng một câu: vẫn nhớ đủ", m.lichSu.includes("khẳng định") && m.daNoi === true, m.lichSu);
+}
+{
+  // Trò chuyện tự do (không có câu nào) → không lọc, giữ tất cả.
+  const turns = [
+    { role: "student", content: "chào bạn mình muốn hỏi về bài hôm qua", meta: { questionId: "q9" } },
+  ].reverse();
+  const m = await mem.buildMemory(fakeSupa({ turns }), { sessionId: "s", studentId: "u", names: [] });
+  t("trò chuyện tự do: không lọc theo câu", m.lichSu.includes("bài hôm qua"), m.lichSu);
+}
+
+// ── Ca 10: HỎI XIN ĐÁP ÁN ≠ TRÌNH BÀY SUY NGHĨ ─────────────────────────────
+// Bộ kiểm tự bắt được 30/07: "câu nào sai ạ" đủ dài, đủ số từ, nên bản đầu tính
+// là "đã kể cách nghĩ" — rồi sổ tay báo lên "bạn ấy ĐÃ kể cách nghĩ rồi" trong
+// khi em mới chỉ hỏi xin đáp án.
+for (const [noi, mong, vi] of [
+  ["câu nào sai ạ", false, "hỏi xin đáp án"],
+  ["cho em biết đáp án đi mà", false, "đòi đáp án"],
+  ["em nghĩ là B vì nó khẳng định được, đúng không ạ?", true, "có lập luận + câu hỏi ở cuối"],
+  ["bạn có khỏe không, em có thể trả lời đúng, cũng có thể trả lời sai mà?", true, "đoạn dài, là suy nghĩ thật"],
+  ["em nghĩ mệnh đề phải khẳng định được đúng sai", true, "trình bày thẳng"],
+  ["A", false, "bấm đáp án"],
+]) {
+  const turns = [{ role: "student", content: noi, meta: { questionId: "q" } }];
+  const m = await mem.buildMemory(fakeSupa({ turns }),
+    { sessionId: "s", studentId: "u", questionId: "q", names: [] });
+  t(`${mong ? "TÍNH" : "không tính"} là kể cách nghĩ: "${noi.slice(0, 34)}" (${vi})`,
+    m.daNoi === mong, `daNoi=${m.daNoi}`);
+}
 
 // ── Ca 8: PHÁT HIỆN "NÓI MÃI MÀ KHÔNG LÀM BÀI" ─────────────────────────────
 // Bản sao 1:1 phép đếm trong chat-turn. Con số này KHÔNG chặn em lại (chủ dự án

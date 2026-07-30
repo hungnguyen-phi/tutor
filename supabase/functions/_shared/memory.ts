@@ -82,11 +82,47 @@ export interface TutorMemory {
 
 const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
-/** Bấm một đáp án ("A", "C", "0,5") khác hẳn KỂ một suy nghĩ. Chỉ lời kể mới
- *  đáng gọi là "em đã nói" — bấm chữ cái thì không có gì để bám vào. */
+/**
+ * Khớp NGUYÊN TỪ tiếng Việt — KHÔNG dùng `\b` được.
+ *
+ * Bẫy đã trả giá (bộ kiểm bắt được 30/07): trong JS, `\w` chỉ là [A-Za-z0-9_],
+ * nên chữ có dấu KHÔNG phải "ký tự chữ". `/\bvì\b/` không bao giờ khớp "vì" —
+ * ranh giới từ đứt ngay tại "ì". Cũng thế với "gì", "đâu", "bởi"… Regex trông
+ * đúng, chạy không lỗi, và im lặng trả về false MÃI MÃI.
+ *
+ * Cách đúng: cờ `u` + tự viết ranh giới bằng lớp chữ Unicode.
+ */
+function viWord(alts: string): RegExp {
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${alts})(?![\\p{L}\\p{N}])`, "iu");
+}
+
+/**
+ * Bấm một đáp án ("A", "C", "0,5") khác hẳn KỂ một suy nghĩ. Chỉ lời kể mới
+ * đáng gọi là "em đã nói" — bấm chữ cái thì không có gì để bám vào.
+ *
+ * XIN ĐÁP ÁN cũng KHÔNG tính (vá 30/07, bộ kiểm bắt được): "câu nào sai ạ" đủ
+ * dài, đủ số từ, nên bản đầu tính là đã trình bày suy nghĩ — rồi sổ tay báo lên
+ * "bạn ấy ĐÃ kể cách nghĩ rồi" trong khi em mới chỉ hỏi xin đáp án. Sư tử đáp
+ * theo đó là hiểu sai hẳn em đang ở đâu.
+ */
 function isSpoken(content: string): boolean {
   const t = clip(content, 400);
   if (t.length < 12) return false;
+  if (isHelpRequest(t)) return false;
+  // HỎI ≠ TRÌNH BÀY. "câu nào sai ạ" đủ dài, đủ từ, nhưng đó là em ĐANG HỎI
+  // XIN đáp án chứ không phải đang kể cách nghĩ. Cố ý KHÔNG nới `isHelpRequest`
+  // để bắt ca này: hàm đó gác việc CHẤM ĐIỂM, nới nó ra là nuốt nhầm bài làm
+  // thật (đã trả giá một lần ngày 29/07). Luật này chỉ sống trong trí nhớ.
+  //
+  // Có dấu hiệu LẬP LUẬN thì vẫn tính là trình bày, dù có kèm câu hỏi ở cuối
+  // ("em nghĩ là B vì nó khẳng định được, đúng không ạ?"). Câu dài cũng vậy —
+  // em viết hẳn một đoạn thì đó là suy nghĩ, không phải câu hỏi cụt.
+  const coLapLuan = viWord("vì|bởi|do|nên|suy ra|em nghĩ|mình nghĩ|theo em|theo mình|bước").test(t);
+  const doiDapAn = viWord("đáp án|kết quả|câu trả lời").test(t) &&
+    viWord("cho|nói|chỉ|bảo|biết|là gì").test(t);
+  const dangHoi = /[?？]/.test(t) || viWord("nào|gì|sao|đâu|mấy|thế nào").test(t);
+  if (doiDapAn && !coLapLuan) return false;
+  if (dangHoi && !coLapLuan && t.length < 60) return false;
   return t.split(/\s+/).filter(Boolean).length >= 3;
 }
 
@@ -134,7 +170,7 @@ export async function buildMemory(
   const [turnsRes, attRes, recurRes] = await Promise.all([
     supa
       .from("session_turns")
-      .select("role, content")
+      .select("role, content, meta")
       .eq("session_id", opts.sessionId)
       .order("created_at", { ascending: false })
       .limit(TURN_SCAN),
@@ -158,8 +194,20 @@ export async function buildMemory(
   ]);
 
   // ── Lớp 2: lịch sử (đảo lại cho đúng thứ tự thời gian) ────────────────────
+  //
+  // ⚠️ LỌC THEO CÂU, không chỉ theo phiên (vá 30/07). Bản đầu chỉ lọc
+  // `session_id` nên hội thoại của câu TRƯỚC tràn sang câu SAU: đo được trên
+  // hội thoại thật — em vừa mở câu mới, chưa thử lần nào, mà sư tử nói "bạn đã
+  // thử ba lần và vẫn ra cùng một đáp án". Đó là chuyện của câu cũ, và nó khiến
+  // trí nhớ từ chỗ đáng tin thành chỗ bịa ra quá khứ không có thật.
+  //
+  // Dòng KHÔNG mang mã câu thì BỎ (chỉ khi biết mình đang ở câu nào): thà mất
+  // vài dòng cũ còn hơn để lẫn câu. Từ bản này mọi lời sư tử đều mang mã câu.
   const omit = clip(opts.omitContent ?? "", 400);
-  const rows = ([...(turnsRes.data ?? [])].reverse() as Array<{ role: string; content: string }>)
+  const rows = ([...(turnsRes.data ?? [])].reverse() as Array<
+    { role: string; content: string; meta: { questionId?: string } | null }
+  >)
+    .filter((r) => !opts.questionId || r.meta?.questionId === opts.questionId)
     .filter((r) => !(omit && r.role === "student" && clip(r.content, 400) === omit));
   const daNoi = rows.some((r) => r.role === "student" && isSpoken(r.content));
   // Đếm NGƯỢC từ cuối: chỉ tính chuỗi xin giúp LIỀN NHAU sát lượt hiện tại. Em

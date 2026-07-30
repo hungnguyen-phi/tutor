@@ -443,8 +443,17 @@ Deno.serve(async (req: Request) => {
       persistMeta?: unknown;
       /** Nhãn ghi vào `session_turns.agent`. Giữ đúng như trước khi gộp. */
       agent?: string;
+      /** Câu đang làm — PHẢI có để trí nhớ lọc đúng câu (xem ghi chú dưới). */
+      questionId?: string;
     }): Promise<Response> => {
       const who = o.agent ?? "engine";
+      // Lời sư tử PHẢI mang mã câu. Thiếu nó thì trí nhớ không lọc được theo
+      // câu, và hội thoại của câu TRƯỚC tràn sang câu SAU: đo được trên hội
+      // thoại thật 30/07 — em vừa mở câu mới, chưa thử lần nào, mà sư tử nói
+      // "bạn đã thử ba lần và vẫn ra cùng một đáp án" (chuyện của câu cũ).
+      const meta = o.questionId
+        ? { ...(o.persistMeta as Record<string, unknown> ?? {}), questionId: o.questionId }
+        : o.persistMeta;
       /**
        * HẾT HẠN MỨC NGÀY thì phải NÓI THẬT.
        *
@@ -471,7 +480,7 @@ Deno.serve(async (req: Request) => {
             /* mô hình hỏng → giữ câu tất định */
           }
         }
-        persist("tutor", msg, who, o.persistMeta);
+        persist("tutor", msg, who, meta);
         return json({ ...o.envelope, message: msg }, 200, req);
       }
 
@@ -481,7 +490,7 @@ Deno.serve(async (req: Request) => {
         writer.meta(o.envelope);
         if (!o.llm) {
           writer.delta(o.fallback);
-          persist("tutor", o.fallback, who, o.persistMeta);
+          persist("tutor", o.fallback, who, meta);
           writer.done(o.fallback);
           return;
         }
@@ -514,7 +523,7 @@ Deno.serve(async (req: Request) => {
         const msg = full.trim() || lui;
         // Mô hình câm hẳn → phát câu lui để em không nhìn màn trống.
         if (!full.trim()) writer.delta(lui);
-        persist("tutor", msg, who, o.persistMeta);
+        persist("tutor", msg, who, meta);
         writer.done(msg);
       })().catch((e) => {
         console.error("speak stream error:", e instanceof Error ? e.message : e);
@@ -699,6 +708,7 @@ Deno.serve(async (req: Request) => {
           fallback: msg,
           map,
           persistMeta: { gate: "reflect", stage },
+          questionId: q.id,
           llm: Deno.env.get("OPENROUTER_API_KEY")
             ? {
               system: buildGuideSystem({
@@ -773,7 +783,7 @@ Deno.serve(async (req: Request) => {
           const msg = en
             ? `Happy to help you think — no grading on this one. ${rung1 ?? "Tell me first: what is the question asking, in your own words?"}`
             : `Được chứ — mình cùng nghĩ nhé (lượt này không chấm điểm). ${rung1 ?? "Bạn kể mình nghe trước: đề bài đang hỏi điều gì, nói bằng lời của bạn?"}`;
-          persist("tutor", msg, "engine", { gate: "help" });
+          persist("tutor", msg, "engine", { gate: "help", questionId: q.id });
           return json({ correct: false, gate: "help", graded: false, message: msg });
         }
       }
@@ -814,7 +824,7 @@ Deno.serve(async (req: Request) => {
         const msg = en
           ? "This one needs your reasoning in full sentences — write out your idea first, then submit again. (Not graded yet, so nothing lost!)"
           : "Câu này cần bạn viết lập luận thành câu — bạn viết rõ ý của mình rồi gửi lại nhé. (Lượt này mình chưa chấm, không mất gì đâu!)";
-        persist("tutor", msg, "engine", { gate: "insufficient" });
+        persist("tutor", msg, "engine", { gate: "insufficient", questionId: q.id });
         return json({ correct: false, gate: "insufficient", graded: false, message: msg });
       }
       let openV = !openQ
@@ -1046,7 +1056,7 @@ Deno.serve(async (req: Request) => {
               ? `I can see the idea behind that choice — it hides a common trap: ${safeMisconception(matched)} ${base}`
               : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${safeMisconception(matched)} ${base}`)
           : base;
-        persist("tutor", msg, "engine", { gate: gate.action, matched });
+        persist("tutor", msg, "engine", { gate: gate.action, matched, questionId: q.id });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
 
@@ -1081,7 +1091,7 @@ Deno.serve(async (req: Request) => {
         if (!Deno.env.get("OPENROUTER_API_KEY")) {
           return await speak({
             envelope: askEnvelope, fallback: msg, llm: null, map: {},
-            persistMeta: { gate: gate.action, matched },
+            persistMeta: { gate: gate.action, matched }, questionId: q.id,
           });
         }
         const [memAsk, { data: nodeRowAsk }] = await Promise.all([
@@ -1099,6 +1109,7 @@ Deno.serve(async (req: Request) => {
           fallback: msg,
           map: mapAsk,
           persistMeta: { gate: gate.action, matched },
+          questionId: q.id,
           llm: memAsk?.daNoi
             ? {
               system: buildGuideSystem({
@@ -1156,7 +1167,7 @@ Deno.serve(async (req: Request) => {
           const msg = en
             ? `I think the real gap is one level deeper: "${rem.label}". Let's patch that foundation first — once it's solid, this problem will feel much easier!`
             : `Mình để ý chỗ vướng thật sự có thể nằm sâu hơn một tầng: "${rem.label}". Mình cùng quay lại vá nền đó trước nhé — nền chắc rồi, bài này sẽ dễ hơn nhiều!`;
-          persist("tutor", msg, "engine", { gate: "remediate", from: q.node_key, to: rem.nodeKey, matched });
+          persist("tutor", msg, "engine", { gate: "remediate", from: q.node_key, to: rem.nodeKey, matched, questionId: q.id });
           return json({
             correct: false,
             attemptNo,
@@ -1177,7 +1188,7 @@ Deno.serve(async (req: Request) => {
               ? "You've given this real effort. Let's walk through it together in class — flag it for your teacher!"
               : "Bạn đã nỗ lực thật sự rồi. Câu này mình đánh dấu lại để thầy cô giảng kỹ trên lớp nhé!");
         const nextSame = await pickQuestion(supa, s, q.node_key, q.id);
-        persist("tutor", solution, "engine", { gate: "exhausted", matched, cont: nextSame?.nodeKey ?? null });
+        persist("tutor", solution, "engine", { gate: "exhausted", matched, cont: nextSame?.nodeKey ?? null, questionId: q.id });
         return json({
           correct: false,
           attemptNo,
@@ -1199,7 +1210,7 @@ Deno.serve(async (req: Request) => {
           : (en
               ? "Let's slow down and rebuild from the definition. What does the question actually ask?"
               : "Mình chậm lại, dựng từ định nghĩa nhé. Đề bài thật ra đang hỏi điều gì?");
-        persist("tutor", msg, "engine", { gate: gate.action, matched });
+        persist("tutor", msg, "engine", { gate: gate.action, matched, questionId: q.id });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
 
@@ -1219,7 +1230,7 @@ Deno.serve(async (req: Request) => {
         : (en
             ? `${lead}Not quite. Which piece of the question have you not used yet?`
             : `${lead}Chưa đúng. Trong đề bài còn dữ kiện nào bạn chưa dùng đến?`);
-      persist("tutor", msg, "engine", { gate: gate.action, currentRung, matched });
+      persist("tutor", msg, "engine", { gate: gate.action, currentRung, matched, questionId: q.id });
       return json({ correct: false, attemptNo, gate: gate.action, currentRung, message: msg, ...(xp ? { xp } : {}) });
     }
 
