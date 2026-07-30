@@ -30,6 +30,15 @@ export interface GuideCtx {
    * liệu, để lời học sinh không bao giờ mang quyền lực của lời hệ thống.
    */
   hasMemory?: boolean;
+  /**
+   * Số lượt bạn ấy đã NÓI kể từ lần THỬ cuối (chỉ đặt khi đã nhiều).
+   *
+   * Vì sao không cắm trần cứng rồi chặn (chủ dự án chốt 29/07): đó là tư duy
+   * bán dịch vụ, và nó phạt oan đúng em kẹt thật — em kẹt cũng nói nhiều lượt
+   * liền. Đưa con số cho sư tử để CHÍNH NÓ nhận ra và tự nói bằng lời của nó,
+   * như một người bạn để ý thấy nãy giờ hai đứa toàn nói chuyện.
+   */
+  noiChuaThu?: number;
 }
 
 /**
@@ -130,6 +139,16 @@ Câu hỏi đang làm: <de_bai>${clip(ctx.question, 600)}</de_bai>.`;
     } else if (ctx.stage === "need_think") {
       s += `\n- Lời bạn ấy còn cụt: xoáy thêm MỘT nhịp cho rõ (bạn dựa vào đâu? bước nào trước?).`;
     }
+  }
+
+  // Nói nhiều mà chưa đặt tay vào làm — để sư tử tự xử, đừng chặn em lại.
+  if (ctx.noiChuaThu && ctx.noiChuaThu >= 4) {
+    s += `
+ĐỂ Ý: bạn ấy đã nói ${ctx.noiChuaThu} lượt liền mà CHƯA thử lại đáp án lần nào.
+- Nói một câu cho thấy mình để ý, rồi rủ bạn ấy bắt tay vào làm — như bạn bè, KHÔNG giảng đạo đức,
+  KHÔNG doạ, KHÔNG nhắc tới điểm hay luật lệ gì.
+- Nếu bạn ấy đang đùa hoặc nói chuyện ngoài bài: vui vẻ đáp lại MỘT câu ngắn rồi kéo về bài ngay.
+- Vẫn giữ nguyên: không cho đáp án, không chặn bạn ấy làm gì cả.`;
   }
 
   // ── NÓI NHƯ NGƯỜI, KHÔNG NHƯ MÁY (chủ dự án chốt 29/07) ────────────────────

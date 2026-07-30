@@ -179,11 +179,13 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
 }
 
 
-// ── Ca 8: CỔNG "CHAT MÃI MÀ KHÔNG LÀM BÀI" ─────────────────────────────────
-// Bản sao 1:1 phép đếm trong chat-turn. Điểm sống còn: đếm TỪ LẦN THỬ CUỐI,
-// nên em vừa nói vừa làm bài KHÔNG BAO GIỜ bị chặn — chỉ em nói mãi mà không
-// chịu đặt tay vào làm mới chạm trần.
-const CHAT_CAP = 8;
+// ── Ca 8: PHÁT HIỆN "NÓI MÃI MÀ KHÔNG LÀM BÀI" ─────────────────────────────
+// Bản sao 1:1 phép đếm trong chat-turn. Con số này KHÔNG chặn em lại (chủ dự án
+// bác trần cứng: "ai lại đi cài hạn mức cho học sinh") — nó được ĐƯA CHO SƯ TỬ
+// để chính nó nhận ra và tự kéo em về việc làm bài bằng lời của nó.
+// Điểm sống còn vẫn là: đếm TỪ LẦN THỬ CUỐI, nên em vừa nói vừa làm bài không
+// bao giờ bị coi là đang đùa.
+const CHAT_CAP = 4; // ngưỡng BÁO cho sư tử, không phải ngưỡng chặn
 function demNoiSauLanThuCuoi(turns, lastAttAt, qid) {
   return turns.filter((r) =>
     r.meta?.kind === "reflect" && r.meta?.questionId === qid &&
@@ -198,12 +200,12 @@ const noi = (n, at) => Array.from({ length: n }, (_, i) => ({
 {
   // Em cợt nhả: nói 12 lượt liền, chưa thử lại lần nào.
   const d = demNoiSauLanThuCuoi(noi(12, "2026-07-30T10:"), "2026-07-30T09:00", "q1");
-  t("cợt nhả: 12 lượt nói không thử → chạm trần", d >= CHAT_CAP, `${d}`);
+  t("cợt nhả: 12 lượt nói không thử → sư tử được báo", d >= CHAT_CAP, `${d}`);
 }
 {
   // Em chăm chỉ: nói 12 lượt NHƯNG lần thử cuối mới đây → bộ đếm về gần 0.
   const d = demNoiSauLanThuCuoi(noi(12, "2026-07-30T10:"), "2026-07-30T10:11", "q1");
-  t("chăm chỉ: vừa thử lại → KHÔNG bị chặn", d < CHAT_CAP, `${d}`);
+  t("chăm chỉ: vừa thử lại → KHÔNG bị coi là đùa", d < CHAT_CAP, `${d}`);
 }
 {
   // Nói ở CÂU KHÁC không được tính sang câu này.
@@ -214,12 +216,12 @@ const noi = (n, at) => Array.from({ length: n }, (_, i) => ({
 {
   // Chưa thử lần nào (câu mới mở) mà đã nói 9 lượt → vẫn phải chặn.
   const d = demNoiSauLanThuCuoi(noi(9, "2026-07-30T10:"), "", "q1");
-  t("chưa thử lần nào mà nói 9 lượt → chặn", d >= CHAT_CAP, `${d}`);
+  t("chưa thử lần nào mà nói 9 lượt → được báo", d >= CHAT_CAP, `${d}`);
 }
 {
   // Ngay dưới trần thì phải cho qua — đừng chặn oan.
-  const d = demNoiSauLanThuCuoi(noi(7, "2026-07-30T10:"), "2026-07-30T09:00", "q1");
-  t("7 lượt (dưới trần) → vẫn cho nói", d < CHAT_CAP, `${d}`);
+  const d = demNoiSauLanThuCuoi(noi(3, "2026-07-30T10:"), "2026-07-30T09:00", "q1");
+  t("3 lượt (dưới ngưỡng) → sư tử không bị làm phiền", d < CHAT_CAP, `${d}`);
 }
 
 console.log(`\n${pass} đạt · ${fail} trượt`);

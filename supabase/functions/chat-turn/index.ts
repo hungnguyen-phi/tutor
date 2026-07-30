@@ -64,24 +64,6 @@ interface QuestionItem {
 const REMEDIATION_MAX_DEPTH = 4;
 
 /**
- * TRẦN LƯỢT NÓI CHUYỆN cho MỘT CÂU, tính TỪ LẦN THỬ CUỐI (29/07).
- *
- * Trần token/ngày (200k ≈ 133 lượt AI) tính theo NGÀY, không theo CÂU — nên em
- * cợt nhả ngồi tán 133 lượt trên đúng một câu mà không trả lời lần nào vẫn lọt.
- * Tiền không vỡ ($68/tháng ngay cả khi cả 500 em phá hết sức), nhưng sư tử
- * thành đồ chơi.
- *
- * Đếm TỪ LẦN THỬ CUỐI, không phải tổng: em vừa nói vừa làm bài thì nói bao
- * nhiêu cũng được — đó đúng là thứ mình muốn khuyến khích. Chỉ chặn đúng kiểu
- * nói mãi mà không chịu đặt tay vào làm.
- *
- * 8 là rộng rãi: thang Socratic có ~4 bậc, nói hết thang vẫn còn thừa lượt. Và
- * chạm trần KHÔNG khoá em lại — chỉ dừng gọi mô hình, em vẫn trả lời bình
- * thường, trả lời xong là bộ đếm về 0.
- */
-const CHAT_CAP_MOI_CAU = 8;
-
-/**
  * Chất lượng suy nghĩ tính từ NỘI DUNG lời học sinh viết (0..1) — TÍNH Ở SERVER,
  * KHÔNG nhận từ client (client có thể khai khống để nhảy cổng nỗ lực). Câu càng
  * dài + có từ lập luận (vì/nên/suy ra/công thức…) thì điểm càng cao; mặc định an
@@ -670,15 +652,14 @@ Deno.serve(async (req: Request) => {
           : gate.action === "require_thinking" ? "need_think"
           : "guide";
 
-        // ── CỔNG "CHAT MÃI MÀ KHÔNG LÀM BÀI" (29/07) ─────────────────────────
-        // Trần token/ngày (200k ≈ 133 lượt) là hàng rào duy nhất chặn em cợt
-        // nhả — mà nó tính theo NGÀY, không theo CÂU. Nghĩa là em ngồi tán với
-        // sư tử 133 lượt trên đúng một câu, không trả lời lần nào, vẫn lọt.
-        // Tiền thì không vỡ, nhưng sư tử thành đồ chơi và em không học được gì.
+        // ── EM ĐANG ĐÙA HAY ĐANG HỌC? (chủ dự án chốt 29/07) ─────────────────
+        // KHÔNG cắm trần cứng rồi chặn em lại — đó là tư duy bán dịch vụ, và nó
+        // phạt oan đúng em kẹt thật (em kẹt cũng nói nhiều lượt liền). Thay vào
+        // đó ĐƯA TÌNH TRẠNG cho sư tử, để chính nó nhận ra và tự nói bằng lời
+        // của nó — như một người bạn để ý thấy nãy giờ toàn nói chuyện.
         //
-        // Đếm theo "kể từ LẦN THỬ CUỐI" chứ không phải tổng số lượt nói: em vừa
-        // nói vừa làm bài thì nói bao nhiêu cũng được — đó đúng là thứ mình
-        // muốn. Chỉ chặn đúng kiểu nói mãi mà không chịu thử lại.
+        // Đếm TỪ LẦN THỬ CUỐI: em vừa nói vừa làm bài thì nói bao nhiêu cũng
+        // được, đó đúng là thứ mình muốn khuyến khích.
         const lastAttAt = attRows.length
           ? String((attRes.data ?? [])[attRows.length - 1]?.created_at ?? "")
           : "";
@@ -688,13 +669,6 @@ Deno.serve(async (req: Request) => {
           r.meta?.kind === "reflect" && r.meta?.questionId === q.id &&
           (!lastAttAt || r.created_at > lastAttAt)
         ).length;
-        if (noiSauLanThuCuoi >= CHAT_CAP_MOI_CAU) {
-          const msg = en
-            ? "We've talked this one through quite a bit! Time to put it to the test — pick or type an answer, and I'm right here."
-            : "Mình nói chuyện về câu này nhiều rồi đó! Giờ thử đặt tay vào làm xem sao — bạn chọn hoặc điền một đáp án nhé, mình vẫn ở đây.";
-          persist("tutor", msg, "engine", { gate: "chat_cap", noiSauLanThuCuoi });
-          return json({ correct: false, gate: "reflect", graded: false, message: msg }, 200, req);
-        }
 
         // ĐƯỜNG LUI TẤT ĐỊNH — dùng khi trường chưa bật khoá AI hoặc LLM hỏng.
         if (stage === "must_try") {
@@ -737,6 +711,8 @@ Deno.serve(async (req: Request) => {
                 attempts,
                 stage,
                 hasMemory: !!mem,
+                // Nói nhiều mà chưa thử lại → sư tử tự thấy, tự kéo về việc làm bài.
+                ...(noiSauLanThuCuoi >= 4 ? { noiChuaThu: noiSauLanThuCuoi } : {}),
               }),
               user: buildGuideUser({
                 hoSo: mem?.hoSo,
