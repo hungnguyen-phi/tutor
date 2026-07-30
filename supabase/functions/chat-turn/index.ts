@@ -64,6 +64,24 @@ interface QuestionItem {
 const REMEDIATION_MAX_DEPTH = 4;
 
 /**
+ * TRẦN LƯỢT NÓI CHUYỆN cho MỘT CÂU, tính TỪ LẦN THỬ CUỐI (29/07).
+ *
+ * Trần token/ngày (200k ≈ 133 lượt AI) tính theo NGÀY, không theo CÂU — nên em
+ * cợt nhả ngồi tán 133 lượt trên đúng một câu mà không trả lời lần nào vẫn lọt.
+ * Tiền không vỡ ($68/tháng ngay cả khi cả 500 em phá hết sức), nhưng sư tử
+ * thành đồ chơi.
+ *
+ * Đếm TỪ LẦN THỬ CUỐI, không phải tổng: em vừa nói vừa làm bài thì nói bao
+ * nhiêu cũng được — đó đúng là thứ mình muốn khuyến khích. Chỉ chặn đúng kiểu
+ * nói mãi mà không chịu đặt tay vào làm.
+ *
+ * 8 là rộng rãi: thang Socratic có ~4 bậc, nói hết thang vẫn còn thừa lượt. Và
+ * chạm trần KHÔNG khoá em lại — chỉ dừng gọi mô hình, em vẫn trả lời bình
+ * thường, trả lời xong là bộ đếm về 0.
+ */
+const CHAT_CAP_MOI_CAU = 8;
+
+/**
  * Chất lượng suy nghĩ tính từ NỘI DUNG lời học sinh viết (0..1) — TÍNH Ở SERVER,
  * KHÔNG nhận từ client (client có thể khai khống để nhảy cổng nỗ lực). Câu càng
  * dài + có từ lập luận (vì/nên/suy ra/công thức…) thì điểm càng cao; mặc định an
@@ -445,6 +463,19 @@ Deno.serve(async (req: Request) => {
       agent?: string;
     }): Promise<Response> => {
       const who = o.agent ?? "engine";
+      /**
+       * HẾT HẠN MỨC NGÀY thì phải NÓI THẬT.
+       *
+       * Trước đây `BudgetExceededError` rơi vào cùng một khối catch với "mô
+       * hình hỏng", nên em chạm trần 200k token chỉ thấy một câu soạn sẵn bâng
+       * quơ — không hiểu vì sao sư tử bỗng nói lạc đề, tưởng app hỏng. Còn em
+       * cợt nhả thì cũng chẳng biết mình vừa bị chặn.
+       */
+      const HET_HAN_MUC = en
+        ? "We've talked a lot today! Let's pick this up tomorrow — for now, try the questions on your own, I'll be here."
+        : "Hôm nay mình nói chuyện nhiều rồi đó! Mai mình lại tiếp nhé — giờ bạn cứ làm bài tiếp, mình vẫn chấm bình thường.";
+      const isBudget = (e: unknown) => e instanceof Error && e.name === "BudgetExceededError";
+
       // ĐƯỜNG CŨ — một cục JSON.
       if (!wantStream) {
         let msg = o.fallback;
@@ -453,7 +484,10 @@ Deno.serve(async (req: Request) => {
             const res = await callLLM(o.llm);
             const t = rehydrate(res.text, o.map).trim();
             if (t) msg = t;
-          } catch { /* hết ngân sách / LLM hỏng → giữ câu tất định */ }
+          } catch (e) {
+            if (isBudget(e)) msg = HET_HAN_MUC; // hết lượt hôm nay → nói thẳng
+            /* mô hình hỏng → giữ câu tất định */
+          }
         }
         persist("tutor", msg, who, o.persistMeta);
         return json({ ...o.envelope, message: msg }, 200, req);
@@ -487,13 +521,17 @@ Deno.serve(async (req: Request) => {
           }
           if (safe) { const t = rehydrate(safe, o.map); full += t; writer.delta(t); }
         };
+        let hetHanMuc = false;
         try {
           await callLLMStream(o.llm, push);
           if (pend) { const t = rehydrate(pend, o.map); full += t; writer.delta(t); }
-        } catch { /* rơi xuống câu tất định ngay bên dưới */ }
-        const msg = full.trim() || o.fallback;
-        // Mô hình câm hẳn → phát câu tất định để em không nhìn màn trống.
-        if (!full.trim()) writer.delta(o.fallback);
+        } catch (e) {
+          hetHanMuc = isBudget(e); // hết lượt hôm nay → nói thẳng, đừng nói bâng quơ
+        }
+        const lui = hetHanMuc ? HET_HAN_MUC : o.fallback;
+        const msg = full.trim() || lui;
+        // Mô hình câm hẳn → phát câu lui để em không nhìn màn trống.
+        if (!full.trim()) writer.delta(lui);
         persist("tutor", msg, who, o.persistMeta);
         writer.done(msg);
       })().catch((e) => {
@@ -557,8 +595,8 @@ Deno.serve(async (req: Request) => {
             : thinkingContentSignal(reasoning);
         // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
         // đáng thêm một vòng mạng tuần tự).
-        const [attRes, { data: ladders }, { data: nodeForGuide }, mem] = await Promise.all([
-          supa.from("attempts").select("id, attempt_no, thinking_quality")
+        const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes] = await Promise.all([
+          supa.from("attempts").select("id, attempt_no, thinking_quality, created_at")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
           supa.from("socratic_ladders").select("rungs, bottom_out, cong_no_luc")
@@ -572,6 +610,11 @@ Deno.serve(async (req: Request) => {
             sessionId: s.id, studentId: s.student_id, questionId: q.id,
             names, omitContent: reasoning,
           }).catch(() => null),
+          // Lượt EM NÓI gần đây — để đếm "đã nói bao nhiêu lần kể từ lần thử
+          // cuối". Đi cùng chuyến, không thêm vòng chờ.
+          supa.from("session_turns").select("created_at, meta")
+            .eq("session_id", s.id).eq("role", "student")
+            .order("created_at", { ascending: false }).limit(40),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
@@ -626,6 +669,32 @@ Deno.serve(async (req: Request) => {
           gate.action === "require_attempt" ? "must_try"
           : gate.action === "require_thinking" ? "need_think"
           : "guide";
+
+        // ── CỔNG "CHAT MÃI MÀ KHÔNG LÀM BÀI" (29/07) ─────────────────────────
+        // Trần token/ngày (200k ≈ 133 lượt) là hàng rào duy nhất chặn em cợt
+        // nhả — mà nó tính theo NGÀY, không theo CÂU. Nghĩa là em ngồi tán với
+        // sư tử 133 lượt trên đúng một câu, không trả lời lần nào, vẫn lọt.
+        // Tiền thì không vỡ, nhưng sư tử thành đồ chơi và em không học được gì.
+        //
+        // Đếm theo "kể từ LẦN THỬ CUỐI" chứ không phải tổng số lượt nói: em vừa
+        // nói vừa làm bài thì nói bao nhiêu cũng được — đó đúng là thứ mình
+        // muốn. Chỉ chặn đúng kiểu nói mãi mà không chịu thử lại.
+        const lastAttAt = attRows.length
+          ? String((attRes.data ?? [])[attRows.length - 1]?.created_at ?? "")
+          : "";
+        const noiSauLanThuCuoi = ((chatRes?.data ?? []) as Array<
+          { created_at: string; meta: { kind?: string; questionId?: string } | null }
+        >).filter((r) =>
+          r.meta?.kind === "reflect" && r.meta?.questionId === q.id &&
+          (!lastAttAt || r.created_at > lastAttAt)
+        ).length;
+        if (noiSauLanThuCuoi >= CHAT_CAP_MOI_CAU) {
+          const msg = en
+            ? "We've talked this one through quite a bit! Time to put it to the test — pick or type an answer, and I'm right here."
+            : "Mình nói chuyện về câu này nhiều rồi đó! Giờ thử đặt tay vào làm xem sao — bạn chọn hoặc điền một đáp án nhé, mình vẫn ở đây.";
+          persist("tutor", msg, "engine", { gate: "chat_cap", noiSauLanThuCuoi });
+          return json({ correct: false, gate: "reflect", graded: false, message: msg }, 200, req);
+        }
 
         // ĐƯỜNG LUI TẤT ĐỊNH — dùng khi trường chưa bật khoá AI hoặc LLM hỏng.
         if (stage === "must_try") {

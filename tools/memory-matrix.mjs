@@ -178,5 +178,49 @@ const long = (n, seed = "x") => (seed + " ").repeat(Math.ceil(n / 2)).slice(0, n
   t("buổi trống: daNoi = false (đừng gọi mô hình)", m.daNoi === false, `${m.daNoi}`);
 }
 
+
+// ── Ca 8: CỔNG "CHAT MÃI MÀ KHÔNG LÀM BÀI" ─────────────────────────────────
+// Bản sao 1:1 phép đếm trong chat-turn. Điểm sống còn: đếm TỪ LẦN THỬ CUỐI,
+// nên em vừa nói vừa làm bài KHÔNG BAO GIỜ bị chặn — chỉ em nói mãi mà không
+// chịu đặt tay vào làm mới chạm trần.
+const CHAT_CAP = 8;
+function demNoiSauLanThuCuoi(turns, lastAttAt, qid) {
+  return turns.filter((r) =>
+    r.meta?.kind === "reflect" && r.meta?.questionId === qid &&
+    (!lastAttAt || r.created_at > lastAttAt)
+  ).length;
+}
+const noi = (n, at) => Array.from({ length: n }, (_, i) => ({
+  created_at: at + String(i).padStart(2, "0"),
+  meta: { kind: "reflect", questionId: "q1" },
+}));
+
+{
+  // Em cợt nhả: nói 12 lượt liền, chưa thử lại lần nào.
+  const d = demNoiSauLanThuCuoi(noi(12, "2026-07-30T10:"), "2026-07-30T09:00", "q1");
+  t("cợt nhả: 12 lượt nói không thử → chạm trần", d >= CHAT_CAP, `${d}`);
+}
+{
+  // Em chăm chỉ: nói 12 lượt NHƯNG lần thử cuối mới đây → bộ đếm về gần 0.
+  const d = demNoiSauLanThuCuoi(noi(12, "2026-07-30T10:"), "2026-07-30T10:11", "q1");
+  t("chăm chỉ: vừa thử lại → KHÔNG bị chặn", d < CHAT_CAP, `${d}`);
+}
+{
+  // Nói ở CÂU KHÁC không được tính sang câu này.
+  const khac = noi(12, "2026-07-30T10:").map((r) => ({ ...r, meta: { kind: "reflect", questionId: "q2" } }));
+  const d = demNoiSauLanThuCuoi(khac, "2026-07-30T09:00", "q1");
+  t("nói ở câu khác không tính sang câu này", d === 0, `${d}`);
+}
+{
+  // Chưa thử lần nào (câu mới mở) mà đã nói 9 lượt → vẫn phải chặn.
+  const d = demNoiSauLanThuCuoi(noi(9, "2026-07-30T10:"), "", "q1");
+  t("chưa thử lần nào mà nói 9 lượt → chặn", d >= CHAT_CAP, `${d}`);
+}
+{
+  // Ngay dưới trần thì phải cho qua — đừng chặn oan.
+  const d = demNoiSauLanThuCuoi(noi(7, "2026-07-30T10:"), "2026-07-30T09:00", "q1");
+  t("7 lượt (dưới trần) → vẫn cho nói", d < CHAT_CAP, `${d}`);
+}
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
