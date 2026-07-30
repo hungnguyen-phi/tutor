@@ -125,11 +125,37 @@ Vòng focus phải nhìn thấy trên MỌI nền: mặc định navy trên nề
 navy/brand (`unit-head` cũ, hero, nút navy) vòng chuyển **gold** — sửa món nợ "focus navy
 trên nền navy".
 
-## Dark mode
+## Dark mode — ĐÃ GỠ (29/07)
 
-Giữ (học sinh vẫn học tối), đổi khí chất: "bầu trời đêm ấm" — canvas navy-đen giữ sắc
-trời, mane/sky/gold nâng sáng để đạt AA, chữ trên nền màu đảo qua `--on-brand` (giữ cơ
-chế). Bóng thay bằng chênh sáng bề mặt.
+App **luôn sáng**. Chủ dự án gỡ chế độ tối: bản navy-trên-đen đọc ra trầm mặc, ngược
+hẳn khí chất "sân trường buổi sáng".
+
+Cách gỡ (đừng tưởng chỉ xoá CSS là xong): script chống-nháy trong `layout.tsx` gắn
+`data-theme="light"` lên `<html>` **trước khung hình đầu tiên** và xoá luôn khoá
+`va-theme` cũ. Bảng token tối vẫn nằm trong `globals.css` dưới
+`@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` — thiếu thuộc
+tính đó là máy để hệ điều hành tối sẽ **chớp nguyên một khung tối** trước khi React kịp
+chạy. Giữ bảng token tối để bật lại được, nhưng nó đang ngủ.
+
+## Mặt bài tập (30/07)
+
+Riêng màn ĐANG LÀM BÀI đảo vai màu so với phần còn lại của app: **trang trắng, đề bài
+mang màu**. Canvas xanh là không khí của lộ trình; lúc làm bài thì mọi thứ lùi lại cho
+đề và đáp án. `body:has(.lsn-grid)` → nền `--surface`.
+
+| Token | Màu | Đo |
+|---|---|---|
+| `--q-face` | `#e3eefb` | nền thẻ đề bài — navy trên nó 11,69:1 |
+| `--pick-line` | `#5a92cf` | viền ô đáp án khi nghỉ — **3,26:1**, xanh nhạt nhất còn qua ngưỡng 1.4.11 |
+| `--pick-strong` | `#2e6db4` | rê chuột / nhấn — 5,30:1 |
+
+Câu hỏi **luôn canh giữa màn**. Từ 1360px bày ba cột: đệm rỗng · đề bài · học liệu —
+cột trái rỗng bằng đúng cột học liệu nên đề bài nằm chính tâm. Ngưỡng là 1360 chứ
+không phải 1200: đo ở 1200 thì cột đề bài chỉ còn 296px, hẹp hơn cả cột học liệu.
+
+**Đừng dùng `--ink-faint` cho chữ mang nghĩa.** Nó 3,01:1 — chỉ đủ cho trang trí (caret,
+tay nắm kéo). Chữ có nghĩa dùng `--muted` (4,64:1) kể cả khi in đậm: ngưỡng "chữ lớn"
+của WCAG là 18,66px đậm, mà mọi chỗ trong app đều nhỏ hơn thế.
 
 ## z-index
 

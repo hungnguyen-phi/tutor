@@ -72,7 +72,11 @@
   --ink: #26275d; /* heading = navy (hi-fi) */
   --ink-2: #3d4761; /* body */
   --muted: #5a6b8c; /* 4.6:1 trên trắng */
-  --ink-faint: #8296b4; /* nhãn phụ, rank nghỉ — chỉ cho chữ LỚN/đậm */
+  /* 3,01:1 trên trắng · 2,85:1 trên canvas. CHỈ dùng cho thứ TRANG TRÍ (mũi tên
+     caret, tay nắm kéo) — nghĩa đã nằm ở chỗ khác. Chữ MANG NGHĨA dùng --muted
+     (4,64:1), kể cả khi đậm: ngưỡng "chữ lớn" của WCAG là 18,66px đậm, mà mọi
+     chỗ trong app này đều nhỏ hơn thế (rà 30/07 — đã sửa 4 chỗ dùng sai). */
+  --ink-faint: #8296b4;
   --ink-disabled: #97a8c0;
   --line: #dce6f2;
   --line-strong: #bfd8f0;
@@ -5459,7 +5463,10 @@ html[data-motion="reduce"] .spin {
   width: 20px;
   font-size: 0.9375rem;
   font-weight: 700;
-  color: var(--ink-faint);
+  /* --muted (4,64:1) chứ KHÔNG --ink-faint (3,01:1). 15px ĐẬM vẫn là chữ
+     THƯỜNG theo WCAG — ngưỡng "chữ lớn" là 18,66px đậm — nên cần 4,5:1. Đây là
+     HẠNG của em, không phải hoa văn. */
+  color: var(--muted);
 }
 .board-list .board-rank.top1 {
   color: var(--gold-text);
@@ -6999,7 +7006,9 @@ html[data-motion="reduce"] .think-dots::after {
   border: 2px dashed var(--line-strong);
   border-radius: var(--r);
   background: var(--surface);
-  color: var(--ink-faint);
+  /* Ô trống nói cho em biết đây là chỗ thứ mấy — chữ mang nghĩa, 17px đậm vẫn
+     dưới ngưỡng "chữ lớn" (18,66px), nên phải đủ 4,5:1. */
+  color: var(--muted);
   font-weight: 700;
   font-size: 1.0625rem;
   cursor: pointer;
@@ -7209,7 +7218,8 @@ html[data-motion="reduce"] .think-dots::after {
 .rc-note { color: var(--muted); font-size: 0.875rem; line-height: 1.45; }
 .rc-overall { margin-top: 12px; color: var(--ink-2); line-height: 1.5; }
 .rc-coach { margin-top: 8px; color: var(--ink); font-weight: 600; line-height: 1.5; }
-.rc-foot { margin-top: 10px; color: var(--ink-faint); font-size: 0.75rem; }
+/* 12px: chữ nhỏ nhất màn, càng phải đủ tương phản. */
+.rc-foot { margin-top: 10px; color: var(--muted); font-size: 0.75rem; }
 
 /* Đợt C: nút Nghe (Web Speech) cho dạng nghe. */
 .listen-btn {
@@ -11092,7 +11102,8 @@ textarea {
     border: 1px dashed var(--line-strong);
     box-shadow: none;
   }
-  .ws-stat[data-zero] > b.num { color: var(--ink-faint); }
+  /* Số 0 vẫn là SỐ LIỆU — làm nhạt để nói "chưa có", không phải để khó đọc. */
+  .ws-stat[data-zero] > b.num { color: var(--muted); }
   .ws-stat[data-zero] .ws-stat-ico { opacity: 0.55; }
 }
 
