@@ -1489,12 +1489,15 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* BỐ CỤC HAI CỘT trên màn rộng (29/07, chủ dự án chỉ ra): cột nội dung
-          khoá ở 42rem nên màn 1920px bỏ trống gần 1.200px hai bên, mà học liệu
-          lại nằm ĐÈ lên đầu, đẩy câu hỏi xuống dưới màn.
-          Nay ≥1200px: câu hỏi bên trái, học liệu sang phải và DÍNH theo khi cuộn
-          — em vừa làm bài vừa tra được phim/phiếu, đúng tinh thần dual coding.
-          Dưới 1200px giữ nguyên xếp dọc, học liệu đứng trước (xem trước rồi luyện).
+      {/* BỐ CỤC BA CỘT trên màn rộng (29/07 dựng, 30/07 canh lại giữa).
+          Gốc: cột nội dung khoá ở 42rem nên màn 1920px bỏ trống gần 1.200px hai
+          bên, mà học liệu lại nằm ĐÈ lên đầu, đẩy câu hỏi xuống dưới màn.
+          Bản hai cột sửa được chỗ đó nhưng đẩy đề bài lệch hẳn sang trái — chủ
+          dự án yêu cầu câu hỏi LUÔN ở giữa. Nay cột trái là khoảng ĐỆM rỗng
+          bằng đúng cột học liệu, nên đề bài nằm chính giữa màn.
+          Ngưỡng là 1360px chứ không phải 1200: đo ở 1200 thì cột đề bài chỉ còn
+          296px — hẹp hơn cả cột học liệu, 26 ký tự một dòng. Dưới ngưỡng về MỘT
+          cột (học liệu đứng trước: xem trước rồi luyện), vẫn canh giữa.
           DOM giữ học liệu TRƯỚC để thứ tự đọc màn hình + mobile không đổi. */}
       <div className="lsn-grid">
         <aside className="lsn-aside">

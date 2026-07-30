@@ -76,6 +76,18 @@
   --ink-disabled: #97a8c0;
   --line: #dce6f2;
   --line-strong: #bfd8f0;
+  /* ── MẶT BÀI TẬP (chủ dự án chốt 30/07) ────────────────────────────────
+     "nền ở bài tập nên là nền trắng, câu hỏi và đáp án thì có màu đẹp thay vì
+     màu xám". Đo lại thì lời phàn nàn về màu và một lỗi WCAG là CÙNG MỘT thứ:
+     viền `--line` trên nền trắng chỉ đạt 1,26:1, mà ranh giới của một control
+     cần ≥3:1 (WCAG 1.4.11). Đáp án không chỉ xám — nó gần như tàng hình.
+       --q-face      nền thẻ đề bài; navy trên nó đạt 11,7:1
+       --pick-line   viền đáp án khi nghỉ — 3,26:1 trên trắng, xanh nhạt nhất
+                     còn qua được ngưỡng (thử #6a9dd4 chỉ 2,84:1 → trượt)
+       --pick-strong viền khi rê chuột / nhấn */
+  --q-face: #e3eefb;
+  --pick-line: #5a92cf;
+  --pick-strong: #2e6db4;
   --hairline: #e4ebf4;
   --track: #edf2f9; /* rãnh progress */
 
@@ -144,6 +156,9 @@
     --ink-disabled: #5f6b8a;
     --line: #2e3556;
     --line-strong: #43496e;
+    --q-face: #1e2743;
+    --pick-line: #4a5680;
+    --pick-strong: #7f9fd0;
     --hairline: #262c4a;
     --track: #232945;
     --locked-bg: #1e2440;
@@ -208,6 +223,9 @@
     --ink-disabled: #5f6b8a;
     --line: #2e3556;
     --line-strong: #43496e;
+    --q-face: #1e2743;
+    --pick-line: #4a5680;
+    --pick-strong: #7f9fd0;
     --hairline: #262c4a;
     --track: #232945;
     --locked-bg: #1e2440;
@@ -6029,12 +6047,16 @@ html[data-motion="reduce"] .spin {
   display: block;
   margin: 6px 0 12px;
 }
+/* THẺ ĐỀ BÀI — mặt xanh trời nhạt trên nền trắng.
+   Trước: mặt trắng + bóng đổ, đứng trên canvas xanh nhạt. Nay nền bài tập là
+   TRẮNG (yêu cầu chủ dự án) nên thẻ trắng trên trắng sẽ tan mất; đảo lại —
+   trang trắng, ĐỀ BÀI mang màu. Navy trên nền này đạt 11,7:1.
+   Bỏ luôn bóng đổ: trên nền trắng nó chỉ thành vệt xám, đúng thứ cần bỏ. */
 .qcard {
-  margin-bottom: 12px;
-  padding: 22px 18px;
-  background: var(--surface);
+  margin-bottom: 14px;
+  padding: 22px 20px;
+  background: var(--q-face);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow);
   text-align: center;
 }
 /* Đề toán: cỡ lớn, navy. Chữ nghiêng serif của hi-fi cũ đã BỎ — nó bôi nghiêng
@@ -6121,13 +6143,17 @@ html[data-motion="reduce"] .spin {
 .ans-grid > :last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
+/* Ô ĐÁP ÁN — phím trắng viền xanh trên nền trắng.
+   `--line` cũ chỉ 1,26:1 trên trắng: vừa xám vừa không đạt WCAG 1.4.11 (ranh
+   giới control cần ≥3:1). `--pick-line` đạt 3,26:1 — thấy rõ đây là thứ bấm
+   được, và nó thuộc họ trời của thương hiệu chứ không phải màu xám mồ côi. */
 .ans-tile {
   min-height: 56px;
   padding: 18px 10px;
   background: var(--surface);
-  border: 2px solid var(--line);
+  border: 2px solid var(--pick-line);
   border-radius: var(--r);
-  box-shadow: 0 4px 0 var(--line);
+  box-shadow: 0 4px 0 var(--pick-line);
   font-size: 1.0625rem;
   font-weight: 600;
   color: var(--ink-2);
@@ -6136,12 +6162,12 @@ html[data-motion="reduce"] .spin {
     background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 .ans-tile:hover:not(:disabled):not([aria-pressed="true"]) {
-  border-color: var(--line-strong);
-  box-shadow: 0 4px 0 var(--line-strong);
+  border-color: var(--pick-strong);
+  box-shadow: 0 4px 0 var(--pick-strong);
 }
 .ans-tile:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--line);
+  box-shadow: 0 2px 0 var(--pick-strong);
 }
 .ans-tile[aria-pressed="true"] {
   background: var(--navy-tint);
@@ -11634,18 +11660,41 @@ textarea {
 .lsn-grid { display: contents; }
 .lsn-main { min-width: 0; }
 
-@media (min-width: 1200px) {
+/* NỀN BÀI TẬP = TRẮNG (chủ dự án chốt 30/07).
+   Canvas xanh nhạt là không khí của tab Học/lộ trình; lúc ĐANG LÀM BÀI thì mọi
+   thứ phải lùi lại cho đề bài và đáp án. Chỉ đổi ĐÚNG màn có .lsn-grid — các
+   màn khác giữ nguyên canvas. Đặt trên `body` (không phải .viewport) để vùng
+   quá cuộn (overscroll) cũng trắng, không hở một dải xanh ở mép. */
+body:has(.lsn-grid) {
+  background: var(--surface);
+}
+
+/* NGƯỠNG 1360px, không phải 1200px — đo mới biết (30/07).
+   Bố cục ba cột ở 1200px làm cột ĐỀ BÀI chỉ còn 296px, HẸP HƠN cả cột học liệu
+   380px: 26 ký tự một dòng, dưới xa mức đọc được (45–75). Canh giữa mà không
+   đọc nổi thì hỏng đúng thứ định sửa.
+   Nay chỉ tách cột khi CÓ ĐỦ CHỖ THẬT: 356 + 28 + 544 + 28 + 356 + đệm 48 =
+   1360. Dưới ngưỡng đó về MỘT cột (học liệu nằm trên) — vẫn canh giữa tuyệt
+   đối, đúng yêu cầu, chỉ là không bày ngang được. */
+@media (min-width: 1360px) {
   /* Nới trần cho MÀN BÀI HỌC, không đụng --content-w của các màn khác. */
-  .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1160px); }
+  .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1420px); }
+  /* BA cột, không phải hai (chủ dự án chốt 30/07: "câu hỏi LUÔN LUÔN ở giữa").
+     Bản hai cột đẩy đề bài lệch hẳn sang trái vì học liệu chiếm 380px bên phải
+     — mắt đọc lệch tâm suốt buổi. Cột trái là khoảng ĐỆM rỗng đúng bằng cột
+     học liệu, nên đề bài nằm chính giữa màn, còn học liệu vẫn ở bên cạnh. */
   .lsn-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--lsn-aside-w, 380px);
+    grid-template-columns:
+      var(--lsn-aside-w, 356px)
+      minmax(0, 1fr)
+      var(--lsn-aside-w, 356px);
     gap: var(--lsn-gap, 28px);
     align-items: start;
   }
-  .lsn-main { grid-column: 1; grid-row: 1; }
+  .lsn-main { grid-column: 2; grid-row: 1; }
   .lsn-aside {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
     position: sticky;
     /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
@@ -11657,14 +11706,27 @@ textarea {
   }
   /* Học liệu rỗng (bài chưa có gì) → LessonView trả null ⇒ aside trống:
      trả về MỘT cột, đừng chừa 380px không khí. */
+  /* Bài KHÔNG có học liệu → LessonView trả null ⇒ aside rỗng. Về MỘT cột, và
+     kéo bề ngang đọc về mức thường: để nguyên trần 1.160px thì một câu trắc
+     nghiệm bị dàn ngang gần một mét hai, mắt phải quét chứ không đọc được.
+     Đệm của thanh nút đáy cũng phải trả về giữa theo. */
   .lsn-grid:has(.lsn-aside:empty) { display: block; }
+  .lsn-grid:has(.lsn-aside:empty) .lsn-main {
+    max-width: var(--content-w);
+    margin-inline: auto;
+  }
+  .shell-main:has(.lsn-aside:empty) ~ .lfoot .lfoot-inner,
+  body:has(.lsn-aside:empty) .lfoot-inner {
+    padding-inline: 20px;
+  }
   /* Khung xem trong cột hẹp: thấp hơn màn bài học vì cột chỉ rộng 380px. */
   .lsn-aside .lsv-frame,
   .lsn-aside .lsv-img { height: 260px; max-height: 260px; min-height: 200px; }
   .lsn-aside .lsv { margin: 0; }
-  /* Nút hành động dưới đáy bám theo CỘT TRÁI, không trôi ra giữa cả hai cột. */
+  /* Nút hành động dưới đáy bám ĐÚNG cột giữa — cùng trục với đề bài. Bố cục ba
+     cột nên đệm cả hai bên, không chỉ bên phải như bản hai cột. */
   .lfoot-inner {
-    max-width: var(--lsn-w, 1160px);
-    padding-right: calc(var(--lsn-aside-w, 380px) + var(--lsn-gap, 28px));
+    max-width: var(--lsn-w, 1420px);
+    padding-inline: calc(var(--lsn-aside-w, 356px) + var(--lsn-gap, 28px));
   }
 }
