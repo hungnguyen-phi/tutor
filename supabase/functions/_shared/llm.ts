@@ -110,6 +110,20 @@ export interface LlmCallArgs {
    * CHỈ dùng cho nhánh chấm; KHÔNG dùng cho đối thoại (mỗi lượt phải mới).
    */
   cache?: boolean;
+  /**
+   * ƯU TIÊN NHÀ CUNG CẤP NHANH NHẤT (OpenRouter provider routing, 29/07).
+   *
+   * Cùng MỘT model, throughput giữa các nhà cung cấp trên OpenRouter chênh từ
+   * ~4 đến ~57 token/giây — lệch 14 LẦN. Một câu 100 token vì thế mất 25 giây ở
+   * nhà cung cấp tệ, mà chỉ 1,75 giây ở nhà cung cấp tốt. Chênh lệch đó LỚN HƠN
+   * mọi khác biệt giữa flash và pro (81 vs 35,6 t/s). Trước đây app không chọn
+   * gì cả, cứ để định tuyến mặc định.
+   *
+   * CHỈ bật cho ĐỐI THOẠI — chỗ học sinh ngồi chờ chữ hiện ra. KHÔNG bật cho
+   * nhánh CHẤM: ở đó phán quyết quyết định mastery, ưu tiên tốc độ mà rơi vào
+   * một nhà cung cấp phục vụ bản lượng tử hoá nhẹ hơn là đánh đổi sai chỗ.
+   */
+  fastRoute?: boolean;
 }
 
 /** Khoá cache = SHA-256 của (agent | tier | system | user). Băm để khoá ngắn,
@@ -212,6 +226,7 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     // thought, and leaving it on made glm-5.2 take ~25s. enabled:false → fast
     // responses + no CoT to leak. exclude:true kept as a belt-and-braces signal.
     reasoning: { enabled: false, exclude: true },
+    ...(args.fastRoute ? { provider: { sort: "throughput" } } : {}),
   });
 
   // ONLY use final content. Never display reasoning/CoT to a student.
@@ -222,6 +237,7 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
 
   let data: Record<string, unknown> = {};
   let text = "";
+  const t0 = Date.now();
   for (let attempt = 0; attempt < 2 && !text; attempt++) {
     const useModels = attempt === 0 ? models : retryModels;
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -240,7 +256,7 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
     outputTokens: (data.usage as { completion_tokens?: number } | undefined)?.completion_tokens ?? 0,
   };
 
-  recordCall(args, { text, model, tier, usage, ck });
+  recordCall(args, { text, model, tier, usage, ck, ms: Date.now() - t0 });
   return { text, model, usage };
 }
 
@@ -296,6 +312,7 @@ export async function callLLMStream(
   if (referer) headers["HTTP-Referer"] = referer;
   if (title) headers["X-Title"] = title;
 
+  const t0 = Date.now();
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers,
@@ -308,6 +325,7 @@ export async function callLLMStream(
       max_tokens: args.maxTokens ?? 420,
       temperature: args.temperature ?? 0.3,
       reasoning: { enabled: false, exclude: true },
+      ...(args.fastRoute ? { provider: { sort: "throughput" } } : {}),
       stream: true,
       // Không có cờ này thì mẩu cuối KHÔNG kèm usage ⇒ token_usage cộng 0 và
       // trần token/ngày thành vô hiệu cho mọi lượt phát dần.
@@ -364,7 +382,7 @@ export async function callLLMStream(
   text = text.trim();
   // Không lưu cache cho lượt phát dần: đường này chỉ dùng cho lời DẪN DẮT — vốn
   // riêng theo từng em, cache lại là trả lời em này bằng câu nói với em khác.
-  recordCall(args, { text, model, tier, usage, ck: null });
+  recordCall(args, { text, model, tier, usage, ck: null, ms: Date.now() - t0 });
   return { text, model, usage };
 }
 
@@ -376,9 +394,19 @@ export async function callLLMStream(
  */
 function recordCall(
   args: LlmCallArgs,
-  o: { text: string; model: string; tier: Tier; usage: { inputTokens: number; outputTokens: number }; ck: string | null },
+  o: {
+    text: string;
+    model: string;
+    tier: Tier;
+    usage: { inputTokens: number; outputTokens: number };
+    ck: string | null;
+    /** Thời gian lượt gọi, mili-giây — để KIỂM CHỨNG thay vì đoán: sau khi bật
+     *  định tuyến nhanh, đọc thẳng trên audit_logs xem có nhanh lên thật không,
+     *  và nhà cung cấp nào đang phục vụ. */
+    ms?: number;
+  },
 ): void {
-  const { text, model, tier, usage, ck } = o;
+  const { text, model, tier, usage, ck, ms } = o;
   if (args.supa) {
     const supa = args.supa;
     const total = usage.inputTokens + usage.outputTokens;
@@ -399,7 +427,15 @@ function recordCall(
         action: "ai_generation",
         subject_type: "session",
         subject_id: args.studentId ?? null,
-        ai_decision: { agent: args.agent, provider: "openrouter", model, tier, usage },
+        ai_decision: {
+          agent: args.agent,
+          provider: "openrouter",
+          model,
+          tier,
+          usage,
+          ...(ms != null ? { ms } : {}),
+          ...(args.fastRoute ? { fastRoute: true } : {}),
+        },
       });
       // Cộng dồn token_usage cho (HS, ngày) để lần gọi sau kiểm budget có số thật.
       // Best-effort read-modify-write; đủ cho phép đo (nếu cần tuyệt đối nguyên tử

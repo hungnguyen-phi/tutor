@@ -661,6 +661,8 @@ Deno.serve(async (req: Request) => {
               }),
               agent: "guide",
               tier: "cheap", // đối thoại = việc nhẹ, deepseek-flash: nhanh + rẻ
+              // Chỗ em ngồi chờ chữ hiện ra → chọn nhà cung cấp nhanh nhất.
+              fastRoute: true,
               maxTokens: 200,
               temperature: 0.4,
               studentId: s.student_id,
@@ -1054,6 +1056,8 @@ Deno.serve(async (req: Request) => {
               }),
               agent: "guide",
               tier: "cheap",
+              // Đối thoại = chỗ em ngồi chờ chữ → chọn nhà cung cấp nhanh nhất.
+              fastRoute: true,
               maxTokens: 200,
               temperature: 0.4,
               studentId: s.student_id,
@@ -1446,6 +1450,7 @@ Deno.serve(async (req: Request) => {
             })
             : "(mở đầu buổi học)",
           agent: "guide",
+          fastRoute: true, // chỗ em ngồi chờ chữ → nhà cung cấp nhanh nhất
           // Đối thoại dẫn dắt = "cái dễ dễ" → tier cheap = deepseek-v4-flash: NHANH + RẺ
           // ($0.094/$0.188 per 1M, rẻ nhất & nhẹ nhất họ deepseek). Chấm rubric/nói giữ default.
           tier: "cheap",
