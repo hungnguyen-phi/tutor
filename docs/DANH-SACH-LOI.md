@@ -12,6 +12,9 @@
 
 | # | Lỗi | Gốc rễ (một dòng) | Mức | Sửa ở đâu | Công sức |
 |---|-----|-------------------|-----|-----------|----------|
+| 20 | ✅ 30/07 Đối thoại dắt vòng vòng — "chốt C" không chốt được | Kênh chat và kênh chấm là hai đường CỤT → đã bắc cầu `chatAnswerOf` + luật chốt trong guide | 🔴 P0 | web + `chat-turn` — **chờ deploy** | M |
+| 21 | ✅ 30/07 Sư tử chat giọng robot ("Ừ," + "—" dày đặc, từ cứng) | Danh-sách-đen 29/07 → mô hình đổi nạng; đã thay bằng luật tổng quát + luật dấu câu + thanh ghi | 🟠 P1 | `chat-turn` — **chờ deploy** | S–M |
+| 22 | ✅ 30/07 Dấu căn mất gạch ngang, chỉ còn móc "v" | √ UNICODE trong `$...$` đi thẳng vào KaTeX (chẩn đoán đầu đổ cho reset là SAI) → `normalizeTex` | 🟠 P1 | web — **chờ deploy** | S |
 | 5 | Trang Hạng trống trơn, không có hạng khối | Tài khoản "Nguyễn An" **thiếu `grade` + `class_id`** → server không dựng nổi bảng | 🔴 P0 | DB + edge fn + web | S (dữ liệu) + M (code) |
 | 8 | Học sinh gõ "ok" mà AI bảo "đủ ý chính" | LLM chấm **không ổn định**; không có chốt chặn tất định cho bài rác | 🔴 P0 | `chat-turn` | M |
 | 3 | Trang Ôn tập luôn "Chưa có gì để ôn" | View đọc **localStorage**, số thật nằm ở server; lịch ôn `next_review_at` **đã có trong DB** nhưng không ai đọc | 🔴 P0 | edge fn mới + web | M–L |
@@ -493,6 +496,140 @@ tài khoản demo.
 hệt. Cộng với lỗi 9(c) (không nói vì sao sai) thì học sinh nghe một câu vô nghĩa lặp đi
 lặp lại. Sửa: xoay vòng vài cách nói, và quan trọng hơn là **nói vào NỘI DUNG em thiếu**
 chứ không phải nói về việc em thiếu.
+
+---
+
+# ĐỢT BỔ SUNG — chủ dự án tự thử đối thoại (30/07)
+
+## 20. ✅ ĐÃ SỬA (30/07, chờ deploy web + `chat-turn`) — Đối thoại DẮT VÒNG VÒNG, "chốt C" không chốt được
+
+> **Đã làm:** (a) cầu chat→chấm `chatAnswerOf()` trong
+> [TutorApp.tsx](apps/web/components/TutorApp.tsx) — câu gõ vào ô trò chuyện thực chất
+> chỉ là đáp án ("C", "chốt C", "đúng", nguyên văn phương án) thì chọn ô + nộp thẳng
+> máy chấm tất định, AI vẫn không chấm; lời kể có lập luận vẫn đi đường đối thoại
+> (kiểm 23 ca bằng chính source: "chốt C"→C, "b sai c đúng"→đối thoại, "mình nghĩ C vì
+> 9 chia hết 3"→đối thoại…). (b)+(c) `buildGuideSystem` thêm luật NGỪNG-THĂM-DÒ khi em
+> đã nêu đáp án cuối + luật KHÔNG-GẬT dữ kiện sai (ca "0 là số nguyên tố" được khen).
+> Bản gốc bên dưới giữ làm hồ sơ.
+
+> Chủ dự án cố tình đóng vai học sinh kẹt bài (câu "Mệnh đề nào sau đây ĐÚNG?", đáp án
+> C). Kết quả: **~14 lượt đối thoại**, học sinh nói "chốt C" hẳn hoi, sư tử còn hỏi
+> "Bạn chốt đáp án nào?" — nhưng KHÔNG có gì xảy ra. Muốn chốt thật phải: thoát đối
+> thoại → bấm THỬ LẠI → bấm ô C → bấm KIỂM TRA. Chủ dự án: *"khi tôi nhắn C thì hệ
+> thống nên chọn thay tôi luôn thay vì chờ học sinh nhấn thử lại rồi nhấn C."*
+
+Ba gốc rễ, đo trên bản ghi hội thoại thật:
+
+**(a) Kênh chat và kênh chấm là hai đường CỤT — không có cầu.** `sendReflect`
+([TutorApp.tsx:823](apps/web/components/TutorApp.tsx:823)) chỉ biết gọi `answerReflect`
+→ mọi thứ học sinh gõ vào ô "Kể cách em nghĩ…" đều thành một lượt ĐỐI THOẠI nữa, kể cả
+khi nội dung LÀ đáp án ("C", "chốt C"). Server (`chat-turn` nhánh reflect,
+[index.ts:659](supabase/functions/chat-turn/index.ts:659)) cũng không có nhánh nào nhận
+ra "em vừa nêu đáp án cuối" để đổi hành vi. Vòng lặp là **do kiến trúc**, không phải do
+prompt kém.
+
+**(b) Sau khi học sinh CHỐT, sư tử vẫn hỏi câu gây dao động.** "Nếu bạn chọn C, bạn dựa
+vào điều gì để loại B? Mình tò mò thôi…" → học sinh đổi thành "B cũng đúng", cuộc thoại
+văng ngược về đầu. `buildGuideSystem` không có luật "em đã nêu đáp án cuối → NGỪNG mở
+rộng, chỉ mời xác nhận"; ngưỡng nhắc `noiChuaThu` chỉ bật từ lượt thứ 4 sau lần thử cuối
+và cũng chỉ nhắc "quay lại làm bài" chung chung.
+
+**(c) Sư tử XÁC NHẬN dữ kiện sai của học sinh.** Hỏi "số nguyên tố nào vừa chẵn vừa là
+nguyên tố?", em trả lời "**0**" — sư tử đáp "Ừ, mình thấy bạn nhìn ra điểm yếu của B
+ngay". 0 không phải số nguyên tố; câu đúng là 2. Guide không được QUYẾT đúng/sai đáp án
+(luật kiến trúc), nhưng cũng không được GẬT với một dữ kiện toán sai — prompt hiện không
+cấm điều đó.
+
+**Phương án (giữ đúng luật "AI chỉ dẫn dắt, chấm tất định quyết"):**
+1. **Cầu chat→chấm ở client** (web): trong trạng thái retry, nếu chuỗi trong ô reflect
+   khớp một PHƯƠNG ÁN (một chữ cái A–D, "chốt C", "chọn C", hoặc nguyên văn đáp án) →
+   không gửi đi đối thoại nữa: set `picked` = phương án đó, xoá verdict, gọi thẳng
+   `submitObjective` — máy chấm tất định quyết, AI không chấm. Đây là ảnh gương của
+   cổng ý định A1 (lỗi 14: lời xin giúp gõ vào ô ĐÁP ÁN không đem chấm — nay lời ĐÁP ÁN
+   gõ vào ô chat không đem đối thoại).
+2. **Luật chốt trong `buildGuideSystem`** (chat-turn): học sinh đã nêu đáp án cuối →
+   không hỏi thêm câu mở rộng/thăm dò; chỉ mời bấm chốt (hoặc — khi (1) đã có — xác
+   nhận "mình ghi nhận C nhé"). Kèm luật: KHÔNG xác nhận dữ kiện sai; dữ kiện em nêu
+   sai thì hỏi lại đúng chỗ đó ("0 có chia hết cho mấy số?"), không khen.
+3. (nhẹ) Hạ ngưỡng `noiChuaThu` hoặc thêm tín hiệu "đã nêu đáp án N lượt trước" vào
+   guide để sư tử tự kéo về việc chốt sớm hơn lượt thứ 4.
+
+Sửa ở đâu: **web (TutorApp) + edge fn `chat-turn`** · Mức: 🔴 P0 (phá thẳng vòng học
+Socratic — em làm ĐÚNG hết mà không thoát được bài) · Công sức: M.
+
+---
+
+## 21. ✅ ĐÃ SỬA (30/07, chờ deploy `chat-turn`) — Sư tử chat GIỌNG ROBOT
+
+> **Đã làm:** viết lại khối "CÁCH NÓI" trong `buildGuideSystem`
+> ([prompts.ts](supabase/functions/_shared/prompts.ts)) theo hướng chủ dự án chốt
+> ("coach, dễ nghe, ai cũng hiểu, ít ký tự, hỏi đúng trọng tâm"): bỏ danh-sách-đen cụm
+> mở đầu → luật tổng quát không lặp TỪ MỞ ĐẦU 2 lượt gần nhất (bất kể từ gì, kể cả
+> "Ừ"); cấm dấu "—"/gạch đầu dòng/emoji ngoài công thức; tả thanh ghi nói-miệng-lớp-10
+> ("câu B sai chỗ nào" thay "điểm yếu của phương án B"); mỗi lượt MỘT câu hỏi MỘT ý;
+> không đưa câu mẫu nguyên văn (bài học 29/07: mẫu thành khuôn mới). Kiểm thật bằng
+> kịch bản hội thoại của chủ dự án SAU khi deploy. Bản gốc bên dưới giữ làm hồ sơ.
+
+> Chủ dự án (cùng phiên thử lỗi 20): *"nó chat giống robot quá — dấu gạch ngang dài,
+> ừ luôn được lạm dụng, từ ngữ cũng khó nghe và khó gần."*
+
+Soi bản ghi: **7+ lượt liền mở bằng "Ừ,"** ("Ừ, mình thấy…", "Ừ, vậy…", "Ừ, đúng rồi…");
+gần như câu nào cũng có ít nhất một dấu "—" (có câu hai); từ ngữ kiểu văn bản chứ không
+phải bạn học lớp 10: *"điểm yếu của B"*, *"vào guồng kiểm tra từng mệnh đề"*, *"dấu ±
+có hợp lệ không"*.
+
+**Gốc rễ — vá 29/07 chữa triệu chứng, không chữa bệnh:** `buildGuideSystem`
+([prompts.ts:100](supabase/functions/_shared/prompts.ts:100), khối "NÓI NHƯ NGƯỜI") cấm
+một DANH SÁCH cụm mở đầu cụ thể → mô hình bỏ cụm bị cấm, bám ngay vào nạng kế tiếp
+("Ừ,") — danh sách đen không bao giờ đuổi kịp. Prompt cũng **không có luật nào về dấu
+câu** (dấu "—" là tật bẩm sinh của LLM, không cấm là nó rải khắp nơi) và **không tả
+thanh ghi từ vựng** (chỉ nói "như bạn bè" chung chung).
+
+**Phương án** (cùng chỗ sửa với 20(b) — một lần deploy `chat-turn`):
+1. Đổi luật mở đầu từ DANH SÁCH ĐEN sang LUẬT TỔNG QUÁT: "không lặp lại TỪ MỞ ĐẦU của
+   hai lượt gần nhất trong <lich_su>, bất kể từ gì" — hết đường mòn nạng mới.
+2. Thêm luật dấu câu: tối đa MỘT dấu "—" mỗi lượt, ưu tiên câu ngắn với dấu phẩy/chấm;
+   không xuống dòng gạch đầu dòng trong lời thoại.
+3. Tả thanh ghi từ vựng: nói như bạn cùng lớp 10 nói miệng — "câu B sai chỗ nào" chứ
+   không "điểm yếu của B", "dấu ± có đúng không" chứ không "có hợp lệ không". KHÔNG
+   đưa câu mẫu nguyên văn (mô hình sẽ chép thành khuôn mới — bài học 29/07).
+
+Liên quan: lỗi 19 (chuỗi tất định lặp khuôn) + lỗi 20(b) (hỏi dao động sau chốt) — ba
+món này nên sửa CHUNG một đợt prompt rồi thử lại bằng đúng kịch bản hội thoại của chủ
+dự án. Mức: 🟠 P1 · Công sức: S–M.
+
+---
+
+## 22. ✅ ĐÃ SỬA (30/07, chờ deploy) — Dấu CĂN mất gạch ngang, chỉ còn móc như chữ "v"
+
+> Chủ dự án (cùng phiên 30/07): *"dấu căn nó cũng không thể hiện dấu gạch ngang đúng
+> kiểu dạy học sinh, nó chỉ có nét như chữ v là hết."* Tức √4 hiện như "v4" — sai ký
+> hiệu toán đang dạy trên lớp.
+
+**Gốc rễ THẬT (chẩn đoán lần đầu SAI — ghi lại cả hai để khỏi đi lại đường cũ):**
+
+- ~~Lần đầu đổ cho reset `img,svg{max-width:100%}` bóp SVG 400em của KaTeX~~ — đo lại
+  thì trang có nạp `katex.min.css` KHÔNG dính: CSS của KaTeX tự đè `width:100%` +
+  `position:absolute` lên SVG, reset thành trơ.
+- **Thủ phạm thật: chữ √ UNICODE nằm TRONG `$...$`.** Text NGOÀI `$` đã được
+  `toLatexInner` đổi `√4 → \sqrt{4}` từ lâu, nhưng nội dung TRONG `$` được coi là
+  "LaTeX thật của người soạn" nên đi thẳng vào KaTeX — mà KaTeX vẽ chữ √ trần y như
+  `\surd`: cái móc KHÔNG có thanh ngang. AI (guide viết `$√4 = ±2$`) và cả đề trong
+  ngân hàng câu hỏi đều có thể dính.
+
+**Đã sửa (2 tầng):**
+1. `normalizeTex()` mới trong [mathtex.ts](apps/web/lib/mathtex.ts) — đổi √ unicode
+   trong `$...$` thành `\sqrt{}` (3 dạng: `√(...)`, `√{...}`, `√x`; √ mồ côi giữ nghĩa
+   `\surd` cũ). Gắn tại `katexHtml()` ([mathrender.tsx](apps/web/lib/mathrender.tsx)) —
+   cửa chung của MỌI công thức nên vá một chỗ phủ cả app. Chỉ đụng chữ √ (không bao
+   giờ là cú pháp LaTeX hợp lệ) — không thể phá công thức đúng.
+2. Lưới an toàn `.katex svg { display:inline; max-width:none }` sau khối reset
+   ([globals.css:339](apps/web/app/globals.css:339)) — chặn họ lỗi thứ hai cho trang
+   nào lỡ thiếu `katex.min.css`. Trang đủ CSS thì rule trơ, vô hại.
+
+**Đã kiểm:** ca sống trong `/demo` → Bài học → dạng "Lời trích" mang nguyên văn
+`$√4 = ±2$` (dạng dính lỗi) — render ra `.mord.sqrt` thật, vlist 2 tầng = CÓ thanh
+ngang, hết √ thô, hết `\surd` fallback. Deploy: chỉ web.
 
 ---
 

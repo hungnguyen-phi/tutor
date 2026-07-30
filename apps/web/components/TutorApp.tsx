@@ -38,6 +38,8 @@ import { ScoreboardBody } from "./Scoreboard";
 import * as G from "../lib/gamify";
 import * as Prefs from "../lib/prefs";
 import { usePresence, PRESENCE_ENABLED } from "../lib/presence";
+import LearnAside from "./LearnAside";
+import { useRotation, pickGreeting } from "../lib/nudges";
 import { MathText } from "../lib/mathrender";
 import "katex/dist/katex.min.css";
 import {
@@ -171,6 +173,10 @@ export default function TutorApp() {
   const [progress, setProgress] = useState<G.Progress>(G.load);
   const [bump, setBump] = useState(false);
   const [mastered, setMastered] = useState<string[]>([]);
+  // ĐỔI GIÓ: bộ đếm xoay vòng câu chào + câu nhắc, đọc-và-tăng ĐÚNG MỘT LẦN mỗi
+  // lần mở app. PHẢI qua hook (không phải `useState(nextRotation)`): bộ đếm nằm
+  // ở localStorage nên đọc trong lần render đầu là lệch hydrate — xem lib/nudges.
+  const rot = useRotation();
 
   // ── Engine áp cứng: câu TIÊM động (vá nền / leo ngược) ────────────────
   // Khi engine phát hiện học sinh kẹt, nó KHÔNG để loanh quẩn ở câu khó mà
@@ -817,6 +823,24 @@ export default function TutorApp() {
   async function sendReflect(raw?: string) {
     const msg = (raw ?? reflectText).trim();
     if (!ses || !q || busy || !msg) return;
+    // ── CẦU CHAT→CHẤM (lỗi 20, 30/07) ────────────────────────────────────────
+    // Chủ dự án đóng vai học sinh: nói "chốt C" hẳn hoi mà không có gì xảy ra —
+    // muốn chốt thật phải thoát thoại → THỬ LẠI → bấm ô C → KIỂM TRA. Vì ô trò
+    // chuyện chỉ biết một đường: đem MỌI THỨ đi tán gẫu, kể cả khi nội dung LÀ
+    // đáp án. Giờ: câu gõ vào thực chất chỉ là đáp án ("C", "chốt C", "đúng"…)
+    // → chọn ô tương ứng và nộp thẳng cho máy chấm tất định. AI vẫn không chấm
+    // — đúng luật kiến trúc 29/07. Đây là ảnh gương của cổng ý định A1 (lời xin
+    // giúp gõ vào ô ĐÁP ÁN không đem chấm). Lời KỂ có lập luận ("mình nghĩ C vì
+    // 9 chia hết 3") vẫn đi đường đối thoại — cầu chỉ bắt câu-chỉ-có-đáp-án.
+    if (verdict === "retry") {
+      const ans = chatAnswerOf(msg, q);
+      if (ans != null) {
+        setReflectText("");
+        setVerdict(null);
+        void submitObjective(ans);
+        return;
+      }
+    }
     setMsgs((m) => [...m, { role: "student", text: msg }]);
     setReflectText("");
     setBusy(true);
@@ -1226,6 +1250,10 @@ export default function TutorApp() {
             <Hud
               progress={progress}
               bump={bump}
+              /* `earned` = XP của buổi vừa xong; backToPath KHÔNG xoá nó (chỉ
+                 start() mới reset về 0), nên lúc em quay về lộ trình HUD còn số
+                 để loé chip "+N". */
+              justEarned={earned}
               subject={{
                 label: active.short,
                 onClick: () => setPickerOpen(true),
@@ -1261,14 +1289,18 @@ export default function TutorApp() {
               nodes={nodes}
               preview={!active.live}
               heroMood={G.isCold(progress) ? "miss" : "greet"}
+              /* ĐỔI GIÓ (30/07): mỗi lần mở app một câu khác trong cùng BỐI CẢNH
+                 (lần đầu / nguội / đang đi đều) — kho câu ở lib/nudges.ts. Bối
+                 cảnh vẫn phải đúng: câu "lần đầu" bắt buộc nêu luật "mình hỏi,
+                 bạn nghĩ", câu "nguội" không được mắng em nghỉ mấy hôm. */
               greeting={
                 !active.live
                   ? `Đây là lộ trình ${active.unit} — bạn xem trước toàn bộ các bài nhé. Phần luyện tập với mình sắp mở!`
-                  : doneCount === 0
-                    ? `Chào ${firstName ?? "bạn"}! Hôm nay mình với bạn bắt đầu điểm kiến thức đầu tiên nhé. Mình sẽ không đưa đáp án — mình hỏi, bạn nghĩ.`
-                    : G.isCold(progress)
-                      ? "Lâu rồi mình không gặp bạn! Học một bài ngắn thôi cũng đủ nhóm lại chuỗi ngày."
-                      : `Bạn đã thành thạo ${doneCount} điểm kiến thức rồi. Mình với bạn tiếp tục nhé!`
+                  : pickGreeting(
+                      doneCount === 0 ? "first" : G.isCold(progress) ? "cold" : "back",
+                      rot,
+                      { ten: firstName, n: doneCount },
+                    )
               }
               busy={busy}
               onStart={start}
@@ -1282,80 +1314,16 @@ export default function TutorApp() {
           </div>
 
           {/* Cột phải ≥1200px (hi-fi 3c) — 900–1200 và mobile: ẩn hẳn */}
-          <aside className="learn-aside" aria-label="Bảng tin học tập">
-            {/* Bảng tuần mini: HẠNG là số server-authoritative (board.effort.rank
-                — server chấm theo nỗ lực thật), một hàng "của bạn" nền gold;
-                danh sách đầy đủ nằm ở /scoreboard. XP kề bên (progress.xp) hiện
-                CÒN là cache máy (lib/gamify) — chỉ để so cảm giác, chưa phải số
-                so kè; đổi sang XP server khi có endpoint (xem TODO ở gamify.ts). */}
-            {board && board.effort.rank != null && (
-              <section className="aside-card">
-                <div className="aside-head">
-                  <b>Bảng tuần</b>
-                  {/* Chuyển view tại chỗ — không rời trang */}
-                  <button type="button" className="aside-link" onClick={() => switchView("scoreboard")}>
-                    xem tất cả
-                  </button>
-                </div>
-                <div className="board-row" data-me="true">
-                  <span className="board-rank num">{board.effort.rank}</span>
-                  <span className="board-ava" aria-hidden>
-                    {(firstName ?? "E").charAt(0).toUpperCase()}
-                  </span>
-                  <span className="board-name">{firstName ?? "Em"} (bạn)</span>
-                  {/* Tổng XP server-authoritative (student_xp) — cache máy chỉ là dự phòng. */}
-                  <span className="board-xp num">{board.xp?.total ?? progress.xp}</span>
-                </div>
-              </section>
-            )}
-
-            <section className="aside-card">
-              <div className="aside-head">
-                <b>Nhiệm vụ</b>
-              </div>
-              <div className="aside-quest">
-                <div className="aside-quest-head">
-                  <span>Học hôm nay</span>
-                  <b className="num">{studied ? 1 : 0}/1</b>
-                </div>
-                <div
-                  className="meter"
-                  role="progressbar"
-                  aria-valuenow={studied ? 1 : 0}
-                  aria-valuemin={0}
-                  aria-valuemax={1}
-                  aria-label="Học hôm nay"
-                >
-                  <i data-fill="navy" style={{ "--p": studied ? "100%" : "0%" } as React.CSSProperties} />
-                </div>
-              </div>
-              {nextLeague && (
-                <div className="aside-quest">
-                  <div className="aside-quest-head">
-                    <span>Thăng hạng {nextLeague.name}</span>
-                    <b className="num">
-                      {progress.xp}/{nextLeague.min} XP
-                    </b>
-                  </div>
-                  <div
-                    className="meter"
-                    role="progressbar"
-                    aria-valuenow={progress.xp}
-                    aria-valuemin={0}
-                    aria-valuemax={nextLeague.min}
-                    aria-label={`Thăng hạng ${nextLeague.name}`}
-                  >
-                    <i style={{ "--p": `${Math.round(league.progress * 100)}%` } as React.CSSProperties} />
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <section className="aside-tip">
-              <Lion mood="point" size={56} decorative />
-              <p>Mỗi ngày một bài ngắn — đều đặn thắng dốc sức. Hôm nay học một bài để giữ chuỗi nhé!</p>
-            </section>
-          </aside>
+          <LearnAside
+            board={board}
+            progress={progress}
+            leagueProgress={league.progress}
+            nextLeague={nextLeague ?? null}
+            studied={studied}
+            firstName={firstName}
+            rot={rot}
+            onSeeAll={() => switchView("scoreboard")}
+          />
         </div>
       </AppShell>
     );
@@ -1365,6 +1333,9 @@ export default function TutorApp() {
   // Flow mới cho trắc nghiệm: chạm đáp án chỉ CHỌN, nút KIỂM TRA ở footer
   // mới nộp. Viết/nói giữ flow cũ (nộp trong khối riêng của chúng).
   const total = ses.questions.length;
+  // THẾ GIỚI của bài đang làm — quyết sắc trời cho sân khấu. Cùng cách chia chặng
+  // với lộ trình, nên vào bài KHÔNG bị nhảy sang một bầu trời khác.
+  const lessonWorld = worldOfLesson(serverPath ?? staticPath ?? null, currentNodeKey);
   // Đang vá nền (câu tiêm) thì KHÔNG bao giờ là "hết bài" — còn phải leo về.
   const last = qi + 1 >= total && injectedStack.length === 0;
   // Dạng tương tác: server đã bóc cấu trúc (interactive). Không có → rơi về ô nhập
@@ -1446,19 +1417,44 @@ export default function TutorApp() {
 
   return (
     <AppShell current="learn" focus>
+      {/* VỎ THẾ GIỚI (display:contents — không đổi layout): mang data-world để
+          token 9 cảnh chảy xuống, và .viewport:has() treo TRANH savanna của
+          chương làm nền cả màn — đúng tranh em vừa thấy trên lộ trình. */}
+      <div className="qworld" data-world={lessonWorld}>
+
+      {/* KHÍ QUYỂN trên tranh (fixed — đứng yên khi cuộn = parallax miễn phí):
+          quầng nắng màu mặt trời của thế giới + 6 đom đóm. Mặt trời/mây/đồi đã
+          nằm TRONG tranh, không vẽ CSS đè lên nữa. aria-hidden: máy đọc bỏ qua. */}
+      <div className="qstage" aria-hidden>
+        <i className="qstage-glow" />
+        <span className="qstage-motes">
+          <i /><i /><i /><i /><i /><i />
+        </span>
+      </div>
+
       <div className="lesson-top">
         <button className="lesson-x" onClick={backToPath} aria-label="Thoát buổi học">
           <X aria-hidden strokeWidth={2.5} />
         </button>
+        {/* ĐƯỜNG DẤU CHÂN trên dải cỏ: mỗi câu một dấu chân — đã qua in VÀNG
+            (đúng ngôn ngữ mastered của lộ trình), hiện tại là dấu SÁNG có sư tử
+            tí hon đứng làm quân cờ, cuối đường là cờ đích. Tiến trình = chuyến
+            đi, không phải phần trăm. aria giữ progressbar; sư tử decorative. */}
         <div
-          className="meter lesson-meter"
+          className="qtrail"
+          data-long={total > 14 || undefined}
           role="progressbar"
           aria-valuenow={qi + 1}
           aria-valuemin={1}
           aria-valuemax={total}
           aria-label={`Câu ${qi + 1} trên ${total}`}
         >
-          <i style={{ "--p": `${((qi + 1) / total) * 100}%` } as React.CSSProperties} />
+          {Array.from({ length: total }, (_, i) => (
+            <span key={i} className="qtrail-paw" data-s={i < qi ? "done" : i === qi ? "now" : "next"}>
+              {i === qi && <Lion mood="idle" size={26} decorative />}
+            </span>
+          ))}
+          <span className="qtrail-flag" />
         </div>
         <span className="lesson-count num">
           {qi + 1}/{total}
@@ -2084,6 +2080,7 @@ export default function TutorApp() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }
@@ -2107,6 +2104,74 @@ function kindEyebrow(q: DiagnoseQuestion): string {
   // Đề có chỗ trống "___" → nói rõ đang ĐIỀN, không phải trả lời tự do.
   if (/_{2,}/.test(q.prompt ?? "")) return "Điền vào chỗ trống";
   return "Nhập đáp án của bạn";
+}
+
+/**
+ * THẾ GIỚI (0–8) của bài đang làm — sắc trời cho sân khấu bài tập.
+ *
+ * Dùng ĐÚNG cách chia chặng của LearningPath: node liền nhau cùng `chapter` là
+ * một chặng, chỉ số chặng % 9 = thế giới. Nhờ vậy em vừa đứng ở đồng cỏ trên lộ
+ * trình thì mở bài ra cũng là ánh đồng cỏ — vào bài không "teleport" sang một
+ * bầu trời khác. Không có lộ trình / không tìm thấy node → thế giới 0 (thảo
+ * nguyên, nhà của sư tử), không bao giờ trả undefined.
+ */
+function worldOfLesson(
+  path: { key: string; chapter?: string }[] | null,
+  nodeKey: string | null,
+): number {
+  if (!path?.length || !nodeKey) return 0;
+  const at = path.findIndex((n) => n.key === nodeKey);
+  if (at < 0) return 0;
+  let leg = 0;
+  for (let i = 1; i <= at; i++) {
+    const now = path[i]?.chapter?.trim() ?? "";
+    const prev = path[i - 1]?.chapter?.trim() ?? "";
+    if (now !== prev) leg++;
+  }
+  return leg % 9;
+}
+
+/**
+ * CẦU CHAT→CHẤM (lỗi 20) — nhận diện ĐÁP ÁN CUỐI gõ vào ô trò chuyện.
+ *
+ * Trả về chuỗi đáp án ĐÚNG KHUÔN máy chấm: chữ cái cho câu A/B/C/D, nguyên văn
+ * phương án cho câu thường, "Đúng"/"Sai" cho dung_sai. Trả null = đây là lời
+ * KỂ, đi đường đối thoại như cũ.
+ *
+ * Luật bắt CHẶT có chủ đích: cả câu phải thực chất chỉ là đáp án, cho phép vài
+ * từ đệm ("chốt", "chọn", "mình", "đáp án", "câu", "là"). Câu có lập luận kèm
+ * theo KHÔNG bắt — em đang kể cách nghĩ, sư tử phải được nghe. Thà bỏ sót (em
+ * bấm ô như cũ) còn hơn bắt nhầm lời kể thành lượt nộp.
+ */
+function chatAnswerOf(msg: string, q: DiagnoseQuestion): string | null {
+  if (q.kind !== "objective") return null;
+  const norm = (x: string) =>
+    x.toLowerCase().replace(/đ/g, "d").normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[.!,;:"'“”]/g, " ").replace(/\s+/g, " ").trim();
+  const m = norm(msg);
+  if (!m) return null;
+  // Đúng/Sai: "đúng", "chốt sai", "mình chọn đúng"…
+  if (q.dangCauHoi === "dung_sai") {
+    const t = m.replace(/\b(minh|chot|chon|dap|an|cau|la)\b/g, " ").replace(/\s+/g, " ").trim();
+    if (t === "dung") return "Đúng";
+    if (t === "sai") return "Sai";
+    return null;
+  }
+  if (!q.options?.length) return null;
+  // Nguyên văn một phương án ("(2; 1)") — so sau chuẩn hoá.
+  const hit = q.options.find((o) => norm(o) === m);
+  if (hit) return hit;
+  // Một CHỮ CÁI, cho phép từ đệm: "c" / "chốt C" / "mình chọn câu c"…
+  const toks = m.split(" ").filter(
+    (t) => !["minh", "chot", "chon", "dap", "an", "cau", "la", "phuong"].includes(t),
+  );
+  if (toks.length !== 1 || !/^[a-d]$/.test(toks[0]!)) return null;
+  const letter = toks[0]!.toUpperCase();
+  // Câu chữ-cái (options là ["A","B","C","D"]) → nộp chính chữ cái đó (khớp
+  // dap_an server). Câu thường → chữ cái đọc theo THỨ TỰ ô (A = ô đầu).
+  const lettered = q.options.every((o) => /^[A-DĐ]$/.test(o.trim()));
+  if (lettered) return q.options.find((o) => o.trim().toUpperCase() === letter) ?? null;
+  return q.options[letter.charCodeAt(0) - 65] ?? null;
 }
 
 /** Đề có "chất toán" (công thức, biến, so sánh) → cỡ chữ đề lớn hơn. */

@@ -341,6 +341,17 @@ svg {
   display: block;
   max-width: 100%;
 }
+/* NGOẠI LỆ KaTeX (lỗi 22, 30/07 — LƯỚI AN TOÀN, không phải bản vá chính):
+   gốc rễ thật của "căn mất thanh ngang" là chữ √ unicode TRONG $...$ — đã vá ở
+   normalizeTex (lib/mathtex). Rule này chặn họ lỗi thứ hai: SVG căn của KaTeX
+   mang width=400em, trang nào lỡ thiếu katex.min.css (mất luật width:100% +
+   position:absolute của nó) thì max-width:100% ở reset trên sẽ bóp nét, mất
+   thanh ngang. Xung đột kinh điển KaTeX ↔ reset (Tailwind preflight gây y hệt).
+   Trang nạp CSS đủ thì rule này trơ (KaTeX tự đè lại display/width) — vô hại. */
+.katex svg {
+  display: inline;
+  max-width: none;
+}
 h1,
 h2,
 h3 {
@@ -786,10 +797,11 @@ ul {
   font-size: 1rem;
   line-height: 1;
 }
-/* Nhấp MỘT nhịp khi vừa cộng ngày, không lặp vô hạn */
-.stat-streak.bump .flame {
-  animation: flame-bump 600ms var(--ease);
-}
+/* Nhấp MỘT nhịp khi vừa cộng ngày, không lặp vô hạn.
+   Rule `.stat-streak.bump .flame` KHÔNG ở đây mà nằm ở khối "APP SỐNG" cuối
+   file — nó phải đứng SAU `.stat-streak:not(.cold) .flame` (lửa cháy liu riu)
+   vì hai selector CÙNG độ đặc hiệu (0,3,0), thứ tự quyết định ai thắng. Đặt ở
+   đây là ngọn lửa cứ cháy đều và cú nhấp "vừa cộng ngày" không bao giờ thấy. */
 @keyframes flame-bump {
   40% {
     transform: scale(1.35) rotate(-6deg);
@@ -1347,7 +1359,7 @@ ul {
    vàng mờ hơi bụi, đồng cỏ olive-vàng (vẫn đủ đậm để dấu chân VÀNG bật), mặt
    trời ấm to. Cây keo tán bằng (acacia) — biểu tượng savanna — dựng ở đường
    chân cỏ qua ::after (xem dưới). */
-.viewport:has(.scene[data-world="0"]), .scene[data-world="0"] {
+.viewport:has(.scene[data-world="0"]), .viewport:has(.qworld[data-world="0"]), .scene[data-world="0"] {
   --scene-sky: linear-gradient(180deg, #f3cf83 0%, #f8e4ac 42%, #fbf2d2 70%);
   --scene-hill-back: #9fb85a;
   --scene-hill-front: #73923c;
@@ -1358,7 +1370,7 @@ ul {
 /* (Đã bỏ 2 "cây keo" ::after ở thế giới 0 — render ra như cây nấm dán phẳng vào
    đồi, "cháy vào nền", quyết định chủ dự án 2026-07-21. Thảo nguyên giờ chỉ còn
    đồi cỏ + mặt trời + mây, sạch.) */
-.viewport:has(.scene[data-world="1"]), .scene[data-world="1"] {
+.viewport:has(.scene[data-world="1"]), .viewport:has(.qworld[data-world="1"]), .scene[data-world="1"] {
   --scene-sky: linear-gradient(180deg, #8fd3a8 0%, #b8e6cc 40%, #def4e2 68%);
   --scene-hill-back: #5fb86b;
   --scene-hill-front: #2e9e5b;
@@ -1366,7 +1378,7 @@ ul {
   --scene-orb-glow: #fff0a8;
   --scene-cloud: #ffffff;
 }
-.viewport:has(.scene[data-world="2"]), .scene[data-world="2"] {
+.viewport:has(.scene[data-world="2"]), .viewport:has(.qworld[data-world="2"]), .scene[data-world="2"] {
   --scene-sky: linear-gradient(180deg, #35b6d6 0%, #6fd0e0 40%, #b7eef0 68%);
   --scene-hill-back: #37aec0;
   --scene-hill-front: #1c7e93;
@@ -1374,7 +1386,7 @@ ul {
   --scene-orb-glow: #fff2a0;
   --scene-cloud: #ffffff;
 }
-.viewport:has(.scene[data-world="3"]), .scene[data-world="3"] {
+.viewport:has(.scene[data-world="3"]), .viewport:has(.qworld[data-world="3"]), .scene[data-world="3"] {
   --scene-sky: linear-gradient(180deg, #6ea8e0 0%, #9cc6ec 40%, #c9e2f6 68%);
   --scene-hill-back: #a9c4e4;
   --scene-hill-front: #7c9fc8;
@@ -1382,7 +1394,7 @@ ul {
   --scene-orb-glow: #fbe9a0;
   --scene-cloud: #ffffff;
 }
-.viewport:has(.scene[data-world="4"]), .scene[data-world="4"] {
+.viewport:has(.scene[data-world="4"]), .viewport:has(.qworld[data-world="4"]), .scene[data-world="4"] {
   --scene-sky: linear-gradient(180deg, #f3a6a0 0%, #f8c48a 40%, #fbe0a6 68%);
   --scene-hill-back: #6e5a9e;
   --scene-hill-front: #443a78;
@@ -1390,7 +1402,7 @@ ul {
   --scene-orb-glow: #ffd48a;
   --scene-cloud: #ffcf9e;
 }
-.viewport:has(.scene[data-world="5"]), .scene[data-world="5"] {
+.viewport:has(.scene[data-world="5"]), .viewport:has(.qworld[data-world="5"]), .scene[data-world="5"] {
   --scene-sky: linear-gradient(180deg, #4a4a86 0%, #7b5a9e 40%, #c77ca0 68%);
   --scene-hill-back: #3b3568;
   --scene-hill-front: #262048;
@@ -1398,7 +1410,7 @@ ul {
   --scene-orb-glow: #f7c6d2;
   --scene-cloud: #b98cb4;
 }
-.viewport:has(.scene[data-world="6"]), .scene[data-world="6"] {
+.viewport:has(.scene[data-world="6"]), .viewport:has(.qworld[data-world="6"]), .scene[data-world="6"] {
   --scene-sky: linear-gradient(180deg, #1b1c46 0%, #26275d 45%, #3a3b78 75%);
   --scene-hill-back: #232559;
   --scene-hill-front: #14163a;
@@ -1406,7 +1418,7 @@ ul {
   --scene-orb-glow: #d6dbef;
   --scene-cloud: #ffffff;
 }
-.viewport:has(.scene[data-world="7"]), .scene[data-world="7"] {
+.viewport:has(.scene[data-world="7"]), .viewport:has(.qworld[data-world="7"]), .scene[data-world="7"] {
   --scene-sky: linear-gradient(180deg, #12233a 0%, #17414a 45%, #276b5e 78%);
   --scene-hill-back: #123038;
   --scene-hill-front: #0c1e28;
@@ -1414,7 +1426,7 @@ ul {
   --scene-orb-glow: #4fc59a;
   --scene-cloud: #eaf7ef;
 }
-.viewport:has(.scene[data-world="8"]), .scene[data-world="8"] {
+.viewport:has(.scene[data-world="8"]), .viewport:has(.qworld[data-world="8"]), .scene[data-world="8"] {
   --scene-sky: linear-gradient(180deg, #241448 0%, #3e1e5e 45%, #5e2a6e 78%);
   --scene-hill-back: #3a1f5c;
   --scene-hill-front: #241040;
@@ -1429,15 +1441,15 @@ ul {
    mobile — biến CSS chỉ chảy xuống, nên nếu chỉ khai ở .scene thì tổ tiên không
    đọc được. .scene vẫn nhận qua kế thừa; giữ luôn selector .scene cho trang
    đứng riêng nào render cảnh ngoài .learn-layout. */
-.viewport:has(.scene[data-world="0"]), .scene[data-world="0"] { --scene-img: url("/scenes/world-0.webp"); }
-.viewport:has(.scene[data-world="1"]), .scene[data-world="1"] { --scene-img: url("/scenes/world-1.webp"); }
-.viewport:has(.scene[data-world="2"]), .scene[data-world="2"] { --scene-img: url("/scenes/world-2.webp"); }
-.viewport:has(.scene[data-world="3"]), .scene[data-world="3"] { --scene-img: url("/scenes/world-3.webp"); }
-.viewport:has(.scene[data-world="4"]), .scene[data-world="4"] { --scene-img: url("/scenes/world-4.webp"); }
-.viewport:has(.scene[data-world="5"]), .scene[data-world="5"] { --scene-img: url("/scenes/world-5.webp"); }
-.viewport:has(.scene[data-world="6"]), .scene[data-world="6"] { --scene-img: url("/scenes/world-6.webp"); }
-.viewport:has(.scene[data-world="7"]), .scene[data-world="7"] { --scene-img: url("/scenes/world-7.webp"); }
-.viewport:has(.scene[data-world="8"]), .scene[data-world="8"] { --scene-img: url("/scenes/world-8.webp"); }
+.viewport:has(.scene[data-world="0"]), .viewport:has(.qworld[data-world="0"]), .scene[data-world="0"] { --scene-img: url("/scenes/world-0.webp"); }
+.viewport:has(.scene[data-world="1"]), .viewport:has(.qworld[data-world="1"]), .scene[data-world="1"] { --scene-img: url("/scenes/world-1.webp"); }
+.viewport:has(.scene[data-world="2"]), .viewport:has(.qworld[data-world="2"]), .scene[data-world="2"] { --scene-img: url("/scenes/world-2.webp"); }
+.viewport:has(.scene[data-world="3"]), .viewport:has(.qworld[data-world="3"]), .scene[data-world="3"] { --scene-img: url("/scenes/world-3.webp"); }
+.viewport:has(.scene[data-world="4"]), .viewport:has(.qworld[data-world="4"]), .scene[data-world="4"] { --scene-img: url("/scenes/world-4.webp"); }
+.viewport:has(.scene[data-world="5"]), .viewport:has(.qworld[data-world="5"]), .scene[data-world="5"] { --scene-img: url("/scenes/world-5.webp"); }
+.viewport:has(.scene[data-world="6"]), .viewport:has(.qworld[data-world="6"]), .scene[data-world="6"] { --scene-img: url("/scenes/world-6.webp"); }
+.viewport:has(.scene[data-world="7"]), .viewport:has(.qworld[data-world="7"]), .scene[data-world="7"] { --scene-img: url("/scenes/world-7.webp"); }
+.viewport:has(.scene[data-world="8"]), .viewport:has(.qworld[data-world="8"]), .scene[data-world="8"] { --scene-img: url("/scenes/world-8.webp"); }
 
 /* Hoàng hôn/chạng vạng: mây thành dải mù mỏng (haze) */
 .scene[data-world="4"] .scene-cloud {
@@ -1751,48 +1763,92 @@ ul {
 .node[data-state="redo"] .node-face {
   color: var(--err);
 }
-/* Báo trên đầu lộ trình — cùng khuôn thẻ với "cổng chương". */
+/* ═══ THẺ TIN THẦY CÔ — GẬP LẠI (30/07) ════════════════════════════════════
+   Trước đây: khối nền đỏ + viền đỏ 2px + 4 nút đỏ to banh ra sẵn. Chủ dự án:
+   "đỏ lòm cứ tưởng là app bị lỗi". Đỏ full-bleed là ngôn ngữ của LỖI HỆ THỐNG,
+   còn đây là việc học bình thường — cô đã chấm, em làm lại.
+   Giờ: thẻ TRẮNG một dòng, chấm màu 26px dẫn mắt, bấm mới mở danh sách.
+   Dùng <details>/<summary> — mở/gập không cần JS, bàn phím + máy đọc ăn sẵn.
+   `data-tone` = redo (đỏ dịu) | praise (xanh lá). */
 .redo-notice {
-  display: flex;
-  /* Không còn căn giữa: thẻ giờ chứa danh sách nút + lời nhắn nhiều dòng, căn
-     giữa làm icon trôi xuống giữa khối. */
-  align-items: flex-start;
-  gap: 12px;
-  margin: 0 0 14px;
-  padding: 12px 14px;
-  background: var(--err-tint);
-  border: 2px solid color-mix(in oklab, var(--err) 40%, var(--err-tint));
+  margin: 0 0 12px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--r);
+  box-shadow: var(--shadow-row);
+  color: var(--ink);
+  overflow: hidden;
+}
+.redo-notice > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none; /* bỏ tam giác mặc định — mình tự vẽ chevron */
+  transition: background var(--t-fast) var(--ease);
+}
+.redo-notice > summary::-webkit-details-marker {
+  display: none;
+}
+.redo-notice > summary:hover {
+  background: var(--surface-2);
+}
+.redo-notice > summary:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: -3px;
+}
+/* Chấm màu: đủ để mắt bắt được "có tin", không đủ để đọc thành báo lỗi */
+.notice-dot {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+.notice-dot svg {
+  width: 15px;
+  height: 15px;
+}
+.notice-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.84375rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.notice-text b {
+  font-weight: 800;
   color: var(--ink);
 }
-.redo-notice svg {
+.notice-chev {
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
+  width: 17px;
+  height: 17px;
+  color: var(--ink-faint);
+  transition: transform var(--t-fast) var(--ease);
+}
+.redo-notice[open] .notice-chev {
+  transform: rotate(180deg);
+}
+.redo-notice[data-tone="redo"] .notice-dot {
+  background: var(--err-tint);
   color: var(--err);
 }
-/* Cùng khuôn thẻ "cần làm lại" nhưng tông XANH LÁ: bài đã đạt, thầy cô chỉ
-   nhắn thêm. Dùng chung .redo-body/.redo-list/.redo-item/.redo-note bên dưới. */
-.praise-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 0 0 14px;
-  padding: 12px 14px;
+.redo-notice[data-tone="praise"] .notice-dot {
   background: var(--ok-tint);
-  border: 2px solid color-mix(in oklab, var(--ok) 40%, var(--ok-tint));
-  border-radius: var(--r);
-  color: var(--ink);
-}
-.praise-notice svg {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
   color: var(--ok);
+}
+/* Phần mở ra: kẻ một đường mảnh cho tách khỏi dòng tiêu đề */
+.redo-notice > .redo-body {
+  padding: 2px 12px 12px;
+  border-top: 1px solid var(--line);
 }
 .praise-node {
   font-weight: 800;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--ink);
 }
 
@@ -1815,26 +1871,28 @@ ul {
   gap: 8px;
   margin-top: 8px;
 }
+/* Nút vào bài làm lại: HÀNG gọn, viền mảnh, chữ navy — không còn pill viền đỏ
+   2px 15px. Đỏ chỉ còn ở cái chấm nhỏ trên dòng tiêu đề (30/07). */
 .redo-go {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 8px 14px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--err);
+  width: 100%;
+  padding: 7px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
-  color: var(--err);
+  color: var(--navy);
   font: inherit;
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
-.redo-go svg { width: 18px; height: 18px; flex: 0 0 auto; color: inherit; }
-.redo-go:hover:not(:disabled) { background: var(--err); color: var(--surface); }
+.redo-go svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--err); }
+.redo-go:hover:not(:disabled) { background: var(--navy-tint); border-color: var(--navy); }
 .redo-go:disabled { opacity: 0.6; cursor: default; }
 .redo-note {
   margin: 0;
@@ -1902,66 +1960,134 @@ ul {
   height: 20px;
   opacity: 0.85;
 }
-/* Cờ "BẮT ĐẦU" — pill GOLD chữ navy, tam giác trỏ xuống, nhún nhẹ */
-.node-flag {
+/* ═══ THẺ BÀI ĐANG HỌC (30/07) ═════════════════════════════════════════════
+   MỘT thẻ thay bốn món rời trước đây (cờ "BẮT ĐẦU" + nhãn tên né sang cạnh
+   64px + chip "8/8" + chip "chờ chấm"). Chủ dự án đọc bố cục cũ ra thành
+   "lệch, không biết cái nào ra cái nào" — và đúng: nhãn tên bị dịch ngang để
+   né sư tử nên nó KHÔNG còn thẳng trục với dấu chân của chính nó.
+
+   Thẻ neo TRÊN dấu chân (bottom: 100%) + left:50%/translateX(-50%) ⇒ căn giữa
+   tuyệt đối theo node, không thể lệch. Nằm phía trên nên không tranh chỗ với
+   sư tử (sư tử neo top:24px, tức từ mép trên node đổ xuống).
+
+   ⚠️ KHÔNG đặt `pointer-events: none` ở đây (cờ cũ có, đừng chép lại). Thẻ là
+   CON của <button class="node">, nên chạm vào thẻ là bubble lên nút = mở bài —
+   đúng thứ em mong khi thấy chữ "BẮT ĐẦU" 210px trước mặt. Chặn pointer-events
+   thì cú chạm xuyên qua, rơi vào nền cảnh (hoặc tệ hơn: dấu chân phía trên). */
+.node-card {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
-  z-index: 1;
-  padding: 5px 12px;
-  border-radius: var(--r-sm);
-  background: var(--gold);
-  color: var(--on-gold);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-  box-shadow: 0 2px 0 var(--gold-press);
-  animation: flag-bob 1.4s ease-in-out infinite;
-  pointer-events: none;
+  z-index: 4; /* trên sư tử (z-index:-1) và trên dấu chân phía trên */
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: max-content;
+  max-width: min(210px, 68vw);
+  padding: 7px 13px 8px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--gold-press), var(--shadow);
+  text-align: center;
+  animation: card-bob 3.2s ease-in-out infinite;
 }
-.node-flag::after {
+/* Mỏ trỏ xuống dấu chân — nối thẻ với node để mắt không phải đoán */
+.node-card::after {
   content: "";
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 3px);
   left: 50%;
   translate: -50% 0;
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
   border-top: 8px solid var(--gold);
 }
-@keyframes flag-bob {
+/* Nhãn "BẮT ĐẦU" giữ nguyên ngôn ngữ của cờ cũ: PILL GOLD chữ navy.
+   ⚠️ Đừng đổi thành chữ gold trên nền trắng thẻ: #c9a900 trên #fff chỉ đạt
+   2,3:1 — chữ 10px hoa mà 2,3:1 thì gần như không đọc được ngoài sáng. Navy
+   trên gold đạt ~13:1. (Có token --gold-text #a68a00 cho chữ gold nhỏ trên
+   trắng, nhưng cũng chỉ 3,4:1 — không đủ cho cỡ này.) */
+.node-card-kicker {
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: var(--on-gold);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+}
+.node-card-name {
+  /* Tên dài kẹp 2 dòng — tên đầy đủ đã nằm trong aria-label/title của node */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.node-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+/* Tiến trình DANG DỞ phải nhìn thấy: xong 6/8 câu mà node trông y như chưa học
+   là học sinh tưởng mất trắng (phản hồi 27/07). */
+.node-card-prog {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--gold-tint);
+  color: var(--navy); /* navy trên gold-tint ~12,5:1 — gold trên gold-tint 2,1:1 */
+}
+/* Bài đang chờ thầy cô chấm — nói ra, kẻo em tưởng app nuốt bài nộp */
+.node-card-wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-2);
+}
+.node-card-wait svg {
+  width: 11px;
+  height: 11px;
+}
+/* Môn XEM TRƯỚC: mỏ + nhãn navy "thông tin" thay gold "bắt đầu", đứng yên
+   (không phải nút hành động nên không mời gọi). */
+.node-card[data-preview] {
+  box-shadow: 0 3px 0 var(--navy-press), var(--shadow);
+  animation: none;
+}
+.node-card[data-preview]::after {
+  border-top-color: var(--navy);
+}
+.node-card[data-preview] .node-card-kicker {
+  background: var(--navy);
+  color: #fff; /* trắng trên navy 11,6:1 */
+}
+/* Nhún RẤT nhẹ, chu kỳ dài: thẻ này to hơn cờ cũ nhiều nên biên độ 6px/1,4s
+   của cờ cũ sẽ thành cái bảng lắc lư giữa màn hình. */
+@keyframes card-bob {
   0%,
   100% {
     transform: translate(-50%, 0);
   }
   50% {
-    transform: translate(-50%, -6px);
+    transform: translate(-50%, -4px);
   }
 }
-/* Chỉ node hiện tại đeo nhãn. Gắn nhãn cho mọi node sẽ xé con đường thành các
-   nút rời rạc — tên của các node khác nằm ở aria-label và title. */
-/* Nhãn node dạt sang phía ĐỐI DIỆN sư tử. Sư tử neo ở calc(50% + 40px) và rộng
-   132px, nên nhãn căn giữa (22ch ≈ 176px) chắc chắn chạm vào thân nó. Dịch 64px
-   là đủ tách hẳn ở màn 360px trở lên; dùng transform nên không đụng bố cục. */
-.path > li[data-lion="r"] .node-label {
-  transform: translateX(-64px);
-}
-.path > li[data-lion="l"] .node-label {
-  transform: translateX(64px);
-}
-.node-label {
-  margin-top: 12px;
-  max-width: 22ch;
-  padding: 4px 12px;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  text-align: center;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.3;
-  box-shadow: var(--shadow-sm);
+/* Thẻ neo TRÊN node bằng position:absolute nên KHÔNG tự đẩy được chỗ cho mình:
+   li phải tự chừa ~100px, kẻo thẻ chui dưới dấu chân phía trên hoặc bị mép
+   vùng cuộn cắt mất (node hiện tại là node đầu tiên). Đặt ở đây, cạnh chính cái
+   thẻ, để ai sửa chiều cao thẻ thì thấy luôn con số phải sửa theo.
+   Đè lên `.path > li { margin-top: var(--paw-dy) }` bằng specificity. */
+.path > li[data-lion] {
+  /* Đo thật: thẻ 94px (tên 2 dòng + đủ cả hai chip meta) + 10px mỏ trỏ = 104px.
+     Chừa 112px để còn dư cho html[data-font="lg"] (cỡ chữ lớn trong Cài đặt). */
+  margin-top: max(var(--paw-dy, 0px), 112px);
 }
 
 /* Sư tử 118px đứng CẠNH node hiện tại, chân chạm mound cỏ 132×30 (hi-fi).
@@ -6041,14 +6167,15 @@ html[data-motion="reduce"] .spin {
   width: 24px;
   height: 24px;
 }
-.lesson-meter {
-  flex: 1;
-  background: var(--hairline);
-}
+/* (.lesson-meter đã gỡ 30/07 — thanh phần trăm thay bằng chuỗi chặng .qtrack,
+   xem §"SÂN KHẤU BÀI TẬP" ở cuối file.) */
+/* "3/8" — CHỮ DUY NHẤT nằm trong dải trời của sân khấu, nên nó không được dùng
+   --muted: trên dải đậm nhất của thế giới 6 (đêm sao) --muted chỉ còn 4,31:1.
+   --ink-2 đạt ≥7,4:1 trên cả 9 dải. */
 .lesson-count {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--ink-2);
 }
 .lesson-kind {
   display: block;
@@ -6450,19 +6577,9 @@ html[data-motion="reduce"] .think-dots::after {
   animation: none;
 }
 
-/* ── Tiến trình + chờ chấm NGAY TRÊN LỘ TRÌNH ─────────────────────────────── */
-/* % dang dở dưới nhãn node hiện tại: em thấy công sức 75% còn đó, không mất. */
-.node-progress {
-  display: block;
-  width: fit-content;
-  margin: 4px auto 0;
-  padding: 2px 10px;
-  border-radius: var(--r-pill);
-  background: var(--gold);
-  color: var(--navy);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
+/* ── Chờ chấm NGAY TRÊN LỘ TRÌNH ──────────────────────────────────────────── */
+/* Badge cho node KHÁC node đang học. Bài đang học gom cả tiến trình lẫn "chờ
+   chấm" vào .node-card (30/07) — chip rời của nó đã gỡ. */
 .node-pending {
   display: flex;
   align-items: center;
@@ -7602,10 +7719,12 @@ body:has(.lfoot-says) .lesson-pad {
   .learn-main .scene {
     display: grid;
     grid-template-columns: 340px minmax(0, 1fr);
-    /* 4 hàng: banner · báo bài bị trả · lời chào · cổng (hàng 1fr đẩy cổng xuống
-       đáy). MỌI thẻ cột trái phải có grid-area riêng — thiếu một cái là nó tự
-       rơi vào hàng 1fr rồi GIÃN CAO HẾT CỘT (đúng lỗi thẻ "cần làm lại" to đùng). */
-    grid-template-rows: auto auto auto 1fr;
+    /* 5 hàng: banner · bài bị trả · bài được khen · lời chào · cổng (hàng 1fr
+       đẩy cổng xuống đáy). MỌI thẻ cột trái phải có grid-area riêng — thiếu một
+       cái là nó tự rơi vào hàng 1fr rồi GIÃN CAO HẾT CỘT (đúng lỗi thẻ "cần làm
+       lại" to đùng). Hai thẻ tin nay dùng CHUNG class .redo-notice, phân biệt
+       bằng data-tone — thiếu một trong hai selector dưới là chúng chồng ô. */
+    grid-template-rows: auto auto auto auto 1fr;
     column-gap: 28px;
   }
   .learn-main .scene-banner {
@@ -7614,24 +7733,30 @@ body:has(.lfoot-says) .lesson-pad {
     margin: 0 0 14px;
     align-self: start;
   }
-  .learn-main .redo-notice {
+  .learn-main .redo-notice[data-tone="redo"] {
     grid-area: 2 / 1 / 3 / 2;
     width: auto;
-    margin: 0 0 12px;
+    margin: 0 0 10px;
+    align-self: start;
+  }
+  .learn-main .redo-notice[data-tone="praise"] {
+    grid-area: 3 / 1 / 4 / 2;
+    width: auto;
+    margin: 0 0 10px;
     align-self: start;
   }
   .learn-main .scene-greeting {
-    grid-area: 3 / 1 / 4 / 2;
+    grid-area: 4 / 1 / 5 / 2;
     width: auto;
     margin: 0;
     align-self: start;
   }
   .learn-main .path {
-    grid-area: 1 / 2 / 5 / 3;
+    grid-area: 1 / 2 / 6 / 3;
     min-height: 0;
   }
   .learn-main .gate {
-    grid-area: 4 / 1 / 5 / 2;
+    grid-area: 5 / 1 / 6 / 2;
     width: auto;
     margin: 14px 0 16px;
     align-self: end;
@@ -9875,17 +10000,7 @@ html[data-motion="reduce"] .nav-item:active {
   line-height: 1.45;
   color: var(--muted);
 }
-/* Nhãn node hiện tại của môn XEM TRƯỚC: navy "thông tin" thay vàng "bắt đầu",
-   không nhún (không phải nút hành động). */
-.node-flag[data-preview] {
-  background: var(--navy);
-  color: #fff;
-  box-shadow: 0 2px 0 rgb(38 39 93 / 45%);
-  animation: none;
-}
-.node-flag[data-preview]::after {
-  border-top-color: var(--navy);
-}
+/* Nhãn node XEM TRƯỚC: xem `.node-card[data-preview]` (gộp vào thẻ bài 30/07) */
 .sheet-root[data-closing] .sheet-backdrop {
   animation: sheet-fade-out 180ms var(--ease) both;
 }
@@ -10711,12 +10826,13 @@ textarea {
     height: 200px;
   }
 
-  /* ── Đ2.4 Màn Học: cờ BẮT ĐẦU sát chân, nhãn bài nổi trên sư tử,
-        mặt trời nghỉ hẳn trên mobile (hết vệt vuông sau banner) ── */
-  .node-flag {
-    bottom: calc(100% + 8px);
-    padding: 4px 10px;
-    font-size: 0.6875rem;
+  /* ── Đ2.4 Màn Học: thẻ bài gọn hơn trên mobile, mặt trời nghỉ hẳn
+        (hết vệt vuông sau banner) ── */
+  .node-card {
+    padding: 6px 11px 7px;
+  }
+  .node-card-name {
+    font-size: 0.8125rem;
   }
   .scene-sun {
     display: none;
@@ -10724,11 +10840,6 @@ textarea {
   .path {
     padding-block: 22px 12px;
   }
-}
-/* Nhãn bài đứng TRÊN sư tử path (mọi cỡ màn — sư tử là nền, chữ là nội dung) */
-.node-label {
-  position: relative;
-  z-index: 3;
 }
 
 /* ═══ Đ2.5 HOẠT CẢNH — app sống: transform/opacity thuần, 60fps ═══ */
@@ -10917,10 +11028,12 @@ textarea {
 }
 
 /* [bai-hoc] Chặn sticky-hover touch + sticky bar phủ hết safe-area ngang */
-/* Touch: bỏ trạng thái hover dính sau khi tap */
+/* Touch: bỏ trạng thái hover dính sau khi tap. X giờ là CHIP trắng đứng trên
+   tranh (sân khấu 30/07) — trả về chip, đừng trả về transparent kẻo icon chìm
+   vào tranh tối sau cú chạm đầu tiên. */
 @media (hover: none) {
   .lesson-x:hover {
-    background: transparent;
+    background: rgb(255 255 255 / 88%);
     color: var(--muted);
   }
   .ans-tile:hover:not(:disabled):not([aria-pressed="true"]) {
@@ -10982,7 +11095,7 @@ textarea {
    từng bóp 0.6875rem→9.6px; .week-lbl 0.625rem=10px ngay mặc định) ── */
 @media (max-width: 899.98px) {
   .ws-kicker,
-  .node-flag,
+  .node-card-kicker,
   .gl-rung-you,
   .eyebrow,
   .week-lbl {
@@ -11008,17 +11121,12 @@ textarea {
   }
 }
 
-/* [typography] Chống tràn tên dài: node-label clamp 2 dòng, gl-rung-name co được */
+/* [typography] Chống tràn tên dài: gl-rung-name co được (tên bài trên lộ trình
+   đã kẹp 2 dòng ngay trong .node-card-name — mọi cỡ màn) */
 /* ── FIX T3: tên atom dài gãy 3 dòng xé nhịp path (tên đầy đủ đã có
    trong title/aria-label của .node); gl-rung-name flex:1 thiếu
    min-width:0 nên từ dài đẩy pill 'bạn ở đây' tràn phải ── */
 @media (max-width: 899.98px) {
-  .node-label {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
   .gl-rung-name {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -11740,4 +11848,932 @@ body:has(.lsn-grid) {
     max-width: var(--lsn-w, 1420px);
     padding-inline: calc(var(--lsn-aside-w, 356px) + var(--lsn-gap, 28px));
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ĐỢT "APP SỐNG" — 30/07/2026
+   Chủ dự án: "app hiện tại quá tĩnh, không sinh động, không đáng học, lửa cũng
+   ko bùng lên, sét xp cũng ko có hiệu ứng gì cả."
+   Đúng: hoạt cảnh cũ chỉ có ở màn hoàn thành buổi học và lúc chuyển tab — còn
+   màn Học, chỗ em ngồi lâu nhất, thì đứng im.
+
+   LUẬT CỦA ĐỢT NÀY (đừng phá khi thêm hiệu ứng mới):
+    · Chỉ chạm `transform`/`opacity`/`filter` → chạy trên GPU, không reflow.
+    · Vòng lặp vô hạn chỉ dành cho thứ TRANG TRÍ (lửa, mây, nhún thẻ) và biên độ
+      phải nhỏ. Không có gì nhấp nháy dưới 2 giây gần chỗ em đang đọc chữ.
+    · Mỗi hiệu ứng ĂN MỪNG là ONE-SHOT, gắn với một việc THẬT vừa xảy ra
+      (XP vừa cộng, nhiệm vụ vừa xong) — không ăn mừng khi vẽ lại màn.
+    · Giảm chuyển động: hai khối `prefers-reduced-motion` + `[data-motion=reduce]`
+      đã tắt `animation-duration`/`iteration-count` toàn cục nên hiệu ứng ở đây
+      TỰ tắt theo. Đừng thêm `!important` để lách.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1) LỬA CHUỖI NGÀY: cháy liu riu, không đứng như icon in ─────────────────
+   Biên độ nhỏ + chu kỳ lệch nhau (2,4s co giãn / 3,1s sáng tối) để ngọn lửa
+   không "đập" đều đặn như đèn báo. Chuỗi NGUỘI thì tắt hẳn — lửa xám mà còn
+   nhảy thì mất nghĩa "đã nguội". */
+.stat-streak:not(.cold) .flame {
+  animation: flame-live 2.4s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}
+.stat-streak:not(.cold) {
+  /* Quầng ấm quanh chip, thở chậm hơn ngọn lửa */
+  animation: streak-glow 3.1s ease-in-out infinite;
+}
+@keyframes flame-live {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  30% {
+    transform: scale(1.09) rotate(-3deg);
+  }
+  55% {
+    transform: scale(0.97) rotate(2deg);
+  }
+  78% {
+    transform: scale(1.05) rotate(-1deg);
+  }
+}
+@keyframes streak-glow {
+  0%,
+  100% {
+    box-shadow: var(--shadow-sm);
+  }
+  50% {
+    box-shadow: var(--shadow-sm), 0 0 14px color-mix(in oklab, var(--mane) 42%, transparent);
+  }
+}
+/* Vừa cộng ngày: ngọn lửa BÙNG một nhịp to. PHẢI đứng sau `flame-live` ở trên
+   (cùng độ đặc hiệu 0,3,0 → thắng nhờ thứ tự) — xem ghi chú ở @keyframes
+   flame-bump phía đầu file. Đừng dời rule này lên trên. */
+.stat-streak.bump .flame {
+  animation: flame-bump 700ms var(--ease);
+}
+
+/* ── 2) SÉT XP: loé + chip "+N" bay lên ────────────────────────────────────
+   `.gain` do useGain bật ~1,2s rồi tự tắt (lib/anim.ts) — chỉ khi XP TĂNG. */
+.stat-xp {
+  position: relative;
+}
+.stat-xp.gain {
+  animation: xp-pop 620ms var(--ease);
+}
+.stat-xp.gain svg {
+  animation: xp-zap 620ms var(--ease);
+}
+@keyframes xp-pop {
+  0% {
+    box-shadow: var(--shadow-sm);
+  }
+  35% {
+    transform: scale(1.08);
+    box-shadow: var(--shadow-sm), 0 0 0 5px color-mix(in oklab, var(--gold) 40%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-sm), 0 0 0 0 transparent;
+  }
+}
+@keyframes xp-zap {
+  30% {
+    transform: scale(1.45) rotate(-12deg);
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--gold) 75%, transparent));
+  }
+  60% {
+    transform: scale(1.12) rotate(6deg);
+  }
+}
+/* Chip "+15" bay lên khỏi chip XP rồi tan */
+.stat-pop {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: var(--on-gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  animation: stat-pop-up 1.2s var(--ease) forwards;
+  pointer-events: none;
+}
+@keyframes stat-pop-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -2px) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(0.94);
+  }
+}
+/* ≥900px màn Học: HUD được ghim `absolute; top:16px` BÊN TRONG `.scene`, mà
+   `.scene` thì `overflow: hidden` — chỉ còn 16px phía trên chip XP nên chip
+   "+N" bay lên sẽ bị cắt gần hết. Đo thật: roomAbove = 16px, chip cao ~20px và
+   bay 22px. Nên ở đây nó bay XUỐNG (dưới HUD là trời, thoải mái chỗ). */
+@media (min-width: 900px) {
+  .learn-main .hud .stat-pop {
+    top: calc(100% + 2px);
+    bottom: auto;
+    animation-name: stat-pop-down;
+  }
+}
+@keyframes stat-pop-down {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -6px) scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, 2px) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, 10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 22px) scale(0.94);
+  }
+}
+
+/* ── 3) THANH TIẾN TRÌNH: chạy tới mức rồi có vệt sáng quét qua ─────────────
+   Thanh gold (thăng hạng, % chương) mang vệt sáng chạy chậm — dấu hiệu "còn
+   đang đi", khác thanh đã đầy.
+   CHỈ trong màn Học (`.scene` + `.learn-aside`): app có thanh .meter ở khắp nơi
+   (bảng tuần, hồ sơ, màn hoàn thành, dashboard GV) — cho tất cả quét vô hạn thì
+   thành bảng đèn quảng cáo, và chỗ giáo viên đọc số liệu không cần lấp lánh. */
+.scene .meter > i,
+.learn-aside .meter > i {
+  position: relative;
+  overflow: hidden;
+}
+.scene .meter > i::after,
+.learn-aside .meter > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 55%) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: meter-sheen 3.4s var(--ease) infinite;
+}
+.scene .meter > i[data-fill="navy"]::after,
+.learn-aside .meter > i[data-fill="navy"]::after {
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 34%) 50%,
+    transparent 80%
+  );
+}
+@keyframes meter-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  /* Quét xong nghỉ hơn nửa chu kỳ — quét liên tục là thành đèn chạy quảng cáo */
+  45%,
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+/* ── 4) NHIỆM VỤ VỪA XONG: dấu tích thay dấu gạch, thanh navy đổi xanh ──────
+   "Học hôm nay 1/1" mà vẫn xám như lúc 0/1 thì em không biết mình vừa xong. */
+.aside-quest[data-done] .aside-quest-head b {
+  color: var(--ok);
+}
+.aside-quest[data-done] .meter > i[data-fill="navy"] {
+  background: var(--ok);
+}
+
+/* ── 5) THẺ CỘT PHẢI: hiện vào so le + nhấc nhẹ khi trỏ tới ─────────────────
+   Vào màn thì ba thẻ trôi lên lần lượt (60ms lệch nhau) — mắt bắt được thứ tự
+   đọc: bảng tuần → nhiệm vụ → câu nhắc. */
+.learn-aside > * {
+  animation: rise-in 460ms var(--ease) both;
+}
+.learn-aside > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+.learn-aside > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+.aside-card {
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.aside-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* ── 6) CÂU NHẮC ĐỔI GIÓ: thân + nhãn nguồn (ca dao / tục ngữ / ngụ ngôn) ───
+   Nhãn nguồn để em biết mình vừa đọc THỨ GÌ — không tưởng app tự bịa ra câu. */
+.aside-tip {
+  align-items: flex-start;
+}
+.aside-tip-body {
+  min-width: 0;
+}
+/* Nhãn nguồn MANG NGHĨA (em biết mình vừa đọc ca dao hay ngụ ngôn) nên KHÔNG
+   được dùng --ink-faint: trên nền sky-tint-2 nó chỉ còn 2,67:1. --sky đạt
+   4,73:1 và đúng vai "eyebrow" của token này. */
+.aside-tip-kind {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sky);
+}
+
+/* ── 7) LỜI CHÀO: hiện vào chứ không "có sẵn ở đó" ─────────────────────────
+   Có `key` theo nội dung ở LearningPath nên đổi câu là chạy lại animation. */
+.scene-greeting {
+  animation: rise-in 520ms var(--ease) 80ms both;
+}
+
+/* ── 8) DẤU CHÂN BÀI ĐANG HỌC: vòng sáng thở ───────────────────────────────
+   Node hiện tại phải là thứ mắt tìm thấy trước tiên trên con đường. Quầng thở
+   chậm 2,8s quanh đĩa — không phải nhấp nháy mời gọi kiểu game cờ bạc. */
+.node[data-state="current"] .paw-disc {
+  animation: paw-breathe 2.8s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+@keyframes paw-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 3px 10px color-mix(in oklab, var(--gold) 55%, transparent));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SÂN KHẤU BÀI TẬP — 30/07/2026
+   Chủ dự án: làm mặt ĐANG LÀM BÀI theo "phim hoạt hình điện ảnh" — kỳ diệu, có
+   chiều sâu, cảm giác bước vào một thế giới khám phá, không phải trang học online.
+
+   CÁCH ĐỌC BẢN NÀY (đọc trước khi sửa, kẻo phá đúng thứ nó vừa cứu):
+
+   1) QUYẾT ĐỊNH 30/07 "nền trắng, đề bài có màu" VẪN CÒN NGUYÊN. Chiều sâu nằm ở
+      RÌA khung (dải trời trên, quầng sáng sàn dưới), còn vùng giữa — nơi đặt đề
+      và đáp án — vẫn sáng và sạch. Đây KHÔNG phải quay về canvas xanh: canvas cũ
+      tô đều cả trang nên đề bài chìm; ở đây rìa có sắc LÀM đề bài nổi lên.
+
+   2) BA LỚP như một khung phim: hậu cảnh = .qstage (fixed, không cuộn ⇒ chính nó
+      là parallax, không cần JS) · trung cảnh = phiến đề + ô đáp án · tiền cảnh =
+      sư tử + thanh hành động đáy.
+
+   3) MÀU LẤY TỪ THẾ GIỚI CỦA CHƯƠNG (--world-0..8) — cùng thang mà lộ trình đang
+      dùng cho chip chặng. Vào bài KHÔNG đổi bầu trời: em vừa đứng ở đồng cỏ thì
+      bài cũng ánh đồng cỏ. Tránh được cả bẫy "app nhiều màu tuỳ hứng".
+
+   4) TƯƠNG PHẢN — chỗ dễ hỏng nhất, đã đo bằng tools/contrast:
+      · Phiến đề sáng DẦN LÊN phía trên (#f2f7fe) và đáy đúng bằng --q-face
+        (#e3eefb). Nghĩa là điểm ĐẬM NHẤT của phiến vẫn là màu đã duyệt, nên mọi
+        token chữ giữ nguyên mức cũ. Đậm hơn một nhịp (#e0ecfa) là --muted tụt
+        còn 4,48:1 — trượt AA. Đừng "cho sâu thêm chút nữa".
+      · Wash khí quyển ở dải giữa ≤6% màu thế giới trên trắng ⇒ --muted vẫn
+        ≥4,9:1. Đậm hơn thì chữ chú thích trượt.
+      · Viền ô đáp án giữ --pick-line: 3,26:1 với nền trang, 3,06:1 với đáy mặt ô
+        — cả hai qua ngưỡng ranh-giới-control 1.4.11.
+
+   5) Hiệu ứng chỉ chạm transform/opacity/filter. Vòng lặp vô hạn chỉ cho hạt bụi
+      sáng (18–26s, biên độ nhỏ, xa vùng đọc chữ). Ăn mừng là ONE-SHOT.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1) HẬU CẢNH = TRANH THẬT của thế giới đang học ──────────────────────────
+   Bản đầu (30/07 sáng) chỉ pha 12% màu thế giới lên trắng — chủ dự án chê đúng:
+   "vẫn là thẻ trên giấy". Trong khi lộ trình đã có 9 TRANH savanna Studio vẽ
+   (/scenes/world-N.webp). Vậy dùng CHÍNH tranh đó: em đứng ở thảo nguyên trên
+   lộ trình, mở bài ra vẫn là thảo nguyên ấy — cùng một thế giới, một câu chuyện.
+
+   Cấu trúc 3 lớp:
+     tranh (viewport, đứng yên khi cuộn = parallax miễn phí)
+       → VŨNG SÁNG .lsn-main (miệt sương trắng 92% — nơi chữ sống, chuẩn AA giữ
+         nguyên vì mọi chữ rời đều nằm trong nó hoặc trong chip trắng)
+         → phiến đề + ô đáp án (vật thể được rọi sáng, như cũ).
+
+   Tranh đặt trên .viewport (nền của PHẦN TỬ CUỘN neo theo border-box — đứng yên
+   khi cuộn, KHÔNG cần background-attachment:fixed vốn vỡ với transform) — đúng
+   thủ thuật mà lộ trình mobile đã dùng và đã trả giá xong. Kèm scrim tối nhẹ
+   trên/dưới trong background-stack để chip trắng + trail nổi trên tranh sáng.
+   Token --scene-img/--scene-sky đã được cấp cho .viewport:has(.qworld[...]) ở
+   khối 9 thế giới phía trên. */
+/* Vỏ mang data-world cho cả màn bài — display:contents nên KHÔNG đổi layout,
+   chỉ để token 9 thế giới chảy xuống (và .viewport:has() bắt được). */
+.qworld { display: contents; }
+
+.viewport:has(.qworld) {
+  background-color: #14162d;
+  background-image:
+    linear-gradient(180deg, rgba(15, 16, 40, 0.28) 0%, rgba(15, 16, 40, 0) 22%, rgba(15, 16, 40, 0) 55%, rgba(15, 16, 40, 0.4) 100%),
+    var(--scene-img, none),
+    var(--scene-sky, var(--sky-grad));
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+}
+
+/* Lớp KHÍ QUYỂN trên tranh: quầng nắng vàng dưới thấp + đom đóm sáng. Fixed nên
+   không cuộn theo chữ. Chỉ còn hai thứ này — mặt trời, mây, đồi đã CÓ TRONG
+   TRANH, vẽ CSS đè lên là thành hai cảnh chồng nhau. */
+.qstage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  animation: stage-wake 700ms var(--ease) both;
+}
+@keyframes stage-wake {
+  from { opacity: 0; }
+}
+
+/* VŨNG SÁNG — nội dung bài nổi trên tranh trong một miệt sương trắng.
+   92% chứ không phải 100%: hé một hơi thở của tranh qua nền, nhưng --muted
+   (4,64:1 trên trắng) chỉ tụt ~2% — vẫn qua AA với biên rộng. Không viền,
+   bóng rộng đổ xuống tranh → "trang sách đặt trong thế giới". */
+.lsn-main {
+  background: rgb(255 255 255 / 92%);
+  border-radius: var(--r-lg);
+  padding: 14px 18px 18px;
+  box-shadow: 0 30px 70px -34px rgb(10 12 40 / 55%);
+}
+/* Cột học liệu cùng chất liệu — nhưng CHỈ khi có đồ thật, aside rỗng mà mang
+   nền là lòi một hộp ma bên phải. */
+.lsn-aside:not(:empty) {
+  background: rgb(255 255 255 / 92%);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  box-shadow: 0 30px 70px -34px rgb(10 12 40 / 55%);
+}
+
+/* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
+   Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,
+   hoàng hôn ánh hồng, đêm sao ánh trăng bạc. */
+.qstage-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -24vh;
+  width: min(1100px, 150vw);
+  height: 58vh;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--scene-orb-glow, var(--gold)) 30%, transparent) 0%,
+    color-mix(in srgb, var(--scene-orb-glow, var(--gold)) 12%, transparent) 48%,
+    transparent 74%
+  );
+  transition: background var(--t) var(--ease);
+}
+
+/* ĐOM ĐÓM — 6 đốm sáng bay chậm (18–26s), nhịp lệch nhau, chỉ ở hai mép và nửa
+   dưới rồi tan trước khi tới vùng đọc đề. Trên tranh tối (đêm sao, ngân hà)
+   chúng thành đom đóm thật; trên tranh sáng là hạt bụi nắng. */
+.qstage-motes i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--scene-orb-glow, var(--gold)) 75%, white);
+  box-shadow: 0 0 12px 3px color-mix(in srgb, var(--scene-orb-glow, var(--gold)) 45%, transparent);
+  opacity: 0;
+  animation: mote-drift 22s linear infinite;
+}
+.qstage-motes i:nth-child(1) { left: 8%;  top: 66%; animation-duration: 24s; animation-delay: -2s; }
+.qstage-motes i:nth-child(2) { left: 17%; top: 80%; animation-duration: 19s; animation-delay: -9s;  scale: 0.7; }
+.qstage-motes i:nth-child(3) { left: 84%; top: 72%; animation-duration: 26s; animation-delay: -5s; }
+.qstage-motes i:nth-child(4) { left: 92%; top: 86%; animation-duration: 21s; animation-delay: -14s; scale: 0.6; }
+.qstage-motes i:nth-child(5) { left: 30%; top: 90%; animation-duration: 25s; animation-delay: -18s; scale: 0.8; }
+.qstage-motes i:nth-child(6) { left: 68%; top: 94%; animation-duration: 18s; animation-delay: -11s; scale: 0.65; }
+@keyframes mote-drift {
+  0%   { opacity: 0;    translate: 0 0; }
+  12%  { opacity: 0.5;  }
+  70%  { opacity: 0.3;  }
+  100% { opacity: 0;    translate: 14px -42vh; }
+}
+
+/* Nội dung PHẢI nổi trên hậu cảnh. .lsn-grid là display:contents ở màn hẹp nên
+   không đặt được z-index — đặt lên chính các con của nó. */
+.lesson-top,
+.lsn-main,
+.lsn-aside,
+.mend-banner {
+  position: relative;
+  z-index: 1;
+}
+/* Cột học liệu phải GIỮ được "dính theo cuộn" của khối ≥1360px. Media query
+   KHÔNG thêm specificity nên `position: relative` ở trên (nằm sau trong file)
+   vốn đè mất `sticky` — đo ở 1440px mới thấy: cột học liệu cuộn mất tăm. */
+@media (min-width: 1360px) {
+  .lsn-aside { position: sticky; }
+}
+
+/* ── 2) ĐƯỜNG DẤU CHÂN — tiến trình là một CHUYẾN ĐI, không phải phần trăm ───
+   Lộ trình ngoài kia là dấu chân vàng trên đồi; vào bài thì mỗi CÂU cũng là một
+   bước chân trên chính dải đồi ấy: ruy-băng cỏ màu đồi của thế giới, dấu chân
+   vàng cho câu đã qua, SƯ TỬ TÍ HON đứng ở dấu hiện tại như quân cờ trên bàn,
+   lá cờ vàng cuối đường là đích. Cùng một ngôn ngữ với lộ trình → app kể MỘT
+   câu chuyện. Giữ role="progressbar" + aria-* nên máy đọc không mất gì.
+   Vùng chạm không cần (không bấm được) — đây là bảng chỉ đường. */
+.qtrail {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  /* Dải cỏ: màu đồi TRƯỚC của thế giới (đậm) — dấu chân VÀNG bật trên nó, đúng
+     bảo chứng của hội đồng mỹ thuật cho lộ trình ("đồi luôn đủ tối/lạnh"). */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--scene-hill-back, var(--grass-back)) 88%, white) 0%,
+    var(--scene-hill-front, var(--grass-front)) 100%
+  );
+  box-shadow:
+    inset 0 2px 5px rgb(0 0 0 / 22%),
+    inset 0 -1px 0 rgb(255 255 255 / 14%);
+}
+/* DẤU CHÂN: bàn đệm ellipse + 3 ngón qua ::before (chấm giữa + 2 bóng đổ cứng).
+   Vẽ thuần CSS, màu qua currentColor — không icon, không ảnh. */
+.qtrail-paw {
+  position: relative;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 9px;
+  margin-top: 7px; /* chừa chỗ 3 ngón phía trên trong dải 30px */
+  border-radius: 50% 50% 46% 46% / 62% 62% 40% 40%;
+  color: rgb(10 12 30 / 30%); /* mặc định: vết lõm chưa in — trũng tối trên cỏ */
+  background: currentColor;
+  transition: color var(--t) var(--ease);
+}
+.qtrail-paw::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: -6px 2px 0 0 currentcolor, 6px 2px 0 0 currentcolor;
+}
+/* Đã qua: dấu chân VÀNG in hằn — đúng dấu chân mastered của lộ trình. */
+.qtrail-paw[data-s="done"] {
+  color: var(--gold);
+}
+/* Đang đứng: dấu chân SÁNG TRẮNG + quầng thở — và sư tử tí hon đứng trên nó
+   (render từ TSX). Điểm sống duy nhất của dải. */
+.qtrail-paw[data-s="now"] {
+  color: #fff;
+}
+.qtrail-paw[data-s="now"]::after {
+  content: "";
+  position: absolute;
+  inset: -6px -7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 45%), 0 0 14px 2px rgb(255 255 255 / 55%);
+  animation: paw-breathe 2.6s var(--ease) infinite;
+}
+@keyframes paw-breathe {
+  0%, 100% { opacity: 0.55; scale: 1; }
+  50% { opacity: 1; scale: 1.12; }
+}
+/* SƯ TỬ QUÂN CỜ — đầu sư tử 26px đứng ngay trên dấu chân hiện tại, nhô lên khỏi
+   dải cỏ. Không phải trang trí rải bừa: nó LÀ con trỏ tiến trình, và nó đi tới
+   sau mỗi câu (vị trí đổi theo layout — không cần animate gì thêm). */
+.qtrail-paw .lion {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  translate: -50% 0;
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 35%));
+}
+/* Reset toàn cục img{max-width:100%} bóp ảnh theo bề ngang dấu chân 13px —
+   quân cờ phải giữ đúng cỡ prop (26px). */
+.qtrail-paw .lion img {
+  max-width: none;
+}
+/* CỜ ĐÍCH cuối đường: cột + lá cờ vàng bay. */
+.qtrail-flag {
+  position: relative;
+  flex: 0 0 3px;
+  width: 3px;
+  height: 22px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+}
+.qtrail-flag::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3px;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-left: 10px solid var(--gold);
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 25%));
+  transform-origin: 0 50%;
+  animation: flag-wave 3.4s ease-in-out infinite;
+}
+@keyframes flag-wave {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(0.82); }
+}
+/* Bài DÀI (>14 câu): dấu chân nhỏ lại, vẫn là đường đi. */
+.qtrail[data-long] { gap: 2px; padding: 0 10px; }
+.qtrail[data-long] .qtrail-paw { width: 9px; height: 7px; }
+.qtrail[data-long] .qtrail-paw::before {
+  width: 3px; height: 3px; top: -4px;
+  box-shadow: -4px 1px 0 0 currentcolor, 4px 1px 0 0 currentcolor;
+}
+
+/* X THOÁT + "3/8" — hai thứ đứng TRỰC TIẾP trên tranh, phải ngồi trong chip
+   trắng mờ (tranh có thế giới rất tối — đêm sao, ngân hà). */
+.lesson-x {
+  background: rgb(255 255 255 / 88%);
+  box-shadow: var(--shadow-sm);
+}
+.lesson-x:hover {
+  background: #fff;
+  color: var(--ink);
+}
+.lesson-count {
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 88%);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-2);
+}
+
+/* ── 3) PHIẾN ĐỀ BÀI — vật thể được rọi sáng, không phải cái hộp ──────────────
+   Sáng dần LÊN phía trên (ánh sáng đến từ trên), đáy đúng --q-face đã duyệt.
+   Bóng rộng và mềm ⇒ phiến NỔI khỏi trang; sợi sáng 1px ở rìa trên là mép bắt
+   sáng của vật thể. Không viền bao quanh: DESIGN.md cấm rừng viền, và ở đây
+   chiều sâu do ánh sáng lo. */
+.qcard {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--q-face) 45%, white) 0%,
+    var(--q-face) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 85%),
+    0 18px 38px -22px rgb(38 39 93 / 34%),
+    0 3px 10px -6px rgb(38 39 93 / 20%);
+  text-wrap: balance;
+  animation: slab-in 420ms var(--ease) both;
+  transition: box-shadow 320ms var(--ease);
+}
+/* Rìa trên bắt sáng — một sợi gradient, không phải border. */
+.qcard::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, white 92%, var(--gold)) 45%,
+    transparent
+  );
+}
+@keyframes slab-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
+
+/* NHÃN LỆNH LÀM BÀI — biển khắc gắn vào rìa trên phiến, hết eyebrow chữ hoa rời
+   treo lơ lửng. Ngồi đè lên mép phiến 11px nên hai thứ đọc ra MỘT vật thể (chủ
+   dự án: nhiều món rời = rối). Chữ trắng trên navy = 12,4:1. */
+.lesson-kind {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 4px auto -11px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  background: var(--navy);
+  box-shadow: 0 6px 16px -8px rgb(38 39 93 / 55%);
+  /* 11px của .eyebrow quá nhỏ cho một câu LỆNH (nó là hướng dẫn làm bài, không
+     phải nhãn trang trí) — nâng lên 12,5px và nới tracking bớt lại. */
+  font-size: 0.78125rem;
+  letter-spacing: 0.06em;
+  color: #fff;
+  animation: slab-in 380ms var(--ease) both;
+}
+
+/* ── 4) Ô ĐÁP ÁN — phiến bấm được cùng một thế giới ──────────────────────────
+   Giữ NGUYÊN hình học phím vật lý (bóng đáy 4px, bấm tụt 2px) — chữ ký của app,
+   đã qua kiểm tương phản. Chỉ thêm: mặt bắt sáng từ trên, rê chuột thì NÂNG 1px
+   + rìa sáng lên, chọn rồi thì có quầng và một con dấu tích vàng.
+   Vào cảnh so le 45ms/ô — mắt đọc theo thứ tự thay vì bị đập cả bốn ô một lúc. */
+.ans-tile {
+  position: relative;
+  background: linear-gradient(180deg, #fff 0%, #f4f8fe 100%);
+  animation: tile-in 340ms var(--ease) both;
+}
+.ans-grid > :nth-child(1) { animation-delay: 60ms; }
+.ans-grid > :nth-child(2) { animation-delay: 105ms; }
+.ans-grid > :nth-child(3) { animation-delay: 150ms; }
+.ans-grid > :nth-child(4) { animation-delay: 195ms; }
+.ans-grid > :nth-child(5) { animation-delay: 240ms; }
+.ans-grid > :nth-child(6) { animation-delay: 285ms; }
+.ans-grid > :nth-child(n + 7) { animation-delay: 320ms; }
+@keyframes tile-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.ans-tile:hover:not(:disabled):not([aria-pressed="true"]) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 var(--pick-strong),
+    0 12px 22px -14px rgb(38 39 93 / 45%);
+}
+/* ĐÃ CHỌN: quầng navy toả ra + con dấu tích ở góc. Không chỉ đổi màu — chủ dự án
+   yêu cầu "trạng thái được chọn phải có phản hồi trực quan rõ ràng", và luật a11y
+   của dự án là màu KHÔNG bao giờ đứng một mình. */
+.ans-tile[aria-pressed="true"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--navy-tint) 55%, white) 0%,
+    var(--navy-tint) 100%
+  );
+  box-shadow:
+    0 4px 0 var(--navy),
+    0 0 0 4px color-mix(in oklab, var(--navy) 12%, transparent),
+    0 14px 26px -16px rgb(38 39 93 / 50%);
+}
+/* Con dấu: đĩa NAVY (::after) + dấu tích trắng vẽ bằng hai đường viền (::before).
+   Không thêm icon SVG nào vào gói tải, và dấu tích là HÌNH nên trạng thái không
+   phụ thuộc màu.
+   ⚠️ ĐỪNG đổi đĩa này sang GOLD. Trong hệ màu của app gold nghĩa là "thưởng / đã
+   thành thạo", nên dấu tích vàng trên ô VỪA CHỌN (chưa bấm KIỂM TRA) đọc ra
+   "đáp án này đúng" — app tuyệt đối không được mách đúng/sai trước khi chấm.
+   Navy = "em đã chọn cái này", đúng nghĩa cần nói. Gold để dành cho khoảnh khắc
+   thưởng thật (vệt sáng chân trời + chip XP). */
+.ans-tile[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--navy);
+  box-shadow: 0 2px 6px -2px rgb(38 39 93 / 45%);
+  animation: seal-pop 260ms var(--ease) both;
+}
+.ans-tile[aria-pressed="true"]::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  z-index: 1;
+  width: 8px;
+  height: 4px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  border-radius: 1px;
+  rotate: -45deg;
+  animation: seal-pop 300ms var(--ease) 40ms both;
+}
+@keyframes seal-pop {
+  from { opacity: 0; scale: 0.4; }
+}
+
+/* ── 5) BONG BÓNG SƯ TỬ — ấm hơn, thuộc cùng thế giới ────────────────────────
+   Trắng lạnh trên nền trắng thì bong bóng tan mất. Mặt kem-ấm rất nhẹ + bóng
+   mềm ⇒ đọc ra "lời của một nhân vật", không phải một khối chú thích. */
+.hint-bubble {
+  background: linear-gradient(180deg, #fff 0%, color-mix(in oklab, var(--gold) 5%, white) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 14px 30px -20px rgb(38 39 93 / 40%),
+    0 2px 8px -5px rgb(38 39 93 / 18%);
+}
+
+/* ── 6) THANH HÀNH ĐỘNG ĐÁY = ĐƯỜNG CHÂN TRỜI ───────────────────────────────
+   Trước: dải trắng + một sợi hairline xám, đúng kiểu toolbar. Nay là mép sáng
+   của khung phim: một vệt sáng mảnh chạy trên đỉnh thanh, nền ấm dần xuống. */
+.lfoot {
+  border-top: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--q-face) 22%, white) 0%,
+    var(--surface) 40%
+  );
+  box-shadow: 0 -18px 34px -26px rgb(38 39 93 / 45%);
+}
+.lfoot::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--navy) 22%, transparent) 20%,
+    color-mix(in oklab, var(--gold) 60%, transparent) 50%,
+    color-mix(in oklab, var(--navy) 22%, transparent) 80%,
+    transparent
+  );
+  opacity: 0.7;
+}
+/* ĐÚNG: vệt sáng bung thành vàng rực một nhịp rồi dịu — phần thưởng bằng ÁNH
+   SÁNG (one-shot, gắn với việc thật vừa xảy ra), không confetti. */
+.lfoot[data-verdict="ok"] {
+  border-top: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--gold) 12%, var(--ok-tint)) 0%,
+    var(--ok-tint) 46%
+  );
+}
+.lfoot[data-verdict="ok"]::before {
+  height: 3px;
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  animation: horizon-bloom 620ms var(--ease) both;
+}
+@keyframes horizon-bloom {
+  from { opacity: 0; transform: scaleX(0.3); }
+  60%  { opacity: 1; }
+}
+.lfoot[data-verdict="retry"] {
+  border-top: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--warn) 10%, var(--warn-tint)) 0%,
+    var(--warn-tint) 46%
+  );
+}
+.lfoot[data-verdict="retry"]::before {
+  opacity: 0.85;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--warn) 55%, transparent) 50%,
+    transparent
+  );
+}
+.lfoot[data-verdict="done"] {
+  border-top: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--sky) 10%, var(--navy-tint)) 0%,
+    var(--navy-tint) 46%
+  );
+}
+
+/* ĐÚNG RỒI thì cả sân khấu ấm lên, không chỉ cái thanh dưới đáy. `:has` đọc
+   verdict từ footer nên không cần thêm state nào ở React. */
+body:has(.lfoot[data-verdict="ok"]) .qcard {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 85%),
+    0 0 0 3px color-mix(in oklab, var(--gold) 34%, transparent),
+    0 20px 44px -24px color-mix(in oklab, var(--gold) 42%, rgb(38 39 93 / 30%));
+}
+body:has(.lfoot[data-verdict="ok"]) .qstage-glow {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--gold) 36%, transparent) 0%,
+    color-mix(in srgb, var(--scene-orb-glow, var(--gold)) 16%, transparent) 48%,
+    transparent 74%
+  );
+}
+
+/* ── 7) GIẢM CHUYỂN ĐỘNG ─────────────────────────────────────────────────────
+   Hai khối toàn cục đã bóp animation về 0,01ms, nhưng đom đóm thì TẮT HẲN cho
+   tĩnh hẳn, và dấu chân "đang đứng" hết thở. */
+@media (prefers-reduced-motion: reduce) {
+  .qstage-motes { display: none; }
+  .qtrail-paw[data-s="now"]::after { animation: none; }
+}
+html[data-motion="reduce"] .qstage-motes { display: none; }
+html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
+
+/* ── 8) MÀN HẸP ──────────────────────────────────────────────────────────────
+   Điện thoại: quầng sàn thu lại; vũng sáng sát mép hơn cho rộng chỗ đọc,
+   nhưng vẫn chừa 10px hai bên để TRANH thò ra — mất viền tranh là mất luôn
+   cảm giác "đứng trong thế giới". */
+@media (max-width: 599.98px) {
+  .qstage-glow { bottom: -26vh; height: 46vh; width: 130vw; }
+  .lsn-main { padding: 12px 12px 16px; }
+  .shell-main:has(.qworld) { padding-inline: 10px; }
+}
+
+/* ── 9) CÁC DẠNG CÂU KHÁC cũng phải là VẬT THỂ CÙNG THẾ GIỚI ─────────────────
+   Trắc nghiệm đã thành phiến sáng + phím đá, nhưng bài còn 7 hình dạng khác
+   (đề nhiều bước, lời trích, ô gõ đáp án, nộp bài…). Để nguyên thì trên cùng
+   một sân khấu có hai ngôn ngữ: vật thể bắt sáng ở trên, biểu mẫu viền xám ở
+   dưới — đúng thứ chủ dự án gọi là "rối, không biết cái nào ra cái nào". */
+
+/* Đề bài: to hơn một nhịp trên màn rộng — chữ đề là điểm nhấn thị giác chính,
+   và phiến đã rộng 530–600px nên 1,25rem trông nhỏ so với khung. Mobile giữ
+   1,25rem (đo ở 375px: 1,375rem làm công thức dài tràn hai dòng). */
+@media (min-width: 600px) {
+  .qcard-expr { font-size: 1.375rem; line-height: 1.42; }
+  .qcard-stem { font-size: 1.25rem; }
+}
+
+/* Thẻ TỪNG BƯỚC: bỏ viền 1px xám, thay bằng mặt bắt sáng + bóng mềm như phiến
+   đề (nhỏ hơn một cấp). Bước đã trả lời thì mặt ấm lên chứ không chỉ đổi màu số. */
+.step-card {
+  border: 0;
+  background: linear-gradient(180deg, #fff 0%, #f6faff 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 10px 24px -18px rgb(38 39 93 / 40%),
+    0 1px 4px -2px rgb(38 39 93 / 14%);
+}
+.step-card[data-answered] {
+  background: linear-gradient(
+    180deg,
+    #fff 0%,
+    color-mix(in oklab, var(--gold) 8%, white) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    0 0 0 1px color-mix(in oklab, var(--gold) 30%, transparent),
+    0 10px 24px -18px color-mix(in oklab, var(--gold) 30%, rgb(38 39 93 / 30%));
+}
+
+/* LỜI TRÍCH ("bạn ấy viết…"): là lời của NGƯỜI KHÁC, nên nó phải trông như một
+   mảnh giấy nằm TRÊN phiến đề — lõm vào, không nổi lên như thẻ mới. */
+.qquote {
+  background: color-mix(in oklab, var(--navy) 6%, white);
+  box-shadow:
+    inset 0 1px 3px rgb(38 39 93 / 12%),
+    inset 0 0 0 1px rgb(255 255 255 / 60%);
+}
+
+/* Ô GÕ ĐÁP ÁN: cùng họ với ô đáp án bấm — viền --pick-line (3,26:1, đạt 1.4.11)
+   thay viền xám --line-strong, mặt bắt sáng nhẹ, và khi gõ thì rìa sáng lên. */
+.ans-input,
+.work-input,
+.reflect-input {
+  border-color: var(--pick-line);
+  background: linear-gradient(180deg, #fff 0%, #f7fafe 100%);
+  box-shadow: inset 0 1px 2px rgb(38 39 93 / 6%);
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.ans-input:focus-visible,
+.work-input:focus-visible,
+.reflect-input:focus-visible {
+  border-color: var(--pick-strong);
+  box-shadow:
+    inset 0 1px 2px rgb(38 39 93 / 6%),
+    0 0 0 4px color-mix(in oklab, var(--navy) 10%, transparent);
+}
+/* Placeholder phải đạt 4,5:1 như chữ thường (không dùng xám mặc định của
+   trình duyệt — đó là lỗi hay gặp nhất ở ô nhập). --muted = 4,64:1 trên trắng. */
+.ans-input::placeholder,
+.work-input::placeholder,
+.reflect-input::placeholder {
+  color: var(--muted);
+}
+
+/* Nút Có/Không của đề nhiều bước: 40px + viền 2px ra 42px thật — DƯỚI ngưỡng
+   vùng chạm 44px của PRODUCT.md (học sinh bấm bằng ngón cái, trên giường). Nâng
+   lên 44 và cho nó cùng ngôn ngữ với ô đáp án: viền --pick-line (3,26:1) thay
+   viền xám, mặt bắt sáng, chọn rồi thì có quầng navy. */
+.step-pill {
+  min-height: 44px;
+  border-color: var(--pick-line);
+  background: linear-gradient(180deg, #fff 0%, #f4f8fe 100%);
+}
+.step-pill:hover:not(:disabled):not([aria-pressed="true"]) {
+  border-color: var(--pick-strong);
+}
+.step-pill[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--navy) 12%, transparent);
 }

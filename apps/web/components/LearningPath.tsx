@@ -5,6 +5,7 @@ import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Paper
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 import { MathText } from "../lib/mathrender";
+import { useCountUp, useGrow } from "../lib/anim";
 
 /**
  * Trạng thái một điểm kiến thức trên lộ trình.
@@ -176,6 +177,10 @@ export default function LearningPath({
 
   const done = nodes.filter((n) => n.state === "mastered").length;
   const pct = nodes.length > 0 ? Math.round((done / nodes.length) * 100) : 0;
+  // % chương CHẠY tới mức + số đếm dần (chủ dự án 30/07: "hard cứng" thì em
+  // không thấy mình vừa nhích được gì). Giảm chuyển động → nhả thẳng số cuối.
+  const pctGrown = useGrow(pct, { delay: 260 });
+  const pctShown = useCountUp(pct, { duration: 1000, delay: 260 });
   // Banner hi-fi: eyebrow = môn/chương (unit), title serif = tên chương.
   // subtitle của app là "Tên chương · mô tả" — tách phần đầu lên title.
   const [chapterTitle, ...restParts] = subtitle.split(" · ");
@@ -239,13 +244,23 @@ export default function LearningPath({
     // Sư tử mascot đứng bên nào: theo dấu chân đang lệch trái hay phải.
     const shiftedLeft = g.dx < 0;
     const Icon = n.state === "available" ? null : ICON[n.state];
+    // Thẻ bài đang học gom SẴN tiến trình + chờ chấm (xem .node-card): các badge
+    // rời chỉ còn dùng cho node KHÁC.
+    const isCurrent = n.state === "current";
+    const showProg = isCurrent && (n.progress ?? 0) > 0;
+    const waiting = (n.pending ?? 0) > 0 && n.state !== "mastered";
+    // Máy đọc: thẻ trên đầu node là aria-hidden (chữ trang trí trùng nhãn nút),
+    // nên số dang dở / chờ chấm phải nhập vào aria-label của chính cái nút.
+    const extra = [
+      showProg ? `đã làm ${n.doneCount ?? 0} trên ${n.totalCount ?? 0} câu` : null,
+      waiting ? `${n.pending} bài đang chờ thầy cô chấm` : null,
+    ].filter(Boolean);
     return (
       <li
         key={n.key}
-        /* Sư tử đứng bên nào — để nhãn node né sang phía đối diện (CSS). Trước
-           đây nhãn luôn căn giữa nên viên trắng đè lên thân sư tử đúng tại node
-           đang học, ngay chỗ quan trọng nhất màn hình. */
-        data-lion={n.state === "current" ? (shiftedLeft ? "r" : "l") : undefined}
+        /* Sư tử đứng bên nào — CSS xê dịch mound/nhãn theo. Thẻ bài thì luôn
+           căn giữa NGAY TRÊN dấu chân (nằm trên đầu sư tử, không tranh chỗ). */
+        data-lion={isCurrent ? (shiftedLeft ? "r" : "l") : undefined}
         style={
           {
             position: "relative",
@@ -259,13 +274,35 @@ export default function LearningPath({
           className="node"
           data-state={n.state}
           disabled={locked || busy}
-          aria-label={`${n.label}. ${hint}`}
+          aria-label={`${n.label}. ${[hint, ...extra].join(". ")}`}
           title={`${n.label} — ${hint}`}
           onClick={() => onStart(n)}
         >
-          {n.state === "current" && (
-            <span className="node-flag" data-preview={preview || undefined} aria-hidden>
-              {preview ? "XEM TRƯỚC" : "BẮT ĐẦU"}
+          {/* MỘT THẺ cho bài đang học, đứng NGAY TRÊN dấu chân: nhãn "BẮT ĐẦU" +
+              tên bài + tiến trình + chờ chấm. Trước 30/07 đây là BỐN món rời
+              (cờ trên đầu, nhãn tên né sang cạnh 64px, chip 8/8, chip chờ chấm)
+              — chủ dự án đọc ra thành "lệch, không biết cái nào ra cái nào".
+              Căn giữa tuyệt đối theo node nên không còn lệch; nằm phía TRÊN nên
+              không tranh chỗ với sư tử đứng cạnh. */}
+          {isCurrent && (
+            <span className="node-card" data-preview={preview || undefined} aria-hidden>
+              <span className="node-card-kicker">{preview ? "XEM TRƯỚC" : "BẮT ĐẦU"}</span>
+              <span className="node-card-name">{shortLabel(n.label)}</span>
+              {(showProg || waiting) && (
+                <span className="node-card-meta">
+                  {showProg && (
+                    <span className="node-card-prog num">
+                      {n.doneCount ?? 0}/{n.totalCount ?? 0} câu
+                    </span>
+                  )}
+                  {waiting && (
+                    <span className="node-card-wait">
+                      <Hourglass aria-hidden strokeWidth={2.25} />
+                      chờ chấm
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
           )}
           {/* Node = DẤU CHÂN SƯ TỬ artwork chính chủ (LẬT ngón xuống qua CSS)
@@ -282,20 +319,10 @@ export default function LearningPath({
             )}
           </span>
         </button>
-        {n.state === "current" && <span className="node-label">{shortLabel(n.label)}</span>}
-        {/* Tiến trình DANG DỞ phải nhìn thấy: xong 6/8 câu mà node trông y như
-            chưa học là học sinh tưởng mất trắng (phản hồi 27/07). */}
-        {n.state === "current" && (n.progress ?? 0) > 0 && (
-          <span
-            className="node-progress num"
-            aria-label={`Đã làm ${n.doneCount ?? 0} trên ${n.totalCount ?? 0} câu của bài này`}
-          >
-            {n.doneCount ?? 0}/{n.totalCount ?? 0}
-          </span>
-        )}
-        {/* Bài đang chờ thầy cô chấm — nói ra, kẻo em tưởng app nuốt bài nộp. */}
-        {(n.pending ?? 0) > 0 && n.state !== "mastered" && (
-          <span className="node-pending" title={`${n.pending} bài đang chờ thầy cô chấm`}>
+        {/* Bài đang chờ thầy cô chấm — nói ra, kẻo em tưởng app nuốt bài nộp.
+            Bài ĐANG HỌC không cần badge rời: chờ chấm đã nằm trong .node-card. */}
+        {waiting && !isCurrent && (
+          <span className="node-pending" aria-hidden title={`${n.pending} bài đang chờ thầy cô chấm`}>
             <Hourglass aria-hidden strokeWidth={2.25} />
             chờ chấm
           </span>
@@ -389,9 +416,11 @@ export default function LearningPath({
               aria-valuemax={nodes.length}
               aria-label={`Đã thành thạo ${done} trên ${nodes.length} điểm kiến thức`}
             >
-              <i style={{ "--p": `${pct}%` } as React.CSSProperties} />
+              <i style={{ "--p": `${pctGrown}%` } as React.CSSProperties} />
             </div>
-            <b className="num">{pct}%</b>
+            <b className="num" aria-hidden>
+              {pctShown}%
+            </b>
           </div>
         )}
       </header>
@@ -399,15 +428,28 @@ export default function LearningPath({
       {/* Bài nộp bị trả về: báo NGAY trên đầu lộ trình, kèm tên bài — học sinh
           nộp hôm trước, hôm sau vào mới biết kết quả nên phải nói rõ ràng. */}
       {redoNodes.length > 0 && (
-        <div className="redo-notice" role="status">
-          <Undo2 aria-hidden strokeWidth={2.25} />
-          <div className="redo-body">
+        /* GẬP LẠI (30/07): trước đây thẻ này banh ra nguyên khối nền đỏ + 4 nút
+           đỏ to — chủ dự án đọc thành "app bị lỗi". Giờ là MỘT DÒNG thẻ trắng,
+           chấm đỏ nhỏ dẫn mắt, bấm mới mở danh sách. Vẫn nói đủ số bài nên
+           không có gì bị chôn; `open` khi chỉ có 1 bài (mở ra cũng chỉ 1 nút). */
+        <details
+          className="redo-notice"
+          data-tone="redo"
+          open={redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0) === 1}
+        >
+          <summary>
+            <span className="notice-dot" aria-hidden>
+              <Undo2 strokeWidth={2.5} />
+            </span>
             {/* Đếm theo CÂU, khớp đúng số nút bên dưới — đếm theo bài thì hiện
                 "1 bài cần làm lại" mà dưới lại có hai nút. */}
-            <b>
-              Thầy cô đã chấm —{" "}
-              {redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0)} bài cần làm lại
-            </b>
+            <span className="notice-text">
+              Thầy cô đã chấm — <b>{redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0)} bài</b> cần
+              làm lại
+            </span>
+            <ChevronDown className="notice-chev" aria-hidden strokeWidth={2.5} />
+          </summary>
+          <div className="redo-body">
             {/* Mỗi bài một NÚT: bấm là vào ĐÚNG câu bị trả, kèm LỜI NHẮN của
                 thầy cô hiện ngay tại đây. Trước đây đây là <div> chết: em biết
                 "có 1 bài cần làm lại" mà không biết bài nào, sai gì, và phải
@@ -460,16 +502,23 @@ export default function LearningPath({
               })}
             </div>
           </div>
-        </div>
+        </details>
       )}
 
-      {/* Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm. Cùng khuôn với thẻ "cần làm lại"
-          nhưng tông xanh — đây là tin vui, không phải bài bị trả. */}
+      {/* Bài ĐÃ ĐẠT mà thầy cô còn nhắn thêm. Cùng khuôn thẻ gập với "cần làm
+          lại" nhưng tông xanh — đây là tin vui, không phải bài bị trả. */}
       {praiseNodes.length > 0 && (
-        <div className="praise-notice" role="status">
-          <Award aria-hidden strokeWidth={2.25} />
+        <details className="redo-notice" data-tone="praise">
+          <summary>
+            <span className="notice-dot" aria-hidden>
+              <Award strokeWidth={2.5} />
+            </span>
+            <span className="notice-text">
+              Thầy cô nhận xét <b>{praiseNodes.reduce((n, x) => n + (x.praise?.length ?? 0), 0)} bài</b> em đã đạt
+            </span>
+            <ChevronDown className="notice-chev" aria-hidden strokeWidth={2.5} />
+          </summary>
           <div className="redo-body">
-            <b>Thầy cô nhận xét bài em đã đạt</b>
             <div className="redo-list">
               {praiseNodes.flatMap((n) =>
                 (n.praise ?? []).map((r, i) => (
@@ -497,11 +546,17 @@ export default function LearningPath({
               )}
             </div>
           </div>
-        </div>
+        </details>
       )}
 
-      {/* Sư tử giờ đứng cạnh node hiện tại — lời chào thành thẻ gọn, không lion */}
-      {greeting && <p className="scene-greeting">{greeting}</p>}
+      {/* Sư tử giờ đứng cạnh node hiện tại — lời chào thành thẻ gọn, không lion.
+          `key` theo nội dung: câu chào đổi (mỗi lần mở app một câu — lib/nudges)
+          thì thẻ remount và chạy lại animation hiện vào, không đổi chữ âm thầm. */}
+      {greeting && (
+        <p className="scene-greeting" key={greeting}>
+          {greeting}
+        </p>
+      )}
 
       <ul className="path" ref={pathRef}>
         {!hasLegs

@@ -10,7 +10,7 @@
 //     riêng một dòng canh giữa; chữ cái đầu câu viết hoa (`cap`).
 
 import React from "react";
-import { segmentMath, displayFlags, capitalizeLead } from "./mathtex";
+import { segmentMath, displayFlags, capitalizeLead, normalizeTex } from "./mathtex";
 
 export { segmentMath, capitalizeLead };
 export type { Seg } from "./mathtex";
@@ -64,7 +64,10 @@ const stripNote = (s: string) => (s ?? "").replace(/\s*\(khu[ôo]n tham s[ốo][
 
 function katexHtml(tex: string, display: boolean): string | null {
   if (!katex) return null; // chưa về → nơi gọi rơi về text gốc (đường lui sẵn có)
-  try { return katex.renderToString(tex, { throwOnError: true, displayMode: display }); }
+  // normalizeTex: √ unicode trong $...$ → \sqrt{} — thiếu nó là căn mất thanh
+  // ngang, chỉ còn cái móc (lỗi 22). Đây là CỬA CHUNG của mọi công thức (đề,
+  // chat, đáp án, học liệu) nên vá một chỗ là phủ cả app.
+  try { return katex.renderToString(normalizeTex(tex), { throwOnError: true, displayMode: display }); }
   catch { return null; } // parse fail → để nơi gọi rơi về text gốc
 }
 

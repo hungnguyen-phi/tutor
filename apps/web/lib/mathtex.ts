@@ -208,6 +208,28 @@ function autoSpans(text: string): Seg[] {
   return segs;
 }
 
+/**
+ * CHUẨN HOÁ nội dung nằm TRONG $...$ trước khi đưa vào KaTeX (lỗi 22, 30/07).
+ *
+ * Chủ dự án: "dấu căn chỉ có nét như chữ v". Gốc rễ: chữ √ UNICODE nằm trong
+ * $...$. Text NGOÀI $ đã được toLatexInner đổi √4 → \sqrt{4} từ lâu, nhưng nội
+ * dung trong $ được coi là "LaTeX thật của người soạn" nên đi thẳng vào KaTeX —
+ * mà KaTeX vẽ chữ √ trần đúng như \surd: CÁI MÓC KHÔNG CÓ THANH NGANG. AI (và
+ * cả người soạn đề) thỉnh thoảng viết "$√4 = ±2$" là dính ngay.
+ *
+ * Chỉ đụng đúng chữ √ — nó không bao giờ là cú pháp LaTeX hợp lệ nên thay là an
+ * toàn tuyệt đối. KHÔNG chạy cả toLatexInner lên nội dung $: luật bọc {…}→\{\}
+ * của nó sẽ phá nhóm ngoặc của LaTeX thật.
+ */
+export function normalizeTex(tex: string): string {
+  if (!tex.includes("√")) return tex;
+  return tex
+    .replace(/√\s*\(([^()]*)\)/g, "\\sqrt{$1}")
+    .replace(/√\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, "\\sqrt{$1}")
+    .replace(/√\s*([A-Za-z0-9]+)/g, "\\sqrt{$1}")
+    .replace(/√/g, "\\surd "); // √ mồ côi (hiếm) — giữ nguyên nghĩa cũ
+}
+
 /** Cắt chuỗi thành đoạn text / toán (đoạn toán đã là LaTeX, chờ KaTeX render). */
 export function segmentMath(input: string | null | undefined): Seg[] {
   const s = String(input ?? "");

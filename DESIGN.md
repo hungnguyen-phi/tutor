@@ -157,6 +157,61 @@ không phải 1200: đo ở 1200 thì cột đề bài chỉ còn 296px, hẹp h
 tay nắm kéo). Chữ có nghĩa dùng `--muted` (4,64:1) kể cả khi in đậm: ngưỡng "chữ lớn"
 của WCAG là 18,66px đậm, mà mọi chỗ trong app đều nhỏ hơn thế.
 
+### Sân khấu bài tập — làm bài TRONG TRANH (30/07, bản 2)
+
+Bản 1 (pha 12% màu thế giới lên trắng) bị chủ dự án chê thẳng: *"vẫn thấy xấu, overfitting
+tư duy thiết kế — vẫn là thẻ trên giấy"*. Chê đúng. Trong khi lộ trình đã có **9 tranh
+savanna Studio vẽ** (`/scenes/world-N.webp`). Bản 2: bài học diễn ra **trong chính tranh
+đó** — em đứng ở thảo nguyên trên lộ trình, mở bài ra vẫn là thảo nguyên ấy.
+
+**Ba lớp:** TRANH của chương phủ cả màn (đặt trên `.viewport` qua
+`.viewport:has(.qworld[data-world=N])` — nền của phần tử cuộn neo theo border-box nên
+đứng yên khi cuộn = parallax miễn phí, KHÔNG dùng `background-attachment: fixed` vì vỡ
+với transform; kèm scrim tối nhẹ trên/dưới trong background-stack) → **VŨNG SÁNG**
+`.lsn-main` (miệt sương trắng 92%, bo 20px, bóng đổ xuống tranh — "trang sách đặt trong
+thế giới"; cột học liệu cùng chất liệu, `:not(:empty)` kẻo lòi hộp ma) → phiến đề + ô
+đáp án như cũ. Khí quyển `.qstage` (fixed) chỉ còn quầng nắng màu `--scene-orb-glow` +
+6 đom đóm — mặt trời/mây/đồi ĐÃ TRONG TRANH, vẽ CSS đè lên là hai cảnh chồng nhau.
+
+**Token 9 thế giới cấp qua vỏ `.qworld`** (display:contents, mang `data-world` từ
+`worldOfLesson()` — cùng cách chia chặng với LearningPath). Hai khối selector 9 thế giới
+(màu + `--scene-img`) đã nới thêm `.viewport:has(.qworld[data-world=N])`.
+
+**Tương phản giải bằng KIẾN TRÚC, không bằng đo từng cặp:** mọi chữ rời đều nằm TRONG
+vũng sáng trắng 92% (nền hiệu dụng tệ nhất trên tranh đen: `--muted` 4,55:1 — vẫn AA)
+hoặc trong CHIP trắng 88% (X thoát + "3/8"; icon cần 3:1, đo 4,06 trên ca tệ nhất).
+⚠️ Rule chống sticky-hover touch của `.lesson-x` phải trả về CHIP trắng, đừng trả về
+`transparent` — trên tranh đêm sao icon sẽ chìm mất sau cú chạm đầu.
+
+**Tiến trình = ĐƯỜNG DẤU CHÂN trên dải cỏ** (`.qtrail` thay thanh %): ruy-băng màu đồi
+của thế giới (`--scene-hill-back/front` — hội đồng mỹ thuật đã bảo chứng "đồi luôn đủ
+tối/lạnh để dấu chân VÀNG bật", đo world 6: 12,75:1), mỗi câu một dấu chân vẽ thuần CSS
+(bàn đệm + 3 ngón bằng box-shadow, màu qua currentColor): đã qua = in VÀNG (đúng ngôn
+ngữ mastered của lộ trình), đang đứng = dấu SÁNG TRẮNG thở nhẹ + **sư tử tí hon 26px
+đứng làm quân cờ** (nhớ `max-width:none` cho img — reset toàn cục bóp nó còn 7px), cuối
+đường là cờ đích vàng bay. Giữ `role="progressbar"` + `aria-*`. Bài >14 câu → dấu nhỏ
+lại (`data-long`).
+
+**Nhãn lệnh làm bài** (`.lesson-kind`) thành biển khắc navy gắn đè lên rìa phiến 11px —
+nhãn và phiến đọc ra MỘT vật thể, hết eyebrow chữ hoa treo lơ lửng.
+
+**Trạng thái chọn** của ô đáp án: quầng navy + con dấu đĩa vàng có dấu tích navy (vẽ bằng
+hai đường viền, không thêm icon SVG). Dấu tích là HÌNH nên trạng thái không phụ thuộc màu.
+
+**Phần thưởng bằng ÁNH SÁNG, không confetti.** Đúng → vệt sáng đỉnh thanh đáy bung vàng
+một nhịp (`horizon-bloom`, one-shot), phiến đề lên quầng vàng, quầng sàn ấm lên. Đọc
+verdict qua `body:has(.lfoot[data-verdict="ok"])` nên không thêm state nào ở React.
+
+**Cả 4 hình dạng câu cùng một ngôn ngữ vật thể**: thẻ từng bước (hết viền xám, mặt bắt
+sáng, bước đã trả lời thì ấm lên), lời trích (lõm vào phiến — lời của người khác), ô gõ
+đáp án (viền `--pick-line` như ô bấm, placeholder `--muted` để đạt 4,5:1). Nút Có/Không
+nâng lên 44px cho đúng ngưỡng vùng chạm. Xem trước ở `/demo` → "Bài học": nút *Bầu trời
+n/9* xoay 9 tranh, nút *Dạng: …* xoay 4 hình dạng câu.
+
+**Đừng đặt `position: relative` cho `.lsn-aside` mà quên trả lại `sticky` ≥1360px** —
+media query không thêm specificity nên rule đứng sau trong file sẽ đè mất, và cột học
+liệu cuộn mất tăm (đã trả giá 30/07).
+
 ## z-index
 
 `--z-nav: 10` · `--z-sticky: 20` · `--z-ribbon: 30` · `--z-backdrop: 40` · `--z-modal: 50`

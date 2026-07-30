@@ -9,9 +9,10 @@
  */
 
 import { useState } from "react";
-import { Check, RefreshCw, Lightbulb, ArrowRight, TrendingUp, Zap } from "lucide-react";
+import { Check, RefreshCw, Lightbulb, ArrowRight, TrendingUp, Zap, X, Sunrise, Shapes } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import Hud from "../../components/Hud";
+import LearnAside from "../../components/LearnAside";
 import Lion from "../../components/Lion";
 import XpCount from "../../components/XpCount";
 import LearningPath, { type PathNode } from "../../components/LearningPath";
@@ -20,6 +21,7 @@ import type { NodeResource } from "../../lib/api";
 import { MathText } from "../../lib/mathrender";
 import "katex/dist/katex.min.css";
 import * as G from "../../lib/gamify";
+import { useRotation, pickGreeting } from "../../lib/nudges";
 
 // Học liệu mẫu do Xưởng Học liệu AI xuất ra (HTML tự chứa trong /public/demo-assets).
 // Đây đúng khuôn NodeResource mà fn `resources` trả về khi pipeline có dữ liệu thật.
@@ -49,17 +51,60 @@ const DEMO_RESOURCES: NodeResource[] = [
 
 const PROGRESS: G.Progress = { xp: 1240, streak: 7, lastDay: new Date().toISOString().slice(0, 10) };
 
+/* Node đang học mang ĐỦ thứ nặng nhất có thể: tên DÀI (đúng ca chủ dự án báo
+   lệch 30/07 — "Xác định tính đúng sai của mệnh đề"), tiến trình dang dở, và bài
+   chờ chấm. Thẻ .node-card phải gánh được cả ba mà vẫn thẳng trục dấu chân. */
 const NODES: PathNode[] = [
   { key: "TO10-C01-A01", label: "Hàm số bậc hai — định nghĩa", state: "mastered" },
   { key: "TO10-C01-A02", label: "Đồ thị parabol", state: "mastered" },
   { key: "TO10-C01-A03", label: "Trục đối xứng", state: "stale" },
-  { key: "TO10-C01-A04", label: "Đỉnh parabol", state: "current" },
-  { key: "TO10-C01-A05", label: "Xét dấu tam thức", state: "available" },
+  {
+    key: "TO10-C01-A04",
+    label: "Xác định tính đúng sai của mệnh đề",
+    state: "current",
+    progress: 1,
+    doneCount: 8,
+    totalCount: 8,
+    pending: 1,
+  },
+  { key: "TO10-C01-A05", label: "Xét dấu tam thức", state: "available", pending: 1 },
   { key: "TO10-C01-A06", label: "Bất phương trình bậc hai", state: "locked", blockedBy: ["Xét dấu tam thức"] },
-  { key: "TO10-C01-A07", label: "Ứng dụng thực tế", state: "locked", blockedBy: ["Bất phương trình bậc hai"] },
+  {
+    key: "TO10-C01-A07",
+    label: "Khái niệm mệnh đề logic",
+    state: "redo",
+    redo: [
+      { questionId: "q1", note: "Em làm chưa đúng — thiếu bước xét $\\Delta$.", noteFileUrl: null, noteFileName: null },
+      { questionId: "q2", note: null, noteFileUrl: null, noteFileName: null },
+      { questionId: "q3", note: null, noteFileUrl: null, noteFileName: null },
+    ],
+  },
 ];
 
 const OPTIONS = ["(2; −1)", "(−2; 1)", "(2; 1)", "(4; 3)"];
+
+/* Bốn hình dạng câu mà sân khấu bài tập phải gánh (app thật có 8 — bốn dạng
+   tương tác còn lại tự dựng widget riêng, không đụng phiến đề). */
+const SHAPES = ["mcq", "steps", "quote", "typed"] as const;
+type Shape = (typeof SHAPES)[number];
+const SHAPE_LABEL: Record<Shape, string> = {
+  mcq: "Trắc nghiệm",
+  steps: "Nhiều bước",
+  quote: "Lời trích",
+  typed: "Gõ đáp án",
+};
+/* Nhãn lệnh làm bài — đúng chuỗi kindEyebrow() của TutorApp trả về cho từng dạng. */
+const KIND_LABEL_DEMO: Record<Shape, string> = {
+  mcq: "Chọn đáp án đúng",
+  steps: "Trả lời từng bước",
+  quote: "Tìm chỗ sai",
+  typed: "Nhập đáp án của bạn",
+};
+const DEMO_STEPS = [
+  "Số 12 chia hết cho 4. Vậy 12 có chia hết cho 2 không?",
+  "Số 6 chia hết cho 2. Vậy 6 có chia hết cho 4 không?",
+  "Mệnh đề đảo của $P$ có đúng không?",
+];
 const SCREENS = ["path", "lesson", "special", "retry", "done", "mascot"] as const;
 type Screen = (typeof SCREENS)[number];
 const LABEL: Record<Screen, string> = {
@@ -94,9 +139,28 @@ const MASCOT_MOODS: { mood: React.ComponentProps<typeof Lion>["mood"]; label: st
 export default function DemoPage() {
   const [screen, setScreen] = useState<Screen>("path");
   const [picked, setPicked] = useState<string | null>(null);
+  /* Sét XP: trong app thật hiệu ứng nổ lúc em VỪA VỀ từ buổi học (Hud nhận
+     `justEarned`). Ở demo không có buổi học thật nên có nút phát lại — key đổi
+     ⇒ Hud remount ⇒ hiệu ứng chạy từ đầu, xem được bằng mắt. */
+  const [xpReplay, setXpReplay] = useState(0);
+  /* Trang này CÓ prerender (khác /learn nằm sau cổng đăng nhập), nên bộ đếm xoay
+     vòng phải lấy qua hook — đọc localStorage ngay trong render là lệch hydrate. */
+  const rot = useRotation();
+  /* 9 bầu trời của sân khấu bài tập: trong app thật nó theo CHƯƠNG đang học, ở
+     đây có nút xoay để duyệt hết 9 sắc mà không phải học qua 9 chương. */
+  const [world, setWorld] = useState(0);
+  /* Hình dạng câu đang xem + trạng thái trả lời của từng dạng. */
+  const [shape, setShape] = useState<Shape>("mcq");
+  const [stepAns, setStepAns] = useState<Record<number, string>>({});
+  const [typed, setTyped] = useState("");
+
+  const lamBai = screen === "lesson" || screen === "retry";
 
   return (
-    <AppShell current="learn">
+    /* `focus` = ẩn rail/nav — ĐÚNG như production làm khi vào bài (AppShell
+       focus). Thiếu cờ này thì rail 92px đẩy cột đề bài lệch 46px so với tâm
+       màn, và bản xem trước đi báo một lỗi canh giữa KHÔNG có thật. */
+    <AppShell current="learn" focus={lamBai}>
       <div className="banner info" style={{ marginBottom: 16 }}>
         <Lightbulb aria-hidden strokeWidth={2} />
         <span>
@@ -119,134 +183,266 @@ export default function DemoPage() {
             {LABEL[s]}
           </button>
         ))}
+        {screen === "path" && (
+          <button className="btn btn-quiet" onClick={() => setXpReplay((n) => n + 1)}>
+            <RefreshCw aria-hidden strokeWidth={2} />
+            Phát lại sét XP
+          </button>
+        )}
+        {lamBai && (
+          <>
+            <button className="btn btn-quiet" onClick={() => setWorld((w) => (w + 1) % 9)}>
+              <Sunrise aria-hidden strokeWidth={2} />
+              Bầu trời {world + 1}/9
+            </button>
+            <button
+              className="btn btn-quiet"
+              onClick={() => setShape((s) => SHAPES[(SHAPES.indexOf(s) + 1) % SHAPES.length]!)}
+            >
+              <Shapes aria-hidden strokeWidth={2} />
+              Dạng: {SHAPE_LABEL[shape]}
+            </button>
+          </>
+        )}
       </div>
 
       {screen === "path" && (
-        /* Bọc ĐÚNG khung của app thật (.learn-layout > .learn-main): nền cảnh
-           và các rule bố cục màn Học đều móc vào hai lớp này, nên thiếu chúng
-           thì bản xem trước sẽ khác production — đúng thứ demo sinh ra để tránh. */
+        /* Bọc ĐÚNG khung của app thật (.learn-layout > .learn-main + cột phải
+           .learn-aside): nền cảnh và các rule bố cục màn Học đều móc vào các lớp
+           này, nên thiếu chúng thì bản xem trước sẽ khác production — đúng thứ
+           demo sinh ra để tránh. */
         <div className="learn-layout">
           <div className="learn-main">
           {/* Pill chọn môn nằm ngay trong HUD (hi-fi 3a) — demo chưa đổi môn được */}
-          <Hud progress={PROGRESS} subject={{ label: "Toán 10" }} />
+          <Hud
+            key={xpReplay}
+            progress={PROGRESS}
+            justEarned={35}
+            subject={{ label: "Toán 10" }}
+          />
           <LearningPath
             unit="Toán 10 · Chương I"
             subtitle="Hàm số bậc hai · dẫn dắt Socratic, chấm bằng CAS"
             nodes={NODES}
-            greeting="Bạn đã thành thạo 2 điểm kiến thức. Hôm nay mình với bạn học Đỉnh parabol nhé — mình hỏi, bạn nghĩ."
+            greeting={pickGreeting("back", rot, { ten: "An", n: 2 })}
             onStart={() => setScreen("lesson")}
           />
           </div>
+          {/* Component THẬT của cột phải — xem trước được câu nhắc đổi gió, số
+              XP chảy dần và thanh nhiệm vụ tự chạy. */}
+          <LearnAside
+            board={{ effort: { rank: 3 }, xp: { total: PROGRESS.xp } }}
+            progress={PROGRESS}
+            leagueProgress={G.leagueOf(PROGRESS.xp).progress}
+            nextLeague={{ name: "Ngọc", min: 2000 }}
+            studied
+            firstName="An"
+            rot={rot}
+            onSeeAll={() => {}}
+          />
         </div>
       )}
 
-      {(screen === "lesson" || screen === "retry") && (
-        <>
-          <div className="lesson-bar">
-            <button className="btn btn-quiet" onClick={() => setScreen("path")}>
-              Thoát
-            </button>
-            <div
-              className="segments"
-              role="progressbar"
-              aria-valuenow={3}
-              aria-valuemin={1}
-              aria-valuemax={6}
-              aria-label="Câu 3 trên 6"
-            >
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <i key={i} data-done={i < 2} data-active={i === 2} />
-              ))}
-            </div>
-            <span className="stat stat-xp">
-              <Zap aria-hidden strokeWidth={2} />
-              <span className="num">+{screen === "retry" ? 5 : 20}</span>
+      {lamBai && (
+        /* MẶT ĐANG LÀM BÀI — dựng lại ĐÚNG DOM mà TutorApp sinh ra (qstage ·
+           lesson-top/qtrail · lesson-kind · qcard · ans-grid/ans-tile · thread ·
+           lfoot), không phải bộ lớp hi-fi cũ (qprompt/option/ribbon) mà bản demo
+           dùng trước đây. Lý do: demo tồn tại để DUYỆT THIẾT KẾ không cần
+           Supabase — mà markup lệch production thì nó duyệt hộ một màn không tồn
+           tại. Dữ liệu vẫn là mẫu cố định. */
+        <div className="qworld" data-world={world}>
+        <div className="lsn-grid">
+          <div className="qstage" aria-hidden>
+            <i className="qstage-glow" />
+            <span className="qstage-motes">
+              <i /><i /><i /><i /><i /><i />
             </span>
           </div>
 
-          <div className="qmeta">
-            <span className="chip">TO10-C01-A04</span>
-            <span className="chip">Bậc 2</span>
-            <span className="chip">DOK 2</span>
-            <span className="chip">Trắc nghiệm</span>
-          </div>
-          <p className="qprompt"><MathText>Toạ độ đỉnh của parabol y = x² − 4x + 3 là gì?</MathText></p>
+          <aside className="lsn-aside">
+            <LessonView resources={DEMO_RESOURCES} />
+          </aside>
 
-          {screen === "retry" && (
-            <div className="thread">
-              <div className="bubble student">
-                <div className="who">BẠN</div>
-                (−2; 1)
+          <div className="lsn-main">
+            <div className="lesson-top">
+              <button className="lesson-x" onClick={() => setScreen("path")} aria-label="Thoát buổi học">
+                <X aria-hidden strokeWidth={2.5} />
+              </button>
+              <div
+                className="qtrail"
+                role="progressbar"
+                aria-valuenow={3}
+                aria-valuemin={1}
+                aria-valuemax={8}
+                aria-label="Câu 3 trên 8"
+              >
+                {Array.from({ length: 8 }, (_, i) => (
+                  <span key={i} className="qtrail-paw" data-s={i < 2 ? "done" : i === 2 ? "now" : "next"}>
+                    {i === 2 && <Lion mood="idle" size={26} decorative />}
+                  </span>
+                ))}
+                <span className="qtrail-flag" />
               </div>
-              <div className="hint lion-says">
-                <Lion mood="thinking" size={64} />
-                <div>
-                  <div className="label">
-                    <Lightbulb aria-hidden strokeWidth={2.5} />
-                    GỢI Ý SOCRATIC
+              <span className="lesson-count num">3/8</span>
+            </div>
+
+            {/* BỐN HÌNH DẠNG CÂU — sân khấu phải gánh được cả bốn, không chỉ trắc
+                nghiệm: phiến đề, thẻ từng bước, lời trích, ô gõ đáp án. Đây đúng
+                các lớp mà TutorApp sinh ra cho từng dạng. */}
+            <p className="eyebrow lesson-kind">{KIND_LABEL_DEMO[shape]}</p>
+
+            {shape === "steps" ? (
+              <>
+                <div className="qcard">
+                  <div className="qcard-text">
+                    <MathText block cap>{"Cho mệnh đề $P$: “Mọi số chia hết cho 4 thì chia hết cho 2”."}</MathText>
                   </div>
-                  <MathText>Em nhớ trục đối xứng của parabol nằm ở đâu không? Thử tính x = −b/(2a) với a và b của hàm số này xem.</MathText>
+                </div>
+                <ol className="steps">
+                  {DEMO_STEPS.map((st, i) => (
+                    <li key={i} className="step-card" data-answered={stepAns[i] ? true : undefined}>
+                      <span className="step-num num" aria-hidden>{i + 1}</span>
+                      <div className="step-body">
+                        <div className="step-text"><MathText cap>{st}</MathText></div>
+                        <div className="step-yn" role="group" aria-label={`Bước ${i + 1}: chọn Có hoặc Không`}>
+                          {["Có", "Không"].map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              className="step-pill"
+                              aria-pressed={stepAns[i] === v}
+                              onClick={() => setStepAns((a) => ({ ...a, [i]: v }))}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : shape === "quote" ? (
+              <div className="qcard">
+                <div className="qcard-text">
+                  <MathText block cap>{"Bạn An giải bài tìm đỉnh parabol như sau:"}</MathText>
+                </div>
+                <blockquote className="qquote">
+                  {/* "√" UNICODE nằm TRONG $...$ — CỐ Ý giữ nguyên dạng dính lỗi 22
+                      (AI hay viết vậy): normalizeTex phải đổi ra \sqrt{4} có thanh
+                      ngang. Đừng "sửa đẹp" thành \sqrt — mất ca kiểm tra sống. */}
+                  <MathText block>{"Đỉnh có hoành độ $x = -b/a = 4$ và $√4 = ±2$, nên đỉnh là $(4; 3)$."}</MathText>
+                </blockquote>
+                <div className="qcard-text qq-post">
+                  <MathText block cap>{"Bạn ấy sai ở bước nào?"}</MathText>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="qcard">
+                <div className="qcard-expr">
+                  <MathText block cap>{"Toạ độ đỉnh của parabol $y = x^2 - 4x + 3$ là gì?"}</MathText>
+                </div>
+              </div>
+            )}
 
-          <div className="options" style={{ paddingBottom: 140 }}>
-            {OPTIONS.map((opt, i) => (
-              <button
-                key={opt}
-                className="option"
-                aria-pressed={picked === opt}
-                onClick={() => setPicked(opt)}
-              >
-                <span className="key" aria-hidden>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span>{opt}</span>
-              </button>
-            ))}
+            {screen === "retry" && (
+              <div className="thread">
+                <div className="bubble student">
+                  <div className="who">BẠN</div>
+                  (−2; 1)
+                </div>
+                <div className="hint-says">
+                  <Lion mood="thinking" size={52} />
+                  <div className="hint-bubble">
+                    <MathText>Bạn nhớ trục đối xứng của parabol nằm ở đâu không? Thử tính $x = -b/(2a)$ với a và b của hàm số này xem.</MathText>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {shape === "typed" || shape === "steps" ? (
+              <textarea
+                className="ans-input"
+                rows={1}
+                placeholder={shape === "steps" ? "Kết luận của em…" : "Nhập đáp án của bạn…"}
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+              />
+            ) : (
+              <div className="ans-grid">
+                {OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    className="ans-tile num"
+                    aria-pressed={picked === opt}
+                    onClick={() => setPicked(opt)}
+                  >
+                    <MathText cap>{opt}</MathText>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="lesson-pad" aria-hidden />
           </div>
 
           {screen === "lesson" ? (
-            <div className="ribbon" data-verdict="ok" role="status">
-              <div className="ribbon-inner">
-                <div className="body">
-                  <div className="title">
-                    <Check aria-hidden strokeWidth={3} />
-                    Chính xác
+            picked ? (
+              /* Đã chọn + đã kiểm tra → thanh chân trời bung sáng vàng. */
+              <div className="lfoot" data-verdict="ok" role="status">
+                <div className="lfoot-inner">
+                  <div className="lfoot-says">
+                    <Lion mood="cheer" size={56} decorative />
+                    <b className="lfoot-title">Chính xác!</b>
+                    <span className="xp-chip num">+10 XP</span>
                   </div>
-                  <div className="detail">
-                    <span className="xp">+10 XP</span>
-                  </div>
+                  <button className="btn btn-gold btn-block" onClick={() => setScreen("done")}>
+                    TIẾP TỤC
+                  </button>
                 </div>
-                <button className="btn btn-ok" onClick={() => setScreen("done")}>
-                  Câu tiếp theo
-                  <ArrowRight aria-hidden strokeWidth={2} />
-                </button>
               </div>
-            </div>
-          ) : (
-            <div className="ribbon" data-verdict="retry" role="status">
-              <div className="ribbon-inner">
-                <div className="body">
-                  <div className="title">
-                    <RefreshCw aria-hidden strokeWidth={2.5} />
-                    Chưa đúng — thử lại nhé
-                  </div>
-                  <div className="detail">
-                    Đọc gợi ý phía trên rồi trả lời lại.
-                    <span className="xp" style={{ marginLeft: 8 }}>
-                      +5 XP nỗ lực
-                    </span>
-                  </div>
+            ) : (
+              <div className="lfoot">
+                <div className="lfoot-inner">
+                  <button className="btn btn-block btn-check" disabled>
+                    KIỂM TRA
+                  </button>
+                  <button type="button" className="reflect-early">
+                    💡 Bí quá? Xin sư tử gợi ý
+                  </button>
                 </div>
-                <button className="btn btn-ghost" onClick={() => setScreen("lesson")}>
-                  Tôi thử lại
+              </div>
+            )
+          ) : (
+            <div className="lfoot" data-verdict="retry" role="status">
+              <div className="lfoot-inner">
+                <div className="lfoot-row">
+                  <RefreshCw aria-hidden strokeWidth={2.5} />
+                  <b className="lfoot-title">Chưa đúng — thử lại nhé</b>
+                  <span className="xp-chip num">+5 XP nỗ lực</span>
+                </div>
+                <div className="reflect-row">
+                  <input
+                    className="reflect-input"
+                    type="text"
+                    placeholder="Kể cách em nghĩ cho sư tử nghe…"
+                    readOnly
+                  />
+                  <button type="button" className="btn btn-ghost reflect-send" disabled>
+                    Gửi
+                  </button>
+                  <button type="button" className="btn btn-ghost reflect-hint">
+                    💡 Xin gợi ý
+                  </button>
+                </div>
+                <button className="btn btn-block" onClick={() => setScreen("lesson")}>
+                  THỬ LẠI
                 </button>
               </div>
             </div>
           )}
-        </>
+        </div>
+        </div>
       )}
 
       {screen === "done" && (
