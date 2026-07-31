@@ -7,6 +7,30 @@
 > Trạng thái: **CHỈ GHI NHẬN + phương án.** Chưa sửa dòng nào, chưa deploy.
 > Chủ dự án ra lệnh "sửa" thì mới bắt tay; ra lệnh "deploy" thì mới đẩy.
 > Người báo: chủ dự án (tài khoản `hs1@vietanh.edu.vn` — "Nguyễn An", và `gv1@vietanh.edu.vn` — Cô Trần Thu).
+>
+> ⚠️ **DÒNG TRẠNG THÁI TRÊN ĐÃ CŨ cho lỗi 1–19.** [KE-HOACH-SUA-LOI.md](KE-HOACH-SUA-LOI.md)
+> ghi nhận 7 nhóm A–G **đã code + deploy xong ngày 29/07** (commit `4506fb7` … `629db66`,
+> 3 vòng rà đối kháng) — nhưng bài viết TỪNG LỖI bên dưới không được cập nhật lại theo.
+> Rà lại bằng git log + đọc mã ngày 30/07 xác nhận **11/19 lỗi đã có bằng chứng sửa trong
+> code hiện hành**: #2 (nút làm lại + lời nhắn GV + vào đúng câu), #3 (đọc `review-queue`
+> server), #4 (giữ chỗ tên), #6 (nhãn "điểm thành thạo"), #7 (hết `ThemeToggle`), #10
+> (sư tử `cheer` khi đúng), #12 (hâm nóng edge fn), #14 phần giao diện (nút "Xin sư tử
+> gợi ý" tách khỏi ô đáp án), #15 (bong bóng học sinh render), #16 (`normText` đổi
+> `0,2→0.2`), #17 (ô kết luận trong bước cuối). Lỗi trùng số **20** ở mục "ĐỢT SAU DEPLOY
+> 29/07" (màn nộp bài trắng) cũng đã sửa (commit `6e73e53`) — **nhưng gốc rễ thật khác
+> hẳn giả thuyết ghi trong mục đó**: không phải LessonView crash, mà phiên đăng nhập hết
+> hạn (401) bị nuốt thành màn trắng im lặng.
+>
+> **Còn thật sự CHƯA sửa / chưa xác nhận** (đọc kỹ nội dung gốc bên dưới, đừng suy diễn
+> đã xong theo nhóm A–G): #1 (cần đọc kỹ xem Nhóm E đã làm hết phần nộp-từ-kho-báu chưa),
+> #5 (lỗi DỮ LIỆU — cần 1 câu UPDATE, **chủ dự án tự chạy**, không phải việc code), #8
+> lớp 2–3 (bắt AI cân nhắc kỹ hơn + tước quyền AI ghi mastery câu tự luận — lớp 3 doc gốc
+> ghi rõ "cần chủ dự án quyết trước khi làm"), **#9** (chấm sai→đúng ở câu khách quan +
+> lộ đáp án — **nặng nhất, doc gốc tự ghi "chưa điều tra — cần lệnh mới được đụng mã"**,
+> chưa có bằng chứng nào cho thấy đã sửa), **#11** (câu nhiều bước không ổn định, cùng
+> nghi phạm với #9), #18 (đã thấy có xử lý trong `RoleViews.tsx` nhưng chưa đọc kỹ đủ để
+> chắc), #19 (chuỗi cứng "Gần được rồi — còn thiếu" đã KHÔNG còn trong code — nhiều khả
+> năng đã đổi cùng đợt 29/07, nhưng chưa kiểm bằng kịch bản thật).
 
 ## Bảng tổng — thứ tự đề nghị xử lý
 
@@ -15,6 +39,8 @@
 | 20 | ✅ 30/07 Đối thoại dắt vòng vòng — "chốt C" không chốt được | Kênh chat và kênh chấm là hai đường CỤT → đã bắc cầu `chatAnswerOf` + luật chốt trong guide | 🔴 P0 | web + `chat-turn` — **chờ deploy** | M |
 | 21 | ✅ 30/07 Sư tử chat giọng robot ("Ừ," + "—" dày đặc, từ cứng) | Danh-sách-đen 29/07 → mô hình đổi nạng; đã thay bằng luật tổng quát + luật dấu câu + thanh ghi | 🟠 P1 | `chat-turn` — **chờ deploy** | S–M |
 | 22 | ✅ 30/07 Dấu căn mất gạch ngang, chỉ còn móc "v" | √ UNICODE trong `$...$` đi thẳng vào KaTeX (chẩn đoán đầu đổ cho reset là SAI) → `normalizeTex` | 🟠 P1 | web — **chờ deploy** | S |
+| 9(a) | ✅ 30/07 Chấm SAI thành ĐÚNG ở câu khách quan | BỐN lỗ trong `cas.ts` (nét phủ định bị NFD xoá · phẩy thập phân thành tập · mất tên biến · so bất PT bằng lấy mẫu). Quét bank sống: **32 nhiễu chấm đúng → 2, 0 hồi quy** | 🔴 P0 | `chat-turn` — **chờ deploy** | M |
+| 9(b)(c) | ⏳ CÒN — lộ đáp án qua `quan_niem_sai` + không nói vì sao sai | Chẩn đoán xong nhưng patch của agent bị phản biện bác (xoá nhầm 143 lời chẩn đoán lành / rơi vào đường chết) — cần thiết kế lại | 🔴 P0 | `chat-turn` | M |
 | 5 | Trang Hạng trống trơn, không có hạng khối | Tài khoản "Nguyễn An" **thiếu `grade` + `class_id`** → server không dựng nổi bảng | 🔴 P0 | DB + edge fn + web | S (dữ liệu) + M (code) |
 | 8 | Học sinh gõ "ok" mà AI bảo "đủ ý chính" | LLM chấm **không ổn định**; không có chốt chặn tất định cho bài rác | 🔴 P0 | `chat-turn` | M |
 | 3 | Trang Ôn tập luôn "Chưa có gì để ôn" | View đọc **localStorage**, số thật nằm ở server; lịch ôn `next_review_at` **đã có trong DB** nhưng không ai đọc | 🔴 P0 | edge fn mới + web | M–L |
@@ -325,7 +351,41 @@ mắt, mức 2) cả ba người đều "Đúng như mô tả" trừ đúng mộ
 > thử tự chọn. Những dòng chỉ là chép lại mô tả, hoặc là mong muốn tính năng, được tách
 > riêng xuống mục "Không phải lỗi" ở cuối.
 
-## 9. 🔴 CHẶN HẲN — chấm SAI thành ĐÚNG ở câu khách quan, và có lúc LỘ ĐÁP ÁN
+## 9. 🔴 CHẶN HẲN — chấm SAI thành ĐÚNG, và có lúc LỘ ĐÁP ÁN
+
+> ### ✅ VẾ (a) ĐÃ SỬA 30/07 — chờ deploy `chat-turn`. Vế (b) và (c) CÒN NGUYÊN.
+>
+> Điều tra bằng 1 agent + 1 phản biện đối kháng, rồi tôi tự thiết kế lại bản vá
+> (patch của agent bị phản biện chứng minh là gây hồi quy trên **828 câu** — không dùng).
+> **Không phải một lỗi mà là BỐN**, tất cả trong `_shared/cas.ts`, đều là những phép
+> "nới tay" có lý do chính đáng nhưng nới quá:
+>
+> | | Gốc rễ | Ví dụ chấm SAI thành ĐÚNG |
+> |---|---|---|
+> | R1 | `normText` chạy NFD rồi xoá cả dải U+0300–U+036F — mà **nét phủ định cũng nằm trong dải đó** (`∉` = `∈` + U+0338, `P̄` = `P` + U+0304) | chọn `∈` khi đáp án là `∉` |
+> | R2 | `splitSet` cắt tại dấu phẩy, nên **dấu phẩy thập phân kiểu Việt** thành dấu ngăn tập: `0,8`→{0;8}, `-0,8`→{-0;8}, mà trong JS `-0 === 0` | `0,2` khớp đáp án `-0,2` (Q-0000533) |
+> | R3 | `splitSet` gọi `stripRel` cho từng phần ⇒ mất cả **tên biến lẫn trật tự** | `a=6, b=4` khớp `a=4, b=6` |
+> | R4 | So hai **bất phương trình** bằng cách lấy 12 mẫu, mà `sampleAt` chỉ sinh mẫu trong (−3,3 ; 3,4) | `x < 5` ≡ `x ≤ 5` ≡ `x ≠ 5` ≡ `x > −10` |
+>
+> **Thước đo thật, không phải lý thuyết.** Quét toàn bộ **1.868 câu active** trên DB
+> prod, thử chấm từng phương án nhiễu: **32 nhiễu được chấm ĐÚNG → còn 2, và 0 hồi quy.**
+> Hai ca còn lại là lỗi **soạn đề** chứ không phải lỗi chấm (nhiễu viết bằng đúng đáp
+> án, chỉ khác dấu ngoặc hoặc thứ tự) — cần người soạn sửa, mã không cứu được.
+>
+> Bản vá cố ý HẸP để không phạt oan em làm đúng — chấm oan ở lần thử ĐẦU là ghi vĩnh
+> viễn vào `mastery_evidence`: R2 chỉ tắt nhánh tập khi **cả hai vế** là số thập phân
+> đơn lẻ (nên `1,3` vẫn khớp `{1;3}`); R3 chỉ so theo tên khi **cả hai vế** là danh
+> sách `tên = giá trị` **tên đôi một khác nhau** (nên `1;3`≡`3;1` và `x=1;x=3`≡`x=3;x=1`
+> giữ nguyên — đây chính là chỗ patch của agent làm hỏng 828 câu); R4 **chuẩn hoá
+> chiều** trước khi so nên `x > 2` vẫn khớp `2 < x`.
+>
+> Ghim vào `tools/grading-matrix.mjs`: **110 đạt · 0 trượt** (25 ca mới, mỗi nhóm có
+> cả ca phải-sai lẫn ca không-được-hồi-quy). `memory-matrix` 28/28, `stream-matrix`
+> 19/19, `gate-trace` đủ 4 điều kiện.
+>
+> ⚠️ Header `cas.ts` từng ghi *"MIRROR of packages/cas — edit there, then regenerate"*.
+> **Lời dặn đó đã sai từ lâu** (bản gói còn 280 dòng, đồng bộ, thiếu hẳn `evalNumeric`/
+> `normalizeTypography`); ai làm theo là xoá sạch bản vá này. Đã sửa header nói rõ.
 
 **Nguyên văn người thử.**
 - Người thử 1, chặng 10 (cố tình chọn sai): *"sư tử lâu lâu bạn ấy hiển thị luôn đáp

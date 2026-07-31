@@ -175,7 +175,22 @@ const MOOD: Record<string, MoodCfg> = {
 const TALK_OPEN = "head-talk";
 const TALK_CLOSED = "head-smile";
 
-const src = (name: string) => `/brand/lion/${name}.png`;
+/**
+ * Đường dẫn sprite. WEBP, không phải PNG (đo 30/07 trên production): cả bộ 35
+ * sprite là 4.495 KB dạng PNG, sang WebP q95 còn 672 KB — giảm 85%. Riêng trang
+ * đăng nhập, `pose-wave` từ 157 KB xuống 24 KB, tức một mình nó cắt 23% tổng
+ * payload của trang.
+ *
+ * Đã đo chất lượng chứ không tin lời quảng cáo: vùng NHÌN THẤY ĐƯỢC lệch trung
+ * bình 0,9%/255, và kênh ALPHA lệch 0 TUYỆT ĐỐI — nền trong suốt nguyên vẹn,
+ * không sinh quầng viền (đúng thứ slice.mjs đã khổ công un-blend).
+ *
+ * File .png vẫn nằm nguyên trong `public/brand/lion/` làm nguồn + đường lui:
+ * đổi hằng số này về "png" là quay lại được ngay, không cần build lại ảnh.
+ * Xuất lại: `node assets-src/mascot/webp.mjs`.
+ */
+const DUOI = "webp";
+const src = (name: string) => `/brand/lion/${name}.${DUOI}`;
 
 /* ── Hiệu ứng vector quanh mascot — vị trí inline, chuyển động ở CSS ── */
 const pos = (s: CSSProperties): CSSProperties => ({ position: "absolute", ...s });

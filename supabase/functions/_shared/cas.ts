@@ -1,4 +1,14 @@
-// MIRROR of packages/cas/src/cas.ts (tested there). Edit there, then regenerate.
+// ⚠️ ĐÂY LÀ BẢN CHẠY THẬT. Chỉ `chat-turn/index.ts` import file này; nó là thứ
+// quyết định đúng/sai cho mọi câu khách quan của học sinh.
+//
+// Header cũ ghi "MIRROR of packages/cas/src/cas.ts (tested there). Edit there,
+// then regenerate" — LỜI DẶN ĐÓ ĐÃ SAI TỪ LÂU (đo 30/07): bản gói còn 280 dòng,
+// đồng bộ (không async), import mathjs tĩnh, thiếu hẳn evalNumeric,
+// normalizeTypography, normalizeVnNumbers, checkWithDistractors. Bản này 680
+// dòng và đã tiến hoá độc lập nhiều đợt. ĐỪNG "regenerate" từ bản gói — làm vậy
+// là xoá sạch các bản vá, trong đó có bốn lỗ chấm-sai-thành-đúng bịt ngày 30/07.
+// Bản gói giờ chỉ còn phục vụ `packages/cas/src/cas.test.ts`; nó KHÔNG chạy ở
+// production, nên nợ đồng bộ ở đó không làm hỏng học sinh — nhưng có nợ thật.
 //
 // CAS answer-equivalence for the Toán pilot (PRD §9.3, Q11). The LLM NEVER
 // decides quantitative correctness — this does, comparing the student's answer
@@ -139,10 +149,42 @@ async function gradeExpr(a: string, b: string): Promise<CasResult> {
   }
 
   // 2) Set / multiple roots (order-independent): "x=1; x=3", "{1,3}".
+  //
+  // ⚠️ HAI CỬA CHẶN TRƯỚC KHI COI LÀ TẬP (lỗi #9(a) R2+R3, rà 30/07). Nhánh này
+  // cắt chuỗi tại dấu ";" "," "∨" rồi so KHÔNG THEO THỨ TỰ và có gọi stripRel —
+  // mạnh tay tới mức nuốt mất hai loại thông tin mà học sinh phải trả giá:
   const sa = splitSet(a);
   const sb = splitSet(b);
-  if (sa && sb && (sa.length > 1 || sb.length > 1)) {
-    if (sa.length !== sb.length) return { correct: false, method: "set" };
+  const laTap = sa && sb && (sa.length > 1 || sb.length > 1) &&
+    // R2 — DẤU PHẨY THẬP PHÂN KIỂU VIỆT không phải dấu ngăn tập. "0,8" bị cắt
+    // thành {0; 8} và "-0,8" thành {-0; 8}; trong JS `-0 === 0` nên HAI ĐÁP ÁN
+    // TRÁI DẤU thành bằng nhau (đo thật: 13 câu lượng giác sống dính, ví dụ
+    // Q-0000533 đáp án "-0,2" chấm "0,2" là ĐÚNG).
+    // Chỉ tắt nhánh tập khi CẢ HAI vế đều là một số thập phân đơn lẻ — nhờ vậy
+    // "1,3" của học sinh vẫn khớp được đáp án "{1;3}" (hai nghiệm), là ca mà
+    // một bản vá thô sẽ làm hỏng.
+    !(loneVnDecimal(a) && loneVnDecimal(b));
+  if (laTap) {
+    // R3 — ĐÁP ÁN NHIỀU BIẾN mất cả TÊN lẫn TRẬT TỰ: splitSet gọi stripRel cho
+    // từng phần nên "a = 6, b = 4" và "a = 4, b = 6" cùng thành {6, 4} ⇒ chấm
+    // ĐÚNG (Q-0001421, Q-0001588, Q-0001606). Khi CẢ HAI vế đều là danh sách
+    // "tên = giá trị" với tên đôi một khác nhau thì so THEO TÊN.
+    // Cố ý hẹp: "x=1; x=3" (hai nghiệm CÙNG một biến) có tên trùng nên vẫn đi
+    // đường tập — và mọi đáp án không mang dấu "=" ("cùng phương ; không trùng
+    // nhau") cũng không đụng tới, nên 828 câu nhiều-phần trong ngân hàng giữ
+    // nguyên hành vi cũ.
+    const ma = namedMap(a);
+    const mb = namedMap(b);
+    if (ma && mb) {
+      if (ma.size !== mb.size) return { correct: false, method: "set" };
+      for (const [ten, giaTri] of ma) {
+        const doi = mb.get(ten);
+        if (doi === undefined) return { correct: false, method: "set" };
+        if (!(await exprEqual(giaTri, doi)).correct) return { correct: false, method: "set" };
+      }
+      return { correct: true, method: "set" };
+    }
+    if (sa!.length !== sb!.length) return { correct: false, method: "set" };
     const subset = async (xs: string[], ys: string[]): Promise<boolean> => {
       for (const x of xs) {
         let found = false;
@@ -153,7 +195,7 @@ async function gradeExpr(a: string, b: string): Promise<CasResult> {
       }
       return true;
     };
-    const ok = (await subset(sa, sb)) && (await subset(sb, sa));
+    const ok = (await subset(sa!, sb!)) && (await subset(sb!, sa!));
     return { correct: ok, method: "set" };
   }
 
@@ -215,6 +257,40 @@ export async function checkWithDistractors(
 
 /** Equivalence of two scalar expressions. Số thuần → bộ tính nhẹ; có biến → mathjs. */
 export async function exprEqual(a: string, b: string): Promise<CasResult> {
+  // R4 — HAI BẤT PHƯƠNG TRÌNH phải so bằng CẤU TRÚC, không bằng LẤY MẪU.
+  //
+  // Đường cũ: stripRel cắt vế trái rồi thả cả chuỗi quan hệ cho mathjs, và
+  // exprEqualSymbolic so hai biểu thức bằng cách lấy 12 mẫu — mà sampleAt chỉ
+  // sinh mẫu trong khoảng (−3,3 ; 3,4). Mọi quan hệ CÙNG ĐÚNG trên khoảng hẹp đó
+  // đều bị coi là tương đương: đo thật thì "x < 5" ≡ "x ≤ 5" ≡ "x ≠ 5" ≡
+  // "x > −10", và "x > 100" ≡ "x > 1000". Lấy mẫu về bản chất KHÔNG so được
+  // quan hệ — nới thang mẫu cũng không cứu (đã thử: "−15 < m < 15" vs
+  // "−20 < m < 10" vẫn lọt vì không mẫu nào rơi đúng khoảng phân biệt).
+  //
+  // Nay: tách (vế trái, toán tử, vế phải), CHUẨN HOÁ CHIỀU (a > b ⇒ b < a) rồi
+  // đòi chuỗi toán tử trùng nhau + từng vế tương đương. Nhờ chuẩn hoá chiều mà
+  // "x > 2" vẫn khớp "2 < x" — cách viết đảo vế hoàn toàn hợp lệ của học sinh
+  // không bị phạt oan.
+  const qa = parseRelChain(a);
+  const qb = parseRelChain(b);
+  // Một bên là BẤT PHƯƠNG TRÌNH, bên kia không → không thể tương đương. Thiếu
+  // nhánh này thì "k != 0" so với "k = 1" vẫn lọt: stripRel cắt "k =" còn "1",
+  // mathjs tính "k != 0" ra 1 (đúng) tại mọi mẫu, và 1 == 1 ⇒ chấm ĐÚNG.
+  if (!!qa !== !!qb) return { correct: false, method: "symbolic" };
+  if (qa && qb) {
+    if (qa.ops.join("|") !== qb.ops.join("|")) return { correct: false, method: "symbolic" };
+    if (qa.ve.length !== qb.ve.length) return { correct: false, method: "symbolic" };
+    for (let i = 0; i < qa.ve.length; i++) {
+      // gradeExpr chứ không phải exprEqual: từng vế cần cả khớp-chữ (bước 0) lẫn
+      // dự phòng text (bước 4). exprEqual trần vấp ngay ở vế là MỘT BIẾN — đo
+      // thật: exprEqual("x","x") trả {method:"error"} vì mathjs coi "x" là ký
+      // hiệu chưa định nghĩa. Đó là lỗi có sẵn, nhánh này chỉ chạm phải nó.
+      const r = await gradeExpr(qa.ve[i]!, qb.ve[i]!);
+      if (!r.correct) return { correct: false, method: "symbolic" };
+    }
+    return { correct: true, method: "symbolic" };
+  }
+
   const na = stripRel(a);
   const nb = stripRel(b);
 
@@ -454,6 +530,86 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
+/**
+ * Tách một CHUỖI QUAN HỆ thành các vế + các toán tử, đã chuẩn hoá chiều.
+ *
+ *   "x > 2"          → { ve: ["2", "x"],        ops: ["<"]      }   (đảo chiều)
+ *   "2 < x"          → { ve: ["2", "x"],        ops: ["<"]      }   (trùng ⇒ tương đương)
+ *   "-15 < m < 15"   → { ve: ["-15","m","15"],  ops: ["<","<"]  }
+ *   "x != 5"         → { ve: ["x","5"],         ops: ["!="]     }
+ *
+ * Trả null khi KHÔNG phải quan hệ, hoặc là dạng "tên = giá trị" (để nguyên cho
+ * stripRel lo như cũ — "x = 1" nghĩa là NGHIỆM x bằng 1, không phải mệnh đề).
+ * Dấu "=" đơn cũng trả null vì lý do đó.
+ *
+ * Chuẩn hoá chiều: mọi ">" thành "<" bằng cách LẬT thứ tự vế. Chuỗi nhiều toán
+ * tử ("a > b > c") lật cả chuỗi thành ("c < b < a").
+ */
+function parseRelChain(s: string): { ve: string[]; ops: string[] } | null {
+  const t = s.trim();
+  // Cắt tại các toán tử quan hệ ở cấp NGOÀI CÙNG (không nằm trong ngoặc).
+  const ve: string[] = [];
+  const ops: string[] = [];
+  let cur = "";
+  let depth = 0;
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i]!;
+    if (ch === "(" || ch === "[" || ch === "{") depth++;
+    else if (ch === ")" || ch === "]" || ch === "}") depth--;
+    if (depth === 0) {
+      const hai = t.slice(i, i + 2);
+      if (hai === "<=" || hai === ">=" || hai === "!=") {
+        ve.push(cur); ops.push(hai); cur = ""; i++; continue;
+      }
+      if (ch === "<" || ch === ">") { ve.push(cur); ops.push(ch); cur = ""; continue; }
+    }
+    cur += ch;
+  }
+  if (!ops.length) return null;
+  ve.push(cur);
+  if (ve.some((v) => !v.trim())) return null; // "< 5" thiếu vế → không xử
+  const sach = ve.map((v) => v.trim());
+  // Chuỗi trộn chiều ("a < b > c") là dị dạng, không chuẩn hoá được → bỏ qua.
+  const coLon = ops.some((o) => o === ">" || o === ">=");
+  const coBe = ops.some((o) => o === "<" || o === "<=");
+  if (coLon && coBe) return null;
+  if (!coLon) return { ve: sach, ops };
+  return {
+    ve: [...sach].reverse(),
+    ops: [...ops].reverse().map((o) => (o === ">" ? "<" : o === ">=" ? "<=" : o)),
+  };
+}
+
+/**
+ * Chuỗi này có phải MỘT SỐ THẬP PHÂN kiểu Việt đơn lẻ không ("0,8" · "-1,67")?
+ * Dùng để chặn nhánh tập nuốt dấu phẩy thập phân — xem chú thích R2 ở gradeExpr.
+ */
+function loneVnDecimal(s: string): boolean {
+  return /^\s*-?\d+,\d+\s*$/.test(s);
+}
+
+/**
+ * Danh sách "tên = giá trị" → Map tên→giá trị. Trả null nếu KHÔNG phải dạng đó,
+ * hoặc có TÊN TRÙNG (như "x=1; x=3" — hai nghiệm cùng biến, phải so kiểu tập).
+ * Xem chú thích R3 ở gradeExpr.
+ */
+function namedMap(s: string): Map<string, string> | null {
+  let inner = s.trim();
+  const braced = inner.match(/^\{\s*(.+)\s*\}$/);
+  if (braced) inner = braced[1]!;
+  const parts = splitTop(inner, [";", ",", "∨"]).filter(Boolean);
+  if (parts.length < 2) return null;
+  const out = new Map<string, string>();
+  for (const p of parts) {
+    const m = p.match(/^\s*([A-Za-z]\w*)\s*=\s*(.+?)\s*;?\s*$/);
+    if (!m) return null;
+    const ten = m[1]!.toLowerCase();
+    if (out.has(ten)) return null; // tên trùng → không phải hệ nghiệm theo tên
+    out.set(ten, m[2]!);
+  }
+  return out;
+}
+
 /** Remove a leading "x =", "y=" etc. so "x=1" compares as "1". */
 function stripRel(s: string): string {
   const m = s.match(/^\s*[A-Za-z]\w*\s*=\s*(.+)$/);
@@ -506,11 +662,28 @@ function collectSymbols(node: any, into: Set<string>, mathFns: Record<string, un
   });
 }
 
+/**
+ * Chuẩn hoá chữ để so khớp: hạ chữ thường, bỏ DẤU THANH tiếng Việt, gộp khoảng trắng.
+ *
+ * ⚠️ DẢI XOÁ CÓ HAI LỖ THỦNG CỐ Ý — U+0304 và U+0338. Đây là lỗi #9(a) R1 (rà
+ * 30/07): `.normalize("NFD")` tách MỌI ký tự tổ hợp, mà nét PHỦ ĐỊNH của toán học
+ * cũng là ký tự tổ hợp nằm trong dải U+0300–U+036F y như dấu thanh:
+ *     "∉" = "∈" + U+0338 · "⊄" = "⊂" + U+0338 · "⇏" = "⇒" + U+0338 · "P̄" = "P" + U+0304
+ * Xoá cả dải là biến PHỦ ĐỊNH THÀNH KHẲNG ĐỊNH: học sinh chọn "∈" khi đáp án là
+ * "∉" được chấm ĐÚNG (đo thật trên ngân hàng sống — Q-0000133, Q-0000223).
+ * Giữ lại đúng hai mã đó thì mọi dấu thanh tiếng Việt vẫn bị bỏ như cũ (huyền
+ * U+0300 · sắc U+0301 · ngã U+0303 · hỏi U+0309 · nặng U+0323 · mũ U+0302 ·
+ * trăng U+0306 · móc U+031B đều nằm ngoài hai lỗ này).
+ *
+ * "≠" KHÔNG đi qua đây: normalizeTypography đã đổi nó thành "!=" từ trước.
+ */
 function normText(s: string): string {
   return s
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    // Viết bằng \u tường minh: mấy ký tự tổ hợp này VÔ HÌNH trong trình soạn thảo,
+    // gõ thẳng vào lớp ký tự là sớm muộn cũng có người sửa nhầm mà không thấy.
+    .replace(/[\u0300-\u0303\u0305-\u0337\u0339-\u036F]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

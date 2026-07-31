@@ -81,6 +81,15 @@ Bám PRD v3. 100% = **pilot production Việt Anh trọn vẹn** (2 môn đủ n
 6. **Ngoài code:** N5/N6 (monitoring/kiểm tải — code-side đã có catch+log, phần alerting là cấu hình ops), L5 (tracker phản hồi Studio), D6/E7 (nghiệm thu thống kê — cần đủ dữ liệu bài làm thật).
 7. **Chốt scope:** G15 (bật lại Presence hay bỏ hẳn?), I3 (báo cáo PH định kỳ — memory 20/07 ghi đã bỏ khỏi pilot nhưng timeline chưa tách).
 8. **`assets-src/`** (ảnh gốc ~14MB toán+tiếng anh): **cố ý CHƯA commit** (webp shipped ở `public/scenes`). User quyết: commit làm nguồn hay `.gitignore`.
+9. **Cloudflare Cache Rule cho HTML — 1 việc bấm tay, chủ dự án làm.** Đợt tối ưu tốc độ
+   30/07 đã cho nginx trả `Cache-Control: … s-maxage=300, stale-while-revalidate=86400`
+   cho trang HTML, NHƯNG **Cloudflare mặc định KHÔNG cache `text/html`** dù header nói gì —
+   đo trên production thấy `cf-cache-status: DYNAMIC`, tức mỗi lượt mở app đều phải chạy
+   hết đường tới VPS. Muốn ăn phần đó: dashboard Cloudflare → tutor.vietanh.org → Caching →
+   Cache Rules → tạo rule *"Cache eligible for cache"* (hoặc Cache Everything) cho
+   `hostname eq "tutor.vietanh.org"`, **Edge TTL = Use cache-control header**.
+   Rủi ro thấp vì HTML đã mang `must-revalidate` + ETag: bản mới tới chậm nhất 5 phút,
+   và không bao giờ phục vụ HTML cũ mà không hỏi lại.
 
 ## 7. File & script quan trọng
 | Đường dẫn | Vai trò |

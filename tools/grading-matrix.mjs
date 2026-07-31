@@ -39,6 +39,17 @@ const t = (name, got, want) => {
   console.log(`${ok ? "✅" : "❌"} ${name}${ok ? "" : `  → được ${JSON.stringify(got)}, muốn ${JSON.stringify(want)}`}`);
 };
 
+/** Ca chấm đáp án: checkAnswer(bài của học sinh, đáp án mẫu) so với kỳ vọng. */
+async function tc(ten, hs, dap, mong) {
+  let got;
+  try {
+    got = (await cas.checkAnswer(hs, dap)).correct;
+  } catch (e) {
+    got = `ném lỗi: ${e.message}`;
+  }
+  t(`${ten} — "${hs}" vs "${dap}"`, got, mong);
+}
+
 // ── LỖI 16: số kiểu Việt ────────────────────────────────────────────────────
 t("0,2 vs 0.2", ((await cas.checkAnswer("0,2", "0.2"))).correct, true);
 t("-0,2 vs -0.2", ((await cas.checkAnswer("-0,2", "-0.2"))).correct, true);
@@ -197,6 +208,49 @@ t("help: 'giúp mình với'", intent.isHelpRequest("giúp mình với"), true);
 // …nhưng vẫn KHÔNG nuốt bài làm thật dài có chứa cùng cụm đó.
 t("KHÔNG help: bài dài chứa 'không hiểu'",
   intent.isHelpRequest("Bạn Nam không hiểu rằng tổng ba góc trong tam giác luôn bằng 180 độ nên đã tính sai"), false);
+
+// ══ LỖI #9(a) — BỐN LỖ "CHẤM SAI THÀNH ĐÚNG" (bịt 30/07) ═══════════════════
+// Người thử 1: "trả lời sai bạn ấy tính đúng luôn". Quét ngân hàng SỐNG (1.868
+// câu active) trước khi vá: 32 PHƯƠNG ÁN NHIỄU được chấm ĐÚNG — học sinh cố
+// tình chọn sai vẫn được khen "Chính xác", và bằng chứng mastery ghi vào DB là
+// số giả. Sau khi vá còn 2, cả hai đều là lỗi SOẠN ĐỀ (nhiễu viết bằng đúng đáp
+// án, chỉ khác dấu ngoặc / thứ tự) chứ không phải lỗi chấm.
+//
+// Mỗi nhóm có CẢ ca phải-sai LẪN ca không-được-hồi-quy: bốn lỗ này đều nằm ở
+// những phép "nới tay" vốn có lý do chính đáng, nên vá quá tay là phạt oan học
+// sinh làm đúng — mà chấm oan ở lần thử ĐẦU thì ghi vĩnh viễn vào mastery.
+
+// R1 · nét PHỦ ĐỊNH bị NFD tách rồi xoá y như dấu thanh tiếng Việt
+await tc("R1 ∈ khác ∉", "∈", "∉", false);
+await tc("R1 ⊂ khác ⊄", "A ⊂ B", "A ⊄ B", false);
+await tc("R1 P khác P̄", "P(x)", "P̄(x)", false);
+await tc("R1 ∉ vẫn khớp ∉", "∉", "∉", true);
+await tc("R1 dấu thanh tiếng Việt VẪN bỏ", "Đường thẳng", "đường thẳng", true);
+await tc("R1 gõ không dấu vẫn khớp", "so nguyen to", "số nguyên tố", true);
+
+// R2 · dấu phẩy THẬP PHÂN kiểu Việt bị cắt thành TẬP ("0,8" → {0;8}, "-0,8" → {-0;8})
+await tc("R2 trái dấu không bằng nhau", "0,8", "-0,8", false);
+await tc("R2 Q-0000533", "0,2", "-0,2", false);
+await tc("R2 không phải tập {1;5}", "1,5", "5,1", false);
+await tc("R2 phẩy Việt ≡ chấm máy", "0,25", "0.25", true);
+await tc("R2 KHÔNG hồi quy: hai nghiệm", "1,3", "{1;3}", true);
+
+// R3 · hệ nhiều biến mất TÊN (splitSet gọi stripRel rồi so không theo thứ tự)
+await tc("R3 đảo giá trị giữa hai biến", "a = 6, b = 4", "a = 4, b = 6", false);
+await tc("R3 Q-0001421", "x = 3; y = 1", "x = 1; y = 3", false);
+await tc("R3 đảo THỨ TỰ VIẾT vẫn đúng", "b = 6, a = 4", "a = 4, b = 6", true);
+await tc("R3 KHÔNG hồi quy: tập số", "1; 3", "3; 1", true);
+await tc("R3 KHÔNG hồi quy: hai nghiệm cùng biến", "x = 1; x = 3", "x = 3; x = 1", true);
+
+// R4 · quan hệ so bằng LẤY MẪU trong khoảng (−3,3 ; 3,4) → mọi bất PT "tương đương"
+await tc("R4 ≤ khác <", "x <= 5", "x < 5", false);
+await tc("R4 ≠ khác <", "x != 5", "x < 5", false);
+await tc("R4 khác hẳn nghĩa", "x > -10", "x < 5", false);
+await tc("R4 cùng chiều khác mốc", "x > 100", "x > 1000", false);
+await tc("R4 Q-0001566 chuỗi kép", "-15 < m < 15", "-20 < m < 10", false);
+await tc("R4 gán vs khác 0", "k = 1", "k != 0", false);
+await tc("R4 KHÔNG hồi quy: đảo vế", "x > 2", "2 < x", true);
+await tc("R4 KHÔNG hồi quy: đảo vế có bằng", "x >= 3", "3 <= x", true);
 
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);

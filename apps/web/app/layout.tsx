@@ -17,9 +17,15 @@ const sans = IBM_Plex_Sans({
   variable: "--font-sans",
   display: "swap",
 });
+// CHỈ style "normal" — KHÔNG italic (đo trên production 30/07).
+// Trang /login tải 201 KB font, trong đó Source Serif 4 chiếm 127 KB, và MỘT NỬA
+// số đó (50,3 KB latin + 13,7 KB vietnamese) là bộ ITALIC được preload cho…
+// không ai: chỗ duy nhất trong CSS đòi serif-italic là `.math`, mà `.math` đã
+// thành mã chết từ đợt chuyển sang KaTeX (không component nào còn gán class đó —
+// đã grep toàn bộ apps/web). Ai lỡ dùng lại thì rơi về Georgia italic, vẫn đọc được.
 const serif = Source_Serif_4({
   subsets: ["latin", "vietnamese"],
-  style: ["normal", "italic"],
+  style: ["normal"],
   variable: "--font-serif",
   display: "swap",
 });
