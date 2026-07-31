@@ -6394,6 +6394,18 @@ html[data-motion="reduce"] .spin {
   line-height: 1.5;
   color: var(--ink-2);
 }
+/* Nhắc quên bọc $…$ — hổ phách "cần để ý", KHÔNG đỏ báo động: cô chưa làm gì
+   sai, chỉ là công thức sẽ hiện không như ý. --warn trên --warn-tint = 4,51:1. */
+.grade-note-preview[data-warn] {
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+.grade-note-preview[data-warn] code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 70%);
+  font-size: 0.8125rem;
+}
 /* Ô đính bài chữa — cùng khuôn với ô đính tệp của học sinh (.submit-attach),
    chiếm trọn dòng để tên tệp dài không đẩy hai nút Đạt / Cho làm lại xuống. */
 .grade-note-attach {

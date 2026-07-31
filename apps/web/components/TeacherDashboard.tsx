@@ -844,6 +844,21 @@ function GradingTab({ onCount }: { onCount: (n: number) => void }) {
                       Em sẽ thấy: <MathText>{notes[it.id] ?? ""}</MathText>
                     </p>
                   )}
+                  {/* QUÊN BỌC $…$ — cửa im lặng duy nhất còn lại của ô này.
+                      Xem trước chỉ bật khi có "$", nên gõ ĐÚNG thì được kiểm mà
+                      gõ SAI lại không được cảnh báo — ngược đúng cái cần. Lệnh
+                      LaTeX trần có ngoặc nhọn sẽ bị luật "ngoặc nhọn = tập hợp"
+                      của bộ chuyển đổi bọc lại: cô gõ \frac{-b}{2a} thì em nhận
+                      \frac\{-b\}\{2a\} với ngoặc phơi ra, không thành phân số.
+                      (Lệnh KHÔNG có ngoặc nhọn như \Delta thì trần vẫn chạy —
+                      chính sự bất nhất đó khiến cô không tự đoán ra được.) */}
+                  {!(notes[it.id] ?? "").includes("$") &&
+                    /\\[a-zA-Z]+\s*\{/.test(notes[it.id] ?? "") && (
+                      <p className="grade-note-preview" data-warn>
+                        Hình như bạn đang gõ công thức LaTeX — bọc nó trong <b>$…$</b> thì em mới
+                        thấy đúng. Ví dụ: <code>$\frac{"{-b}{2a}"}$</code>
+                      </p>
+                    )}
                   {/* Đ2 — gửi kèm TỆP CHỮA BÀI (người thử 2 đề nghị). Bài có hình
                       vẽ thì lời nhắn chữ không nói hết; cô chụp tờ giấy đã chữa
                       tay là em nhìn phát hiểu ngay. */}
