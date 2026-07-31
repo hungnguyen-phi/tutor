@@ -11838,9 +11838,15 @@ body:has(.lsn-grid) {
   body:has(.lsn-aside:empty) .lfoot-inner {
     padding-inline: 20px;
   }
-  /* Khung xem trong cột hẹp: thấp hơn màn bài học vì cột chỉ rộng 380px. */
+  /* Khung xem trong cột hẹp — thấp hơn màn bài học một nhịp, NHƯNG không quay
+     lại con số cứng (lỗi #1, rà 31/07). Cột rộng 356px, PDF render #view=FitH
+     nên một trang A4 cao ≈ 356 × 1,414 ≈ 500px: trần 260px cắt mất gần một nửa
+     trang, đúng cái đẻ ra lời phàn nàn "xem không hết" ban đầu. Cột này vốn đã
+     tự cuộn (max-height: calc(100dvh - 96px)), nên cho khung cao theo màn và
+     chặn bằng vh thay vì px — màn cao thì đọc được nhiều, màn thấp vẫn không
+     tràn. Nút "Toàn màn hình" của LessonView là lối thoát cho ca đọc kỹ. */
   .lsn-aside .lsv-frame,
-  .lsn-aside .lsv-img { height: 260px; max-height: 260px; min-height: 200px; }
+  .lsn-aside .lsv-img { height: min(52vh, 560px); max-height: min(52vh, 560px); min-height: 260px; }
   .lsn-aside .lsv { margin: 0; }
   /* Nút hành động dưới đáy bám ĐÚNG cột giữa — cùng trục với đề bài. Bố cục ba
      cột nên đệm cả hai bên, không chỉ bên phải như bản hai cột. */

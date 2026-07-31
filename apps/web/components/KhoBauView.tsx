@@ -62,9 +62,17 @@ export default function KhoBauView({
 
   const mucCoSan = data?.mucCoSan ?? [];
   const soMuc = mucCoSan.length;
-  // Học liệu của MỨC ĐANG MỞ — hiện song song mọi định dạng đã tick.
+  // Học liệu ĐÃ MỞ — mức đang mở VÀ mọi mức trước đó.
+  //
+  // ⚠️ `<=` chứ KHÔNG phải `===` (lỗi #1, rà 31/07). Bậc thang "mỗi lượt mở thêm
+  // một mức" trước đây lọc bằng `===`, nên ngay sau khi em bấm đúng cái nút mà
+  // app mời bấm ("XEM XONG MỨC 1") thì TOÀN BỘ học liệu mức 1 — kể cả phiếu bài
+  // tập và khối nộp bài của nó — biến mất khỏi màn Kho báu. Đúng kịch bản "tải
+  // phiếu về làm ở nhà, mai vào nộp": hôm sau mở lại thì không còn gì.
+  // Server vốn đã trả `tier <= mucDangMo` (resources/index.ts) — chỉ có client
+  // giấu đi. Mở khoá thì phải MỞ, không phải đổi chỗ giấu.
   const cuaMucNay: NodeResource[] = (data?.resources ?? []).filter(
-    (r) => (r.tier ?? 1) === (data?.mucDangMo ?? 1),
+    (r) => (r.tier ?? 1) <= (data?.mucDangMo ?? 1),
   );
   const daXongHet = !!data && data.mucDaQua >= Math.max(1, ...(mucCoSan.length ? mucCoSan : [1]));
 
@@ -124,6 +132,18 @@ export default function KhoBauView({
                   không có chỗ nào gửi lại cho thầy cô. */}
               {data.nopBaiQuestionId && cuaMucNay.some((r) => r.format === "worksheet") && (
                 <NopBaiBox subject={subject} nodeKey={nodeKey} questionId={data.nopBaiQuestionId} />
+              )}
+              {/* CÓ phiếu nhưng bài này KHÔNG có câu nộp → phải NÓI RA (lỗi #1).
+                  Đường nộp bám vào một câu mang nhãn [NOPBAI] cùng node, mà 85/204
+                  node không hề có câu nào như vậy — trong khi thầy cô gắn phiếu
+                  được vào bất kỳ node nào. Rơi vào nhóm đó thì trước đây màn hình
+                  im lặng tuyệt đối: em tải phiếu về, làm xong, quay lại tìm chỗ
+                  nộp và không hiểu vì sao chẳng có gì. Thà nói thật một câu. */}
+              {!data.nopBaiQuestionId && cuaMucNay.some((r) => r.format === "worksheet") && (
+                <p className="muted kb-khong-nop">
+                  Phiếu này em làm để luyện thêm — bài chưa mở đường nộp trên app. Em làm xong
+                  cứ nộp trực tiếp cho thầy cô nhé.
+                </p>
               )}
             </>
           ) : (

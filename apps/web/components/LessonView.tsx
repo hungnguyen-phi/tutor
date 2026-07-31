@@ -239,6 +239,9 @@ export default function LessonView({
   const usable = (resources ?? []).filter(
     (r) => r && typeof r.uri === "string" && r.uri.length > 0,
   );
+  // Cả rổ cùng một mức → nhãn mức không phân biệt được gì, chỉ lặp lại trên mọi
+  // thẻ. Kho báu một mức là ca thường gặp nhất.
+  const nhieuMuc = new Set(usable.map((r) => r.tier ?? 1)).size > 1;
   // -1 = chưa mở gì (không nạp iframe cho tới khi học sinh chọn) → đặt ở đầu
   // node vẫn nhẹ, không cản đường tới câu hỏi đầu tiên.
   // Chỉ có MỘT mục thì mở luôn — bắt bấm thêm một nhát để xem đúng một thứ là
@@ -279,7 +282,11 @@ export default function LessonView({
               </span>
               <span className="lsv-tile-label">
                 <b>{label}</b>
-                {r.tier != null && <small>Bậc {r.tier}</small>}
+                {/* "Bậc 1" là từ của người soạn chương trình, không phải của học
+                    sinh lớp 10 — và khi cả rổ cùng một mức thì nó chỉ là tiếng ồn
+                    lặp lại trên mọi thẻ (lỗi #1). Chỉ hiện khi thật sự có nhiều
+                    mức để phân biệt, và gọi đúng tên: "Mức n". */}
+                {nhieuMuc && r.tier != null && <small>Mức {r.tier}</small>}
               </span>
             </button>
           );

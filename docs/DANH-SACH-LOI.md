@@ -616,10 +616,30 @@ nói, chọn theo `attemptNo` (KHÔNG random — cùng một lượt vẽ lại 
 **#18 · màn phụ huynh** — đã đủ ba trạng thái nói đúng sự thật (chưa liên kết con ·
 đã liên kết nhưng con chưa học · có dữ liệu), cộng đợt dọn 30/07 gỡ các khối PDPL.
 
-**#1 · học liệu/nộp bài — CHƯA làm.** Đây là mục duy nhất còn lại: khung xem PDF, nút
-toàn màn hình, và đường nộp bài từ màn Kho báu. Commit `e51a2ac` (29/07) tuyên bố đã
-sửa và phản biện xác nhận 12/12 bằng chứng có thật, nhưng tôi chưa tự đọc lại từng vế
-nên **không khẳng định là xong** — cần một lượt rà riêng.
+**#1 · học liệu/nộp bài — ✅ ĐÃ SỬA 31/07.** Commit `e51a2ac` (29/07) đã xử đúng hai vế
+được nêu nguyên văn (trần 360px, có đường nộp bài), nhưng rà lại thấy **bốn lỗ còn**,
+trong đó một cái nặng hơn cả triệu chứng gốc:
+
+1. **Học liệu BIẾN MẤT sau khi bấm đúng nút app mời bấm.** `KhoBauView` lọc
+   `tier === mucDangMo`, nên vừa bấm "XEM XONG MỨC 1" là toàn bộ học liệu mức 1 —
+   kể cả phiếu bài tập và khối nộp bài của nó — không còn trên màn Kho báu. Đúng
+   kịch bản *"tải phiếu về làm ở nhà, mai vào nộp"*: hôm sau mở lại thì trống trơn.
+   Server vốn đã trả `tier <= mucDangMo`; chỉ client giấu đi. **Đổi `===` thành `<=`.**
+   *(Phản biện đúng một ý: lỗ này chỉ ở màn Kho báu — `TutorApp` gọi cùng endpoint mà
+   không lọc tier, nên luồng học trong bài không dính.)*
+2. **Node không có câu `[NOPBAI]` thì màn hình im lặng tuyệt đối.** Khối nộp bài bám vào
+   một câu mang nhãn đó cùng node, mà **85/204 node (42%) không có** — trong khi thầy cô
+   gắn phiếu được vào bất kỳ node nào. Nay nói thật một câu thay vì để em đi tìm.
+3. **Trần cứng quay lại ở cột phải màn bài học** (commit `a9996bd` sau đó đặt học liệu
+   vào cột phải và kẹp 260px). Cột rộng 356px, PDF render `#view=FitH` nên một trang A4
+   cao ≈500px — 260px cắt mất gần nửa trang, đúng cái đẻ ra "xem không hết" ban đầu.
+   Nay `min(52vh, 560px)` (đo ở 1440×900: 468px), cột vốn đã tự cuộn nên không tràn.
+4. **Nhãn "Bậc 1"** — từ của người soạn chương trình, không phải của học sinh lớp 10, và
+   khi cả rổ cùng một mức thì chỉ là tiếng ồn lặp trên mọi thẻ. Nay gọi "Mức n" và chỉ
+   hiện khi thật sự có nhiều mức.
+
+Đã kiểm trên bản xem trước: nhãn ra đúng `Mức 1 · Mức 1 · Mức 2`, hết chữ "Bậc"; khung
+xem 468px = 52vh, hết trần 260px; nút "Toàn màn hình" + "Mở tab mới" còn nguyên.
 
 ---
 
