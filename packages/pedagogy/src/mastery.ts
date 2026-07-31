@@ -37,14 +37,16 @@ export interface MasteryVerdict {
  * Evaluate mastery from the most recent evidence at target difficulty.
  * `higher-order` = DOK ≥ 3.
  */
-export function evaluateMastery(evidence: Evidence[]): MasteryVerdict {
+export function evaluateMastery(evidence: Evidence[], dokToiDaCoSan?: number | null): MasteryVerdict {
   const targeted = evidence
     .filter((e) => e.isTargetDifficulty)
     .sort((a, b) => a.at - b.at);
 
   const window = targeted.slice(-MASTERY_WINDOW);
   const correct = window.filter((e) => e.correct);
-  const hasHigherOrder = correct.some((e) => e.dok >= 3);
+  // NODE CỤT DOK (lỗi #23) — xem chú thích đầy đủ ở supabase/functions/_shared/pedagogy.ts
+  const nodeCutDok = typeof dokToiDaCoSan === "number" && dokToiDaCoSan < 3;
+  const hasHigherOrder = nodeCutDok || correct.some((e) => e.dok >= 3);
 
   // Consistent evidence = count of correct answers in the recent window
   // (the "≥2 consistent" anti-guess rule is satisfied when correct ≥ 2).

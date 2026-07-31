@@ -558,6 +558,17 @@ Deno.serve(async (req: Request) => {
         .single();
       if (!q) return json({ error: "question not found" }, 404);
 
+      // ── CHỐT ĐỐI XỨNG: câu NỘP BÀI không được đi đường "answer" (lỗi #8) ────
+      // Nhánh này là nơi LLM chấm rồi GHI THẲNG `mastery_evidence` + cộng XP.
+      // Quyết định 29/07 của chủ dự án: bài [NOPBAI] chỉ được tính khi GIÁO VIÊN
+      // bấm "Đạt" — nhánh `submit-work` đã tuân thủ triệt để (không ghi một dòng
+      // bằng chứng nào). Nhưng nếu client gọi nhầm/cố tình gọi `answer` với đúng
+      // questionId đó thì cửa hậu mở lại y như cũ: gõ "ok" vài lần, AI gật một
+      // lần là node xanh. Chặn ở đây, không phụ thuộc client cư xử đúng.
+      if (/^\[(NOPBAI|WRITING|SPEAKING)\]/i.test(String(q.noi_dung ?? ""))) {
+        return json({ error: "wrong-channel", detail: "submit-work" }, 400);
+      }
+
       // THAM SỐ do SERVER sinh TẤT ĐỊNH theo (session, câu) — KHÔNG nhận từ
       // client (client tin được thì HS bịa số cho khớp đáp án). Cùng seed với
       // lúc HIỂN THỊ (pickQuestion/diagnose) nên số y hệt cái học sinh đang thấy.
@@ -1220,10 +1231,21 @@ Deno.serve(async (req: Request) => {
         const bo = (ladder?.bottom_out as { noi_dung?: string } | null)?.noi_dung;
         const coreRaw = bo ?? q.loi_giai ?? "";
         const core = coreRaw && qParams ? fillTemplate(coreRaw, qParams) : coreRaw;
+        // Xoay vòng luôn ở đây (lỗi #19): mở đáy là khoảnh khắc hiếm, nhưng em
+        // học nhiều node thì vẫn nghe lại nhiều lần trong một buổi.
+        const MO_DAY_VI = [
+          ["Bạn đã đủ nỗ lực để mình mở hướng giải:", "Giờ thử làm lại bước cuối xem!"],
+          ["Bạn thử đủ rồi, mình mở hướng nhé:", "Làm lại bước cuối là xong đấy."],
+          ["Đến lúc mình chỉ đường rồi:", "Bạn ráp lại bước cuối thử xem."],
+        ];
+        const MO_DAY_EN = [
+          ["You've earned a bigger hint — here's the key idea:", "Now try the final step again!"],
+          ["You've put in the work, so here's the idea:", "Give that last step another go."],
+          ["Time for me to point the way:", "Put the last step together and see."],
+        ];
+        const md = (en ? MO_DAY_EN : MO_DAY_VI)[Math.max(0, attemptNo - 1) % 3]!;
         const msg = core
-          ? (en
-              ? `You've earned a bigger hint — here's the key idea: ${core}\nNow try the final step again!`
-              : `Bạn đã đủ nỗ lực để mình mở hướng giải: ${core}\nGiờ thử làm lại bước cuối xem!`)
+          ? `${md[0]} ${core}\n${md[1]}`
           : (en
               ? "Let's slow down and rebuild from the definition. What does the question actually ask?"
               : "Mình chậm lại, dựng từ định nghĩa nhé. Đề bài thật ra đang hỏi điều gì?");
@@ -1237,11 +1259,23 @@ Deno.serve(async (req: Request) => {
       // Bắt được quan niệm sai → GỌI TÊN nó (lỗi 9c: "không giải thích vì sao
       // bị đánh sai") — dữ liệu quan_niem_sai được soạn đúng cho việc này, không
       // chứa đáp án cuối.
-      const lead = matched
-        ? (en
-            ? `I see where that came from — there's a trap in it: ${safeMisconception(matched, q.dap_an)} `
-            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${safeMisconception(matched, q.dap_an)} `)
-        : "";
+      // XOAY VÒNG cách mở lời (lỗi #19). Chuỗi cố định thì em nghe y hệt mọi
+      // lượt — người thử 1: "câu 'Gần được rồi — còn thiếu' xuất hiện quá nhiều
+      // lần". Chọn theo attemptNo chứ KHÔNG random: cùng một lượt vẽ lại nhiều
+      // lần thì chữ không được nhảy trước mắt em.
+      const MO_LOI_VI = [
+        "Mình hiểu vì sao bạn nghĩ vậy, nhưng trong đó có một bẫy:",
+        "Chỗ này nhiều bạn cũng vướng y như vậy:",
+        "Cách nghĩ đó hợp lý, chỉ lệch đúng một chỗ:",
+      ];
+      const MO_LOI_EN = [
+        "I see where that came from, there's a trap in it:",
+        "A lot of people trip on exactly this:",
+        "That reasoning makes sense, it just slips at one point:",
+      ];
+      const chanDoanRung = safeMisconception(matched, q.dap_an);
+      const leadMo = (en ? MO_LOI_EN : MO_LOI_VI)[Math.max(0, attemptNo - 1) % 3]!;
+      const lead = chanDoanRung ? `${leadMo} ${chanDoanRung} ` : "";
       const msg = rungText
         ? `${lead}${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
         : (en

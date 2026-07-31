@@ -109,11 +109,29 @@ export interface MasteryVerdict {
 }
 
 /** Recompute mastery for one node from its evidence (Q1=C, Q5=B). */
-export function recomputeMastery(evidence: Evidence[]): MasteryVerdict {
+/**
+ * @param dokToiDaCoSan DOK cao nhất mà NGÂN HÀNG của node này thực sự có. Truyền
+ *   null nếu chưa biết (giữ hành vi cũ). Xem chú thích "node cụt DOK" bên dưới.
+ */
+export function recomputeMastery(
+  evidence: Evidence[],
+  dokToiDaCoSan?: number | null,
+): MasteryVerdict {
   const targeted = evidence.filter((e) => e.isTargetDifficulty).sort((a, b) => a.at - b.at);
   const window = targeted.slice(-MASTERY.window);
   const correct = window.filter((e) => e.correct);
-  const hasHigherOrder = correct.some((e) => e.dok >= 3);
+  // ── NODE CỤT DOK (lỗi #23, rà 30/07) ─────────────────────────────────────
+  // Điều kiện "phải có ≥1 câu DOK≥3 đúng" là ĐÚNG về sư phạm: thành thạo thì
+  // phải chứng minh được ở bậc vận dụng, không phải nhớ máy móc. Nhưng đo trên
+  // prod: học sinh có 32 lần đúng ở đúng độ khó mà CẢ 14 node đều chưa xanh —
+  // vì nhiều node (KC-5110642, KC-0570467, KC-1828856…) có DOK cao nhất trong
+  // ngân hàng chỉ là 2. Luật đang đòi một bằng chứng mà node đó KHÔNG CÓ
+  // PHƯƠNG TIỆN để tạo ra: em làm đúng mọi câu vẫn vĩnh viễn không thành thạo,
+  // và lộ trình đứng im vô thời hạn.
+  // Nới đúng chỗ đó, KHÔNG nới cho node có sẵn câu bậc cao: node nào ngân hàng
+  // có DOK≥3 thì vẫn phải làm đúng một câu như cũ.
+  const nodeCutDok = typeof dokToiDaCoSan === "number" && dokToiDaCoSan < 3;
+  const hasHigherOrder = nodeCutDok || correct.some((e) => e.dok >= 3);
   const mastered =
     correct.length >= MASTERY.minCorrect &&
     window.length >= MASTERY.minCorrect &&

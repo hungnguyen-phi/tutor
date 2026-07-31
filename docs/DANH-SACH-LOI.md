@@ -585,6 +585,44 @@ chứ không phải nói về việc em thiếu.
 
 # ĐỢT BỔ SUNG — chủ dự án tự thử đối thoại (30/07)
 
+## 24. ✅ ĐỢT SỬA CUỐI 31/07 — #8 (cửa hậu), #11 (câu nhiều bước), #19 (lặp khuôn), #23 (mastery)
+
+**#23 · node CỤT DOK — đã nới đúng chỗ.** Luật đòi ≥1 câu DOK≥3 đúng, mà nhiều node
+ngân hàng chỉ có DOK tối đa 2 ⇒ em làm đúng mọi câu vẫn vĩnh viễn không xanh.
+`recomputeMastery()` nay nhận thêm **DOK cao nhất CÓ THẬT trong ngân hàng của node**
+(`mastery-state.ts` truy bảng `questions` một lượt); node nào không có câu DOK≥3 thì bỏ
+điều kiện đó, node nào CÓ thì vẫn phải làm đúng một câu như cũ. Đồng bộ cả bản
+`packages/pedagogy` (vitest 6/6).
+
+**#8 · cửa hậu còn sót.** Lớp 1 (chặn bài rác) và lớp 3 (AI hết quyền ghi mastery cho
+bài nộp) đã làm từ 29/07 và tôi xác minh lại là đúng. Nhưng nhánh `answer` — nơi LLM
+chấm rồi GHI THẲNG `mastery_evidence` + XP — **không hề chặn câu [NOPBAI]**: client gọi
+nhầm (hoặc cố tình) đúng questionId đó là cửa hậu mở lại y như cũ. Nay chặn ở server,
+không phụ thuộc client cư xử đúng. Đã kiểm: 323 câu [NOPBAI] active, `diagnose` gán
+`kind="nop_bai"` nên luồng hợp lệ không đi đường này ⇒ không chặn nhầm ai.
+
+**#11 · 45/46 câu nhiều bước KHÔNG CÓ ô trả lời.** Gốc rễ hoá ra **không phải parse**
+(agent chạy thử 113 câu: 0 câu parse trượt) mà là UI: đường trả lời chỉ mở khi MỌI bước
+đều là "(Có/Không)" — ngân hàng sống có **đúng 1** câu viết theo khuôn đó. 45 câu còn
+lại vẽ ba thẻ bước mà không thẻ nào trả lời được, ô gõ duy nhất thì nằm tận dưới khung
+đối thoại. Đúng thứ người thử 2 gọi là *"hiện ra 3 ý nhưng không rõ yêu cầu"*. Nay MỖI
+bước có chỗ trả lời riêng: bước Có/Không → hai nút, bước còn lại → ô gõ ngay trong thẻ;
+đáp án gửi đi ráp theo từng bước.
+
+**#19 · lặp khuôn.** Chuỗi "Gần được rồi — còn thiếu" đã biến mất từ 29/07, nhưng còn
+hai chỗ cứng: câu mở lời khi bắt được quan niệm sai, và câu mở đáy. Nay xoay vòng 3 cách
+nói, chọn theo `attemptNo` (KHÔNG random — cùng một lượt vẽ lại thì chữ không nhảy).
+
+**#18 · màn phụ huynh** — đã đủ ba trạng thái nói đúng sự thật (chưa liên kết con ·
+đã liên kết nhưng con chưa học · có dữ liệu), cộng đợt dọn 30/07 gỡ các khối PDPL.
+
+**#1 · học liệu/nộp bài — CHƯA làm.** Đây là mục duy nhất còn lại: khung xem PDF, nút
+toàn màn hình, và đường nộp bài từ màn Kho báu. Commit `e51a2ac` (29/07) tuyên bố đã
+sửa và phản biện xác nhận 12/12 bằng chứng có thật, nhưng tôi chưa tự đọc lại từng vế
+nên **không khẳng định là xong** — cần một lượt rà riêng.
+
+---
+
 ## 23. 🔴 "0 điểm đã thành thạo" dù con đã làm rất nhiều — luật mastery đòi DOK≥3 mà node KHÔNG CÓ câu DOK≥3
 
 > Chủ dự án, màn phụ huynh 30/07: *"chưa thấy tiến độ mục tiêu và điểm đã làm luôn,

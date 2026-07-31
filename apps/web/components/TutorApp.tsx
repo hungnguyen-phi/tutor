@@ -158,7 +158,10 @@ export default function TutorApp() {
   const [rubricResult, setRubricResult] = useState<RubricResult | null>(null);
   const [workFile, setWorkFile] = useState<File | null>(null); // tệp bài làm chờ nộp
   const [aiPassed, setAiPassed] = useState(false); // AI sơ khảo ĐẠT bài gõ của câu hiện tại
-  const [stepAns, setStepAns] = useState<Record<number, string>>({}); // Có/Không từng bước của đề nhiều bước
+  const [stepAns, setStepAns] = useState<Record<number, string>>({});
+  // Bài làm CHỮ của từng bước (bước không phải Có/Không) — lỗi #11: trước đây
+  // chỉ có MỘT ô gõ cho cả câu, đặt tận dưới khung đối thoại.
+  const [stepText, setStepText] = useState<Record<number, string>>({}); // Có/Không từng bước của đề nhiều bước
   const [verdict, setVerdict] = useState<Verdict>(null);
   /** XP server vừa cộng ở lượt gần nhất — chip "+N XP" phải nói số THẬT, vì từ
    *  29/07 XP "đúng" chỉ phát ở lần thử đầu (bịt rò đoán mò). */
@@ -527,6 +530,7 @@ export default function TutorApp() {
     setWorkFile(null);
     setAiPassed(false);
     setStepAns({});
+    setStepText({});
     setVerdict(null);
     setAttempts(0);
   }
@@ -603,6 +607,7 @@ export default function TutorApp() {
     setWorkFile(null);
     setAiPassed(false);
     setStepAns({});
+    setStepText({});
     setAttempts(0);
   }
 
@@ -1371,17 +1376,26 @@ export default function TutorApp() {
   // hẳn bước đó — em không có cách nào làm đúng dù hiểu bài.
   const stepInteractive =
     yesNoIdx.length > 0 &&
-    !!stepParsed &&
-    stepParsed.steps.every((s, i) => s.yesNo || i === stepParsed.steps.length - 1);
+    // LỖI #11 — MỌI câu nhiều bước đều phải có chỗ trả lời, không chỉ câu toàn
+    // "(Có/Không)". Khuôn cũ đòi mọi bước là yesNo (trừ bước cuối); đo ngân hàng
+    // sống: đúng MỘT câu viết theo khuôn đó, còn 45 câu nhiều bước khác rơi vào
+    // nhánh "vẽ ba thẻ bước mà không thẻ nào có ô trả lời" — người thử 2 gọi là
+    // "hiện ra 3 ý nhưng không rõ yêu cầu". Nay chỉ cần CÓ bước nào đó trả lời
+    // được: bước (Có/Không) → hai nút, bước còn lại → ô gõ ngay trong thẻ.
+    !!stepParsed;
   // Hiện tới bước (Có/Không) đầu tiên CHƯA trả lời; xong hết thì mở cả phần còn lại.
   let stepReveal = stepParsed ? stepParsed.steps.length : 0;
-  if (stepParsed && stepInteractive) {
+  if (stepParsed && yesNoIdx.length > 0) {
+    // Chỉ mở dần khi có bước Có/Không (nhịp suy luận). Câu toàn bước gõ thì hiện
+    // hết ngay — bắt em mở từng ô mà không có gì để bấm là đường cụt.
     const firstOpen = yesNoIdx.find((i) => !stepAns[i]);
     stepReveal = firstOpen == null ? stepParsed.steps.length : firstOpen + 1;
   }
-  const stepsDone = !stepInteractive || yesNoIdx.every((i) => !!stepAns[i]);
-  // Bước cuối không phải Có/Không → cần em gõ kết luận.
-  const stepNeedsText = !!stepParsed && !stepParsed.steps[stepParsed.steps.length - 1]!.yesNo;
+  // "Xong" = trả lời hết bước Có/Không VÀ gõ đủ các bước cần chữ.
+  const stepsDone =
+    !stepParsed ||
+    (yesNoIdx.every((i) => !!stepAns[i]) &&
+      stepParsed.steps.every((s, i) => s.yesNo || (stepText[i] ?? "").trim().length > 0));
   // Lời trích trong đề ('bạn ấy nói…') → thẻ riêng. Chỉ môn Toán: đề tiếng Anh
   // đầy nháy đơn hợp lệ (don't, it's) nên tách kiểu này là vỡ.
   const quoteParsed =
@@ -1395,8 +1409,8 @@ export default function TutorApp() {
       ? interactiveAns != null
       : isTrueFalse || q.options
         ? picked != null
-        : stepParsed && stepInteractive
-          ? stepsDone && (!stepNeedsText || text.trim().length > 0)
+        : stepParsed
+          ? stepsDone
           : text.trim().length > 0);
   const check = () => {
     if (!q || q.kind !== "objective") return;
@@ -1406,6 +1420,10 @@ export default function TutorApp() {
       ans = stepParsed.steps
         .map((st, i) => {
           if (st.yesNo) return `${st.label}: ${stepAns[i]}`;
+          // Bước gõ: lấy bài làm CỦA CHÍNH bước đó (lỗi #11). Ô `text` chung chỉ
+          // còn là đường lui cho bước cuối, giữ cho câu cũ không vỡ.
+          const rieng = (stepText[i] ?? "").trim();
+          if (rieng) return `${st.label}: ${rieng}`;
           if (i === lastIdx && text.trim()) return `${st.label}: ${text.trim()}`;
           return null; // bước hướng dẫn xen giữa (hiếm) — không có gì để gửi
         })
@@ -1546,15 +1564,27 @@ export default function TutorApp() {
                           cuộn lên đầu sửa Có/Không rồi cuộn xuống cuối gõ lại
                           kết luận (người thử 3 báo 29/07). Giờ cả chuỗi suy luận
                           nằm gọn một chỗ. */}
-                      {stepInteractive && stepNeedsText && i === stepParsed.steps.length - 1 && (
+                      {/* LỖI #11 — MỖI bước không-phải-Có/Không có Ô RIÊNG của
+                          nó, không chỉ bước cuối. 45/46 câu nhiều bước trong
+                          ngân hàng không viết theo khuôn "(Có/Không)" nên trước
+                          đây chúng hiện ba thẻ bước mà KHÔNG thẻ nào trả lời
+                          được, còn ô gõ duy nhất thì nằm tận dưới khung đối
+                          thoại — đúng thứ người thử 2 gọi là "hiện ra 3 ý nhưng
+                          không rõ yêu cầu". */}
+                      {!st.yesNo && (
                         <textarea
                           className="ans-input step-input"
                           rows={1}
-                          placeholder="Kết luận của em…"
-                          value={text}
+                          placeholder={
+                            i === stepParsed.steps.length - 1
+                              ? "Kết luận của em…"
+                              : `Trả lời ${st.label.toLowerCase()}…`
+                          }
+                          value={stepText[i] ?? ""}
                           disabled={busy || verdict === "retry"}
                           onChange={(e) => {
-                            setText(e.target.value);
+                            const v = e.target.value;
+                            setStepText((m) => ({ ...m, [i]: v }));
                             const el = e.currentTarget;
                             el.style.height = "auto";
                             el.style.height = `${Math.min(el.scrollHeight, 220)}px`;

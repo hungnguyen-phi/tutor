@@ -21,7 +21,7 @@ export async function recomputeNodeState(
   supa: SupabaseClient,
   a: NodeStateArgs,
 ): Promise<{ mastered: boolean; score: number; newlyMastered: boolean }> {
-  const [{ data: evidence }, { data: prevState }] = await Promise.all([
+  const [{ data: evidence }, { data: prevState }, { data: dokRows }] = await Promise.all([
     supa
       .from("mastery_evidence")
       .select("correct, dok, is_target_difficulty, created_at")
@@ -35,14 +35,26 @@ export async function recomputeNodeState(
       .eq("kg_version_id", a.kgVersionId)
       .eq("node_id", a.nodeKey)
       .maybeSingle(),
+    // NGÂN HÀNG của node này có câu bậc cao không? (lỗi #23) Luật mastery đòi
+    // ≥1 câu DOK≥3 đúng; node nào không hề có câu DOK≥3 thì đòi vậy là bắt em
+    // chứng minh bằng thứ không tồn tại — xem recomputeMastery.
+    supa
+      .from("questions")
+      .select("dok")
+      .eq("kg_version_id", a.kgVersionId)
+      .eq("node_key", a.nodeKey)
+      .eq("trang_thai", "active")
+      .order("dok", { ascending: false })
+      .limit(1),
   ]);
+  const dokToiDa = (dokRows?.[0] as { dok?: number } | undefined)?.dok ?? null;
   const ev: Evidence[] = (evidence ?? []).map((e: Record<string, unknown>) => ({
     correct: e.correct as boolean,
     dok: e.dok as number,
     isTargetDifficulty: e.is_target_difficulty as boolean,
     at: new Date(e.created_at as string).getTime(),
   }));
-  const v = recomputeMastery(ev);
+  const v = recomputeMastery(ev, dokToiDa);
   const now = Date.now();
   const box = (prevState?.leitner_box as number | undefined) ?? 0;
   await supa.from("student_node_state").upsert(
