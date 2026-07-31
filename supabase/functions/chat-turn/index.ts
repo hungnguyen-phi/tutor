@@ -1053,8 +1053,8 @@ Deno.serve(async (req: Request) => {
           : RETRY_VI[(attemptNo - 1) % RETRY_VI.length]!;
         const msg = matched
           ? (en
-              ? `I can see the idea behind that choice — it hides a common trap: ${safeMisconception(matched)} ${base}`
-              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${safeMisconception(matched)} ${base}`)
+              ? `I can see the idea behind that choice — it hides a common trap: ${safeMisconception(matched, q.dap_an)} ${base}`
+              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${safeMisconception(matched, q.dap_an)} ${base}`)
           : base;
         persist("tutor", msg, "engine", { gate: gate.action, matched, questionId: q.id });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
@@ -1070,9 +1070,26 @@ Deno.serve(async (req: Request) => {
           "Bạn nói mình nghe bước đầu tiên bạn làm là gì? Nói sai cũng không sao — mình cần biết bạn đang nghĩ theo hướng nào.",
           "Trong đề, dữ kiện nào bạn thấy quan trọng nhất? Kể ra là mình dẫn tiếp ngay.",
         ];
-        const msg = en
+        const moiKe = en
           ? "Before I give a hint — tell me how you got that. What was your reasoning?"
           : ASK_VI[Math.min(attemptNo - minAttempts, ASK_VI.length - 1)] ?? ASK_VI[0]!;
+        // (c) NÓI VÌ SAO SAI — lỗi #9(c), vá 30/07. Nhánh này là từ lần sai THỨ
+        // HAI trở đi, tức đúng lúc em cần biết mình hỏng ở đâu nhất; vậy mà nó
+        // không hề dùng `matched` đã tính sẵn ngay phía trên. Người thử 1:
+        // "Không giải thích vì sao câu trả lời của mình lại bị đánh giá sai".
+        // Đây KHÔNG phải cho đáp án: `quan_niem_sai` gọi tên CÁCH NGHĨ chưa
+        // chuẩn mà chính phương án nhiễu đó được soạn ra để bắt, và
+        // safeMisconception đã cắt phần lỡ chứa đáp án.
+        // Đặt vào `fallback` là ĐÚNG CHỖ chứ không phải đường chết: khi mô hình
+        // sống nó đã nhận `misconception` qua system prompt (dưới), còn fallback
+        // chỉ chạy khi KHÔNG gọi mô hình — mà đó chính là ca em chưa nói câu nào
+        // trong buổi, ca dễ lạc nhất.
+        const chanDoan = safeMisconception(matched, q.dap_an);
+        const msg = chanDoan
+          ? (en
+              ? `There's a common trap behind that choice: ${chanDoan} ${moiKe}`
+              : `Chỗ bạn chọn dính một bẫy quen thuộc: ${chanDoan} ${moiKe}`)
+          : moiKe;
 
         // ── LỚP 3 (chốt 29/07): NHÁNH NÀY TỪNG KHÔNG HỀ GỌI AI ────────────────
         // Đo trên hội thoại thật: em kể cách nghĩ hai lượt liền — kể ĐÚNG — rồi
@@ -1118,7 +1135,7 @@ Deno.serve(async (req: Request) => {
                 language,
                 nodeLabel: String(nodeRowAsk?.label ?? q.node_key),
                 question: String(q.noi_dung ?? "").slice(0, 600),
-                ...(matched ? { misconception: safeMisconception(matched) } : {}),
+                ...(matched ? { misconception: safeMisconception(matched, q.dap_an) } : {}),
                 attempts: attemptNo,
                 // `need_think` = mời em nói rõ thêm MỘT nhịp. KHÔNG truyền
                 // rungQuestion và KHÔNG truyền bottomOut: cổng chưa mở, mô hình
@@ -1222,8 +1239,8 @@ Deno.serve(async (req: Request) => {
       // chứa đáp án cuối.
       const lead = matched
         ? (en
-            ? `I see where that came from — there's a trap in it: ${safeMisconception(matched)} `
-            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${safeMisconception(matched)} `)
+            ? `I see where that came from — there's a trap in it: ${safeMisconception(matched, q.dap_an)} `
+            : `Mình hiểu vì sao bạn nghĩ vậy — nhưng trong đó có một bẫy: ${safeMisconception(matched, q.dap_an)} `)
         : "";
       const msg = rungText
         ? `${lead}${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`

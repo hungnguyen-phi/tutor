@@ -140,7 +140,10 @@ export function plausibleOpenAnswer(text: string, reference = ""): boolean {
  * chốt chặn cho NỘI DUNG TƯƠNG LAI: nếu ai đó soạn "(b) SAI vì…" thì với câu
  * Đúng/Sai chùm ý, riêng cái nhãn đầu câu đã là một phần đáp án.
  */
-export function safeMisconception(s: string | null | undefined): string {
+export function safeMisconception(
+  s: string | null | undefined,
+  dapAn?: string | null,
+): string {
   let t = String(s ?? "").trim();
   if (!t) return "";
   // CHỈ bỏ nhãn phán quyết đứng ĐẦU: "(b) SAI vì…", "b) Đúng —", "① SAI:".
@@ -153,5 +156,48 @@ export function safeMisconception(s: string | null | undefined): string {
   // chỉ có hại trên kho hiện tại; nếu sau này có nội dung lộ đáp án thì chặn ở
   // khâu DUYỆT nội dung, không phải cắt mù ở đây.
   t = t.replace(/^[\s.,;:—–-]+|[\s.,;:—–-]+$/gu, "");
+
+  // ── CHẶN LỘ ĐÁP ÁN (lỗi #9(b), rà 30/07) ─────────────────────────────────
+  // Chuỗi này được ĐỌC THẲNG cho học sinh ngay LẦN SAI ĐẦU TIÊN, và còn được
+  // nhét vào system prompt của mô hình. Quét 3.563 distractor sống: có những
+  // dòng chẩn đoán chứa nguyên văn đáp án — "Tính sai — kết quả đúng là
+  // −8/40 = −0,2" cho câu đáp án "-0,2". Nói câu đó ra là phá thẳng bất biến
+  // Socratic: em chưa thử lần nào đã biết đáp.
+  //
+  // ⚠️ CỬA HẸP CÓ CHỦ ĐÍCH. Bản vá đầu tiên (do agent đề xuất) chặn theo phép
+  // so chuỗi con thô và xoá TRẮNG chuỗi — đo lại thì nó giết 143/3.563 lời
+  // chẩn đoán, phần lớn LÀNH: câu có đáp án là chữ "sai" thì mọi lời giải
+  // thích chứa từ "sai" đều bị xoá; đáp án "mọi" giết luôn "∅ là tập con của
+  // MỌI tập hợp". Tức là vá lỗ (b) bằng cách làm lỗi (c) nặng thêm ở hơn 100
+  // chỗ. Nên ở đây:
+  //   · chỉ xét đáp án ĐỦ ĐẶC TRƯNG — dài ≥9 ký tự, hoặc có chữ số/ký hiệu
+  //     toán (đáp án kiểu "-0,2", "x^2-4"). Đáp án là từ thường ngày ("mọi",
+  //     "cả", "sai", "mệnh đề") KHÔNG bao giờ kích hoạt;
+  //   · so theo RANH GIỚI (không phải substring), nên "2" không khớp trong "12";
+  //   · và cắt ĐÚNG MỆNH ĐỀ chứa nó, giữ lại phần chẩn đoán còn lại — thà mất
+  //     một vế còn hơn mất cả câu.
+  const dap = String(dapAn ?? "").trim();
+  if (dap) {
+    // Ký hiệu TOÁN theo nghĩa rộng — gồm cả tập hợp/logic, vì đáp án kiểu
+    // "B ⊂ A" ngắn nhưng vẫn là đáp án đầy đủ, nói ra là lộ.
+    const coKyHieu = /[\d^√+\-*/=<>⊂⊃⊆⊇∈∉∅∪∩∀∃≠≤≥→↔⇒⇔\\]/.test(dap);
+    // Ngưỡng 3 ký tự (không phải 2): đáp án số ĐƠN như "2" hay "5" xuất hiện
+    // đầy trong các lời chẩn đoán hoàn toàn lành ("nhầm 12 với 2"), chặn theo
+    // nó là lại rơi vào đúng cái bẫy giết-chẩn-đoán-lành đã tránh ở trên.
+    const dacTrung = dap.length >= 9 || (coKyHieu && dap.length >= 3);
+    if (dacTrung) {
+      const chuan = (x: string) =>
+        x.toLowerCase().replace(/\s+/g, "").replace(/[−–—]/g, "-").replace(/,/g, ".");
+      const kim = chuan(dap);
+      const menhDe = t.split(/(?<=[.;!?])\s+|\s+—\s+|\s+–\s+/u);
+      const giu = menhDe.filter((m) => !chuan(m).includes(kim));
+      // CHỈ ghép lại khi thật sự có mệnh đề bị loại. Ghép vô điều kiện là nuốt
+      // luôn dấu "—" của những câu chẳng lộ gì — đo lần đầu thấy "12,7% bị cắt"
+      // mà phần lớn chỉ là mất dấu câu, không phải cắt nội dung.
+      if (giu.length !== menhDe.length) {
+        t = giu.join(" ").replace(/^[\s.,;:—–-]+|[\s.,;:—–-]+$/gu, "");
+      }
+    }
+  }
   return t.slice(0, 220);
 }

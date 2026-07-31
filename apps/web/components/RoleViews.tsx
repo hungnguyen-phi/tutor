@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CalendarDays, Check, Info, Lock, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, Info, Lock } from "lucide-react";
 import { dashboard, teacherStats, grantConsent, contentSync, type DashAction, type SyncGroup } from "../lib/api";
 import Lion from "./Lion";
 import RosterManager from "./RosterManager";
@@ -178,11 +178,13 @@ export function ParentView() {
         </div>
       </div>
 
-      {/* Hi-fi đặt tên "Tiến bộ trong tuần" kèm delta 62→68% — API chưa có số
-          trước/sau nên giữ tên trung thực + bar navy hiện trạng. */}
+      {/* TIẾN ĐỘ MỤC TIÊU — chỉ dựng khi CÓ mục tiêu thật (chủ dự án chốt 30/07:
+          "không hiển thị gì cả"). Trước đây thẻ vẫn hiện kèm dòng "Chưa có mục
+          tiêu được Tutor theo dõi", tức là chiếm một khối to chỉ để nói mình
+          không có gì — phụ huynh mở ra thấy toàn chỗ trống thì kết luận app hỏng. */}
+      {c.wigs.length > 0 && (
       <section className="pr-card">
         <span className="pr-card-title">Tiến độ mục tiêu</span>
-        {c.wigs.length === 0 && <p className="muted">Chưa có mục tiêu được Tutor theo dõi.</p>}
         {c.wigs.map((w: any) => (
           <div key={w.subject}>
             <div className="pr-wig-head">
@@ -203,30 +205,22 @@ export function ParentView() {
             </div>
           </div>
         ))}
-        {/* Copy PDPL bắt buộc giữ nguyên (PRODUCT.md) */}
-        <p className="pr-privacy">
-          Phụ huynh xem <b>nỗ lực và tiến bộ</b> — không xem nội dung hội thoại của con.
-        </p>
       </section>
+      )}
 
-      <section className="pr-card">
-        <span className="pr-card-title">Đồng ý xử lý dữ liệu (PDPL)</span>
-        {c.consent.length === 0 && <p className="muted">Chưa có bản ghi đồng ý.</p>}
-        {c.consent.map((x: any) => (
-          <div className="pr-consent-row" key={x.purpose}>
-            <ShieldCheck
-              aria-hidden
-              strokeWidth={2}
-              data-ok={x.status === "active" || undefined}
-            />
-            <span className="pr-consent-label">{x.purpose}</span>
-            <b data-state={x.status === "active" ? "on" : "off"}>
-              {x.status === "active" ? "đang hiệu lực" : "đã rút"}
-            </b>
-          </div>
-        ))}
-        <ParentConsentAction />
-      </section>
+      {/* ĐÃ GỠ 30/07 theo yêu cầu chủ dự án — bốn khối chữ pháp lý/ranh giới:
+          · "Phụ huynh xem nỗ lực và tiến bộ — không xem nội dung hội thoại"
+          · cả thẻ "Đồng ý xử lý dữ liệu (PDPL)" (dòng ai_tutoring · đang hiệu
+            lực · nút "Đồng ý cho con dùng AI Tutor" · câu đồng thuận kép)
+          · băng-rôn "Báo cáo đã lọc — không hiển thị hội thoại chi tiết…"
+          Màn phụ huynh giờ chỉ còn thứ họ mở ra để xem: con học được gì.
+
+          ⚠️ ĐÂY LÀ GỠ GIAO DIỆN, KHÔNG PHẢI TẮT CỔNG. Cơ chế đồng thuận vẫn chạy
+          nguyên ở server (cổng trong `diagnose`): học sinh CHƯA có bản ghi
+          `consent_records` vẫn bị chặn ngay khi mở bài. Trước đây nút trên màn
+          này là đường DUY NHẤT để phụ huynh cấp đồng ý — gỡ đi thì học sinh mới
+          không còn lối nào tự mở khoá, phải cấp bằng SQL/console. Xem
+          docs/DANH-SACH-LOI.md để biết cách xử lý khi gặp ca đó. */}
 
       <div className="pr-tip">
         <Lion mood="idle" size={34} decorative />
@@ -234,8 +228,6 @@ export function ParentView() {
           Khen {first} về <b>nỗ lực tuần này</b> — động lực tốt hơn điểm số!
         </span>
       </div>
-
-      <Boundary>{d.note}</Boundary>
     </div>
   );
 }
@@ -436,6 +428,9 @@ function DailyChart({ daily }: { daily: Array<{ date: string; active: number; se
 
 /** Nút người giám hộ ĐỒNG Ý cho con dùng AI Tutor (K3 — nửa "giám hộ" của đồng
  *  thuận kép). Idempotent: bấm lại vẫn an toàn (ghi guardian_consent_by=self). */
+// TẠM GỠ khỏi giao diện 30/07 (chủ dự án bỏ khối PDPL ở màn phụ huynh) — GIỮ
+// LẠI hàm vì cổng đồng thuận phía server vẫn chạy: cần bật lại thì chỉ việc
+// gọi <ParentConsentAction /> trong ParentView, không phải viết lại từ đầu.
 function ParentConsentAction() {
   const [state, setState] = useState<"idle" | "busy" | "done" | "err">("idle");
   if (state === "done") {

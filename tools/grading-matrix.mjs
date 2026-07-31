@@ -252,6 +252,34 @@ await tc("R4 gán vs khác 0", "k = 1", "k != 0", false);
 await tc("R4 KHÔNG hồi quy: đảo vế", "x > 2", "2 < x", true);
 await tc("R4 KHÔNG hồi quy: đảo vế có bằng", "x >= 3", "3 <= x", true);
 
+// ══ LỖI #9(b) — CHẶN LỘ ĐÁP ÁN QUA `quan_niem_sai` (vá 30/07) ══════════════
+// Chuỗi chẩn đoán được đọc thẳng cho học sinh NGAY LẦN SAI ĐẦU, và còn vào cả
+// system prompt của mô hình. Có dòng chứa nguyên văn đáp án ⇒ em chưa thử đã
+// biết đáp. Nhưng chặn thô thì giết chẩn đoán lành (đáp án là chữ "sai" thì mọi
+// lời giải thích chứa từ "sai" đều bay) — nên cửa phải HẸP.
+// Đo trên 3.563 distractor sống: 99,2% giữ nguyên, 30 bị cắt (đều lộ thật).
+const sm = (qn, dap) => intent.safeMisconception(qn, dap);
+t("9b lộ số thập phân → cắt vế lộ",
+  sm("Tính sai — kết quả đúng là −8/40 = −0,2", "-0,2"), "Tính sai");
+t("9b lộ biểu thức → mất hẳn",
+  sm("Tính ra x^2-4 rồi dừng, chưa phân tích tiếp", "x^2-4"), "");
+t("9b lộ ký hiệu tập hợp → cắt",
+  sm("SAI CHIỀU — đây là định nghĩa của B ⊂ A", "B ⊂ A"), "SAI CHIỀU");
+t("9b đáp án là TỪ THƯỜNG ('mọi') → GIỮ nguyên",
+  sm("∅ là tập con của MỌI tập hợp, không phải chỉ một số tập", "mọi"),
+  "∅ là tập con của MỌI tập hợp, không phải chỉ một số tập");
+t("9b đáp án 'sai' → GIỮ (không giết chẩn đoán lành)",
+  sm("Nhầm dấu: kết quả là số dương chứ không âm", "sai"),
+  "Nhầm dấu: kết quả là số dương chứ không âm");
+t("9b đáp án số ĐƠN '2' → GIỮ ('nhầm 12 với 2' là lành)",
+  sm("Nhầm 12 với 2", "2"), "Nhầm 12 với 2");
+t("9b không chứa đáp án → GIỮ NGUYÊN CẢ DẤU CÂU",
+  sm("Đảo ngược tử và mẫu — sẽ cho P > 1, vô lí", "n(A) / n(Ω) ; đồng khả năng"),
+  "Đảo ngược tử và mẫu — sẽ cho P > 1, vô lí");
+t("9b không truyền đáp án → hành vi cũ y nguyên",
+  sm("SAI CHIỀU — đây là định nghĩa của B ⊂ A", undefined),
+  "SAI CHIỀU — đây là định nghĩa của B ⊂ A");
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
 

@@ -40,7 +40,8 @@
 | 21 | ✅ 30/07 Sư tử chat giọng robot ("Ừ," + "—" dày đặc, từ cứng) | Danh-sách-đen 29/07 → mô hình đổi nạng; đã thay bằng luật tổng quát + luật dấu câu + thanh ghi | 🟠 P1 | `chat-turn` — **chờ deploy** | S–M |
 | 22 | ✅ 30/07 Dấu căn mất gạch ngang, chỉ còn móc "v" | √ UNICODE trong `$...$` đi thẳng vào KaTeX (chẩn đoán đầu đổ cho reset là SAI) → `normalizeTex` | 🟠 P1 | web — **chờ deploy** | S |
 | 9(a) | ✅ 30/07 Chấm SAI thành ĐÚNG ở câu khách quan | BỐN lỗ trong `cas.ts` (nét phủ định bị NFD xoá · phẩy thập phân thành tập · mất tên biến · so bất PT bằng lấy mẫu). Quét bank sống: **32 nhiễu chấm đúng → 2, 0 hồi quy** | 🔴 P0 | `chat-turn` — **chờ deploy** | M |
-| 9(b)(c) | ⏳ CÒN — lộ đáp án qua `quan_niem_sai` + không nói vì sao sai | Chẩn đoán xong nhưng patch của agent bị phản biện bác (xoá nhầm 143 lời chẩn đoán lành / rơi vào đường chết) — cần thiết kế lại | 🔴 P0 | `chat-turn` | M |
+| 9(b) | ✅ 30/07 Lộ đáp án qua `quan_niem_sai` | `safeMisconception` nhận thêm đáp án, cắt đúng mệnh đề chứa nó. Đo bank sống: **99,2% chẩn đoán giữ nguyên, 30 bị cắt và đều lộ thật** | 🔴 P0 | `chat-turn` — **chờ deploy** | S |
+| 9(c) | ✅ 30/07 Không nói vì sao sai | Nhánh `require_thinking` không dùng `matched` đã tính sẵn → câu dự phòng nay mang chẩn đoán | 🔴 P0 | `chat-turn` — **chờ deploy** | S |
 | 5 | Trang Hạng trống trơn, không có hạng khối | Tài khoản "Nguyễn An" **thiếu `grade` + `class_id`** → server không dựng nổi bảng | 🔴 P0 | DB + edge fn + web | S (dữ liệu) + M (code) |
 | 8 | Học sinh gõ "ok" mà AI bảo "đủ ý chính" | LLM chấm **không ổn định**; không có chốt chặn tất định cho bài rác | 🔴 P0 | `chat-turn` | M |
 | 3 | Trang Ôn tập luôn "Chưa có gì để ôn" | View đọc **localStorage**, số thật nằm ở server; lịch ôn `next_review_at` **đã có trong DB** nhưng không ai đọc | 🔴 P0 | edge fn mới + web | M–L |
@@ -353,7 +354,30 @@ mắt, mức 2) cả ba người đều "Đúng như mô tả" trừ đúng mộ
 
 ## 9. 🔴 CHẶN HẲN — chấm SAI thành ĐÚNG, và có lúc LỘ ĐÁP ÁN
 
-> ### ✅ VẾ (a) ĐÃ SỬA 30/07 — chờ deploy `chat-turn`. Vế (b) và (c) CÒN NGUYÊN.
+> ### ✅ ĐÃ SỬA TRỌN CẢ BA VẾ 30/07 — chờ deploy `chat-turn`.
+>
+> **(b) LỘ ĐÁP ÁN.** `quan_niem_sai` được đọc thẳng cho học sinh ngay lần sai ĐẦU
+> (và còn vào system prompt của mô hình), mà có dòng chứa nguyên văn đáp án:
+> *"Tính sai — kết quả đúng là −8/40 = −0,2"* cho câu đáp án `-0,2`. Em chưa thử
+> lần nào đã biết đáp — phá thẳng bất biến Socratic.
+> `safeMisconception()` nay nhận thêm đáp án và **cắt đúng mệnh đề chứa nó**, giữ
+> phần chẩn đoán còn lại. Cửa cố ý HẸP: chỉ xét đáp án đủ đặc trưng (≥9 ký tự,
+> hoặc có chữ số/ký hiệu toán và ≥3 ký tự) và so theo ranh giới. Bản vá đầu của
+> agent chặn bằng so-chuỗi-con thô rồi xoá trắng → **giết 143 lời chẩn đoán lành**
+> (câu có đáp án là chữ "sai" thì mọi giải thích chứa từ "sai" đều bay; đáp án
+> "mọi" giết luôn *"∅ là tập con của MỌI tập hợp"*) — tức vá lỗ (b) bằng cách làm
+> lỗi (c) nặng thêm. Đo bản của tôi trên 3.563 distractor sống: **99,2% giữ
+> nguyên, 30 bị cắt và đều lộ thật.**
+> *(Bản vá đầu của tôi cũng sai một nhịp: split theo dấu "—" rồi ghép lại vô điều
+> kiện làm MẤT DẤU CÂU của câu chẳng lộ gì — đo ra "12,7% bị cắt" toàn dương tính
+> giả. Đã sửa: chỉ ghép khi thật sự có mệnh đề bị loại.)*
+>
+> **(c) KHÔNG NÓI VÌ SAO SAI.** Nhánh `require_thinking` (từ lần sai THỨ HAI trở
+> đi — đúng lúc em cần biết mình hỏng ở đâu nhất) không hề dùng `matched` đã tính
+> sẵn ngay phía trên. Nay câu dự phòng mang theo chẩn đoán. Đây **không** phải
+> đường chết như phản biện lo: khi mô hình sống nó đã nhận `misconception` qua
+> system prompt, còn dự phòng chỉ chạy khi KHÔNG gọi mô hình — mà đó chính là ca
+> em chưa nói câu nào trong buổi, ca dễ lạc nhất.
 >
 > Điều tra bằng 1 agent + 1 phản biện đối kháng, rồi tôi tự thiết kế lại bản vá
 > (patch của agent bị phản biện chứng minh là gây hồi quy trên **828 câu** — không dùng).
@@ -560,6 +584,50 @@ chứ không phải nói về việc em thiếu.
 ---
 
 # ĐỢT BỔ SUNG — chủ dự án tự thử đối thoại (30/07)
+
+## 23. 🔴 "0 điểm đã thành thạo" dù con đã làm rất nhiều — luật mastery đòi DOK≥3 mà node KHÔNG CÓ câu DOK≥3
+
+> Chủ dự án, màn phụ huynh 30/07: *"chưa thấy tiến độ mục tiêu và điểm đã làm luôn,
+> mặc dù đã làm khá nhiều rồi"* — báo cáo hiện **0 điểm đã thành thạo / 14 điểm đang
+> luyện thêm**.
+
+**KHÔNG phải lỗi hiển thị. Truy DB prod (tài khoản `hs1@vietanh.edu.vn`):**
+
+| | Số liệu thật |
+|---|---|
+| node có trạng thái | 14 — **cả 14 đều `mastered = false`** |
+| bằng chứng đúng ở ĐÚNG độ khó mục tiêu | **32** (và 28 lần sai) |
+
+Tức là em trả lời đúng 32 lần ở đúng độ khó mà **không một node nào xanh**.
+
+**Gốc rễ** — [`packages/pedagogy/src/mastery.ts:47`](packages/pedagogy/src/mastery.ts:47):
+`const hasHigherOrder = correct.some((e) => e.dok >= 3)` là điều kiện **bắt buộc** để
+`mastered = true`. Nhưng đo từng node của em:
+
+| node | số câu đúng | đúng ở DOK≥3 | DOK cao nhất **có trong ngân hàng** |
+|---|---|---|---|
+| KC-3566611 | 8 | 0 | 3 |
+| KC-5110642 | 7 | 0 | **2** |
+| KC-3348179 | 7 | **1** | 3 |
+| KC-0570467 | 4 | 0 | **2** |
+| KC-1828856 | 2 | 0 | **2** |
+
+Hai chuyện khác nhau lộ ra:
+1. **Node không hề có câu DOK≥3** (KC-5110642, KC-0570467, KC-1828856 — DOK cao nhất chỉ
+   là 2). Em làm đúng *mọi* câu của node đó cũng **vĩnh viễn không thể xanh**. Luật đòi
+   một thứ ngân hàng không có.
+2. **KC-3348179 đã có đủ 7 đúng + 1 đúng ở DOK≥3 mà vẫn `false`** — nghi câu DOK≥3 đó rơi
+   ra ngoài `MASTERY_WINDOW` (luật chỉ xét N lần gần nhất). Cần dò riêng.
+
+**Chưa sửa** — vì đây là **quyết định sư phạm, không phải lỗi mã đơn thuần**, cần chủ dự án
+chọn: (a) nới luật — node nào ngân hàng không có DOK≥3 thì bỏ điều kiện đó; (b) bổ sung câu
+DOK≥3 cho các node thiếu (việc nội dung, Studio); hay (c) cả hai. Bản thân điều kiện DOK≥3
+là đúng về sư phạm (thành thạo phải chứng minh được ở bậc vận dụng) — vấn đề là nó đang
+được áp cho cả những node không có phương tiện để chứng minh.
+Liên quan: memory `mastery-dok3-nopbai` (câu DOK-3 thường là câu `[NOPBAI]`, mà bài nộp
+không ghi bằng chứng ⇒ lộ trình đứng im).
+
+---
 
 ## 20. ✅ ĐÃ SỬA (30/07, chờ deploy web + `chat-turn`) — Đối thoại DẮT VÒNG VÒNG, "chốt C" không chốt được
 
