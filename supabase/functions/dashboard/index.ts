@@ -53,20 +53,47 @@ Deno.serve(async (req: Request) => {
       if (!gl) return json({ role: "parent", child: null });
       const childId = gl.student_id;
       const childName = (Array.isArray(gl.student) ? gl.student[0] : gl.student)?.full_name ?? "Con";
-      // Đếm mastered/tracked bằng AGGREGATE (head+count) — không kéo cả bảng state.
-      const [{ count: tracked }, { count: masteredCount }, { data: wigs }, { data: consent }] = await Promise.all([
-        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("student_id", childId),
-        supa.from("student_node_state").select("id", { count: "exact", head: true }).eq("tenant_id", t).eq("student_id", childId).eq("mastered", true),
+      // LỖI #28 — phụ huynh cần biết con học CHỦ ĐỀ GÌ, không phải hai con số.
+      // Người thử 1 đợt 2, chặng 21: "điểm thành thạo này là thành thạo kĩ năng
+      // kiến thức gì? … thông tin hiển thị mơ hồ". Nên lấy CẢ node_id (không
+      // chỉ đếm) rồi ghép sang nhãn tiếng Việt của điểm kiến thức.
+      //
+      // Vẫn KHÔNG kéo cả bảng: chỉ hai cột, và bản thân số node một học sinh
+      // theo học là hàng trăm chứ không phải hàng vạn.
+      const [{ data: nodeStates }, { data: wigs }, { data: consent }] = await Promise.all([
+        supa.from("student_node_state").select("node_id, mastered, kg_version_id")
+          .eq("tenant_id", t).eq("student_id", childId),
         supa.from("wigs").select("area, title, progress_pct, source").eq("tenant_id", t).eq("student_id", childId).eq("source", "tutor"),
         supa.from("consent_records").select("status, purpose").eq("tenant_id", t).eq("student_id", childId),
       ]);
-      const mastered = masteredCount ?? 0;
+      const rows = (nodeStates ?? []) as Array<{ node_id: string; mastered: boolean; kg_version_id: string }>;
+      const mastered = rows.filter((r) => r.mastered).length;
+      const tracked = rows.length;
+
+      // Nhãn tiếng Việt của từng điểm kiến thức — một lượt đọc, không N+1.
+      const nodeKeys = [...new Set(rows.map((r) => r.node_id).filter(Boolean))];
+      const { data: nodeRows } = nodeKeys.length
+        ? await supa.from("kg_nodes").select("node_key, label").in("node_key", nodeKeys)
+        : { data: [] };
+      const nhanCua = new Map(
+        ((nodeRows ?? []) as Array<{ node_key: string; label: string | null }>)
+          .map((n) => [n.node_key, n.label ?? n.node_key]),
+      );
+      // Cắt 6 tên: phụ huynh mở lên để YÊN TÂM trong nửa phút, không phải đọc
+      // danh sách 80 dòng. Con số tổng vẫn nằm ngay bên cạnh.
+      const tenCua = (loc: (r: { mastered: boolean }) => boolean) =>
+        rows.filter(loc).map((r) => nhanCua.get(r.node_id) ?? r.node_id).slice(0, 6);
+
       return json({
         role: "parent",
         child: {
           name: childName,
           masteredNodes: mastered,
-          practicingNodes: Math.max(0, (tracked ?? 0) - mastered),
+          practicingNodes: Math.max(0, tracked - mastered),
+          /** Tên điểm kiến thức con ĐÃ thành thạo (tối đa 6). */
+          masteredList: tenCua((r) => r.mastered),
+          /** Tên điểm kiến thức con ĐANG luyện (tối đa 6). */
+          practicingList: tenCua((r) => !r.mastered),
           wigs: (wigs ?? []).map((w) => ({ subject: w.area === "kien_thuc" ? "Kiến thức (Toán)" : "Tiếng Anh", title: w.title, pct: Math.round(w.progress_pct) })),
           consent: (consent ?? []).map((c) => ({ purpose: c.purpose, status: c.status })),
         },

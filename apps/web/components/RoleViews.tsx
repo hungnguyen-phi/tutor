@@ -165,18 +165,35 @@ export function ParentView() {
         </div>
       )}
 
-      {/* Hi-fi vẽ buổi · phút · chuỗi — dashboard(parent) chưa có 3 trường đó,
-          hiển thị 2 chỉ số THẬT đang có thay vì bịa số. */}
+      {/* LỖI #28 — hai con số kèm TÊN chủ đề, không phải hai con số trần trụi.
+          Người thử 1 đợt 2, chặng 21: "điểm thành thạo này là thành thạo kĩ
+          năng kiến thức gì? … thông tin hiển thị mơ hồ chưa mô tả được học sinh
+          đang làm gì trên app cho phụ huynh" — tự chấm "chặn hẳn", và ở câu hỏi
+          mở viết đúng bốn chữ: "chưa yên tâm được".
+          Con số vẫn giữ (phụ huynh liếc một cái là biết nhiều hay ít), nhưng
+          dưới nó phải có TÊN thì mới trả lời được câu "thành thạo cái gì". */}
       <div className="pr-stats">
         <div className="pr-stat">
           <b className="num">{c.masteredNodes}</b>
           <span>điểm đã thành thạo</span>
+          {(c.masteredList?.length ?? 0) > 0 && (
+            <p className="pr-stat-ten">{c.masteredList!.join(" · ")}</p>
+          )}
         </div>
         <div className="pr-stat">
           <b className="num">{c.practicingNodes}</b>
           <span>điểm đang luyện thêm</span>
+          {(c.practicingList?.length ?? 0) > 0 && (
+            <p className="pr-stat-ten">{c.practicingList!.join(" · ")}</p>
+          )}
         </div>
       </div>
+      {/* Nói thẳng khi danh sách bị cắt — không thì phụ huynh đếm tên rồi so
+          với con số, thấy lệch và nghĩ app sai. */}
+      {(c.masteredNodes > (c.masteredList?.length ?? 0) ||
+        c.practicingNodes > (c.practicingList?.length ?? 0)) && (
+        <p className="muted pr-stat-them">Đang hiện vài chủ đề gần đây nhất trong mỗi nhóm.</p>
+      )}
 
       {/* TIẾN ĐỘ MỤC TIÊU — chỉ dựng khi CÓ mục tiêu thật (chủ dự án chốt 30/07:
           "không hiển thị gì cả"). Trước đây thẻ vẫn hiện kèm dòng "Chưa có mục

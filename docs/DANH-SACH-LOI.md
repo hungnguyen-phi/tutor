@@ -599,6 +599,50 @@ chứ không phải nói về việc em thiếu.
 > chặng 24 (AI sơ khảo tab Chấm bài — trước là "AI bảo đủ ý chính" cho bài gõ "em ok"),
 > chặng 1 (đăng nhập lâu — hết ghi chú).
 
+## 31. ✅ ĐỢT SỬA 01/08 — lỗi 25→29 đã vá (CHƯA DEPLOY)
+
+Toàn bộ nằm trong cây làm việc, **chưa đẩy lên prod**. tsc sạch · next build xanh ·
+7 bộ kiểm + vitest pedagogy đều đạt.
+
+**#25 · hai khung nhập.** Gốc có HAI phần, vá cả hai. (a) Lúc `verdict==='retry'` ô
+đáp án vẫn vẽ ra, chỉ `disabled` — mà app **chưa từng có kiểu `:disabled`** cho ô
+nhập, nên ô chết trông y hệt ô sống. (b) Ô đáp án và ô trò chuyện dùng CHUNG một
+khai báo CSS nên giống nhau từng pixel. Nay lúc thử lại ô đáp án đổi hẳn thành BẢN
+GHI "Em đã trả lời: …" (không phải input), ô trò chuyện có sư tử ngồi trong, bo tròn
+999px, kèm dòng "chỗ này không chấm đáp án". Thêm kiểu `:disabled` cho MỌI ô nhập —
+luật chung, để lỗi này không tái sinh ở màn khác.
+
+**#27 · gợi ý lặp.** `currentRung = engaged` nên bấm sai liên tiếp luôn nhận
+`rungs[0]`. Nay có `chonBacGoiY()` (pedagogy.ts, hàm thuần): con trỏ CHỈ TIẾN theo
+bậc đã trao, đọc từ `session_turns.meta.bacTrao`, tính **theo từng thang** (đổi quan
+niệm sai → thang mới bắt đầu lại từ bậc 1), hết thang thì xuống đáy rồi vá nền chứ
+không lặp bậc cuối. Hai nhánh (chấm + đối thoại) dùng chung một con trỏ.
+`tools/goiy-matrix.mjs` 15 ca — và nó đã bắt được một **regression do chính bản vá
+đẻ ra**: cái kẹp mới chặn luôn đường em kể cách nghĩ đủ 4 lần để mở đáy.
+
+**#29 · dạng trả lời.** `_shared/dang-tra-loi.ts` suy KHUÔN từ hình dạng `dap_an`,
+sinh ở server vì client không nhận `dap_an`. Chạy trên 468 câu tự luận sống: **0 gợi
+ý nào chứa nguyên đáp án**. Khuôn phổ biến nhất hoá ra chính là thứ người thử gặp —
+50 câu có đáp án nhiều mảnh ngăn bằng `;` mà không chỗ nào nói ra, nên em điền một ô
+trong khi bộ chấm đòi đủ hai. Nay hiện thẳng: *"Câu này cần 2 ý — điền ĐỦ cả 2."*
+
+**#28 · màn phụ huynh.** `dashboard(parent)` trả thêm `masteredList`/`practicingList`
+kèm nhãn `kg_nodes.label`; `RoleViews` vẽ TÊN chủ đề dưới mỗi con số (tối đa 6, có
+dòng nói rõ khi bị cắt).
+
+**#26 · bị văng — VÁ TRIỆU CHỨNG, gốc rễ CHƯA xác nhận.** Không có log của đúng buổi
+người thử chạy nên tôi không chốt nguyên nhân. Ba thứ chắc chắn sai và đã sửa:
+(a) `getSession()` chỉ làm mới khi token ĐÃ chết, nên token còn 2 giây vẫn được gửi
+đi → nay làm mới sớm 60 giây; (b) gặp 401 là đá thẳng em về màn đăng nhập, dù refresh
+token thường vẫn sống → nay thử `refreshSession()` một lần rồi gọi lại, im lặng;
+(c) màn "hết phiên" **nói dối** "bài đang dở vẫn còn nguyên" trong khi không lưu gì →
+nay bài gõ dở giữ trong localStorage theo từng câu, và nút đổi thành "Học tiếp" (thử
+nối lại trước, chỉ đăng xuất khi thật sự hết phiên).
+
+**#30 · quy trình** — không phải việc của mã, vẫn để nguyên.
+
+---
+
 ## 25. 🔴 CHẶN HẲN — HAI khung nhập đáp án, học sinh không biết điền vào đâu
 
 > Người thử 1, đợt 2, vai Học sinh, tự chấm **"Chặn hẳn không đi tiếp được"**:

@@ -57,9 +57,34 @@ export function warmUpFunctions(fns: string[] = ["learning-path", "diagnose", "r
  *  nhập lại, thay vì để màn hình chết câm. */
 export const SESSION_EXPIRED = "session_expired";
 
-async function callFn<T>(fn: string, body: unknown): Promise<T> {
+/**
+ * LÀM MỚI TOKEN TRƯỚC KHI NÓ HẾT HẠN (lỗi #26 — "đang làm bài thì học sinh bị
+ * văng ra khỏi app").
+ *
+ * ⚠️ Gốc rễ CHƯA được xác nhận: không có log của đúng buổi người thử chạy, nên
+ * đây là vá theo triệu chứng chứ không phải theo chẩn đoán. Nhưng cửa sổ này
+ * chắc chắn TỒN TẠI: `getSession()` chỉ làm mới khi token ĐÃ hết hạn, nên một
+ * token còn sống 2 giây vẫn được gửi đi — tới lúc server đọc thì nó đã chết,
+ * và em ăn 401 giữa lúc đang nộp bài. Làm mới sớm 60 giây thì cửa sổ đó đóng.
+ *
+ * Trả null nghĩa là thật sự không còn phiên nào.
+ */
+const LE_HET_HAN_MS = 60_000;
+
+async function layToken(): Promise<string | null> {
   const { data: sess } = await supabase.auth.getSession();
-  const token = sess.session?.access_token;
+  const s = sess.session;
+  if (!s) return null;
+  const conLaiMs = (s.expires_at ?? 0) * 1000 - Date.now();
+  if (conLaiMs > LE_HET_HAN_MS) return s.access_token ?? null;
+  // Sắp hết / vừa hết → làm mới NGAY. Hỏng thì trả token cũ để server tự phán
+  // quyết: có thể nó vẫn còn hạn vài giây, và ném ở đây là văng oan.
+  const { data: moi } = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
+  return moi.session?.access_token ?? s.access_token ?? null;
+}
+
+async function callFn<T>(fn: string, body: unknown): Promise<T> {
+  const token = await layToken();
   // ⚠️ TUYỆT ĐỐI KHÔNG rơi về khoá anon khi hết phiên (lỗi 20, 29/07).
   // Đường cũ `?? SUPABASE_ANON_KEY` gửi khoá publishable làm token người dùng →
   // server không giải được ra userId → 401 cho MỌI lệnh gọi. Học sinh thấy màn
@@ -71,15 +96,28 @@ async function callFn<T>(fn: string, body: unknown): Promise<T> {
       code: SESSION_EXPIRED,
     });
   }
-  const res = await fetch(`${FUNCTIONS_BASE}/${fn}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(body),
-  });
+  const goi = (t: string) =>
+    fetch(`${FUNCTIONS_BASE}/${fn}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${t}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+
+  let res = await goi(token);
+  // ĐƯỜNG HỒI PHỤC (lỗi #26). Server trả 401 KHÔNG có nghĩa là em phải đăng
+  // nhập lại: refresh token thường vẫn còn sống (mở hai tab, máy vừa ngủ dậy,
+  // token xoay vòng…). Thử làm mới ĐÚNG MỘT LẦN rồi gọi lại — im lặng, em
+  // không thấy gì cả. Chỉ khi lần này cũng 401 mới thật sự là hết phiên.
+  // Một lần thôi: lặp là quay vòng vô tận trên một phiên đã chết.
+  if (res.status === 401) {
+    const { data: moi } = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
+    const tokenMoi = moi.session?.access_token;
+    if (tokenMoi && tokenMoi !== token) res = await goi(tokenMoi);
+  }
   return await readJsonOrThrow<T>(fn, res);
 }
 
@@ -124,8 +162,9 @@ async function readJsonOrThrow<T>(fn: string, res: Response): Promise<T> {
   return data as T;
 }
 
-/** `nop_bai`: câu tự luận dài — học sinh làm NGOÀI (giấy/Word), tải bài lên,
- *  giáo viên chấm sau. App không chấm dạng này. */
+/** `nop_bai`: câu tự luận dài — em gõ bài (có ô chèn công thức), nộp tệp Word,
+ *  hoặc chụp ảnh bài viết tay. Từ 01/08 AI chấm ngay lúc nộp; trước đó bài nằm
+ *  chờ giáo viên và thực tế 0/69 bản từng được chấm xong. */
 export type QKind = "objective" | "rubric" | "writing" | "speaking" | "nop_bai";
 
 export interface InteractiveItem { key: string; text: string }
@@ -152,6 +191,13 @@ export interface DiagnoseQuestion {
   rubric?: unknown;
   /** 1 trong 17 dạng Studio (mcq, dung_sai, sap_xep, noi_cot…) — dựng UI tương ứng. */
   dangCauHoi?: string | null;
+  /**
+   * KHUÔN câu trả lời được chấp nhận (lỗi #29) — server sinh, client chỉ hiện.
+   * Chỉ nói DẠNG ("cần 2 ý, ngăn bằng dấu chấm phẩy"), KHÔNG bao giờ nói giá
+   * trị. Vắng mặt với trắc nghiệm / Đúng-Sai / dạng thao tác: chúng đã tự nói
+   * ra mình cần gì, thêm một dòng nữa chỉ là nhiễu.
+   */
+  goiYDinhDang?: string | null;
   interactive?: InteractiveStruct;
 }
 
@@ -256,8 +302,9 @@ async function callFnStream<T>(
    *  "được chấm" hay "chỉ dẫn dắt", vì hai kiểu hiện ra khác nhau. */
   onMeta?: (meta: Record<string, unknown>) => void,
 ): Promise<T> {
-  const { data: sess } = await supabase.auth.getSession();
-  const token = sess.session?.access_token;
+  // Cùng đường làm mới sớm với callFn (lỗi #26) — đường phát chữ dần cũng nằm
+  // giữa lúc em đang học, văng ở đây đau y hệt.
+  const token = await layToken();
   if (!token) {
     throw new ApiError("Phiên đăng nhập đã hết hạn — bạn đăng nhập lại nhé.", {
       status: 401,

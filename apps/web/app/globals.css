@@ -13002,3 +13002,131 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   font-size: 1.02rem;
   pointer-events: none;
 }
+
+/* ── LỖI #25: HAI KHUNG NHẬP GIỐNG HỆT NHAU ───────────────────────────────
+   Người thử 1 đợt 2 tự chấm "chặn hẳn": "có hai khung chat để điền đáp án…
+   học sinh sẽ điền đáp án vào khung nào?"
+
+   Gốc rễ có hai phần, phải vá cả hai:
+   1. Lúc thử lại, ô đáp án vẫn vẽ ra và chỉ `disabled` — mà app CHƯA TỪNG có
+      kiểu :disabled cho ô nhập, nên ô chết trông y hệt ô sống.
+   2. Ô đáp án và ô trò chuyện dùng CHUNG một khai báo CSS (.ans-input,
+      .work-input, .reflect-input) nên chúng giống nhau từng pixel.
+
+   Nay: ô đáp án lúc thử lại đổi hẳn thành BẢN GHI (không phải input), ô trò
+   chuyện mang hình dạng chat riêng, và mọi ô bị khoá đều đọc ra là bị khoá. */
+
+/* Ô nhập BỊ KHOÁ phải NHÌN RA là bị khoá — luật chung cho cả app, không riêng
+   màn này. Thiếu nó thì mọi ô disabled trong tương lai lại lừa em một lần nữa. */
+.ans-input:disabled,
+.work-input:disabled,
+.reflect-input:disabled,
+.step-input:disabled {
+  background: var(--paper-2, #f1f3f8);
+  border-color: var(--line);
+  color: var(--ink-2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.ans-input:disabled::placeholder,
+.work-input:disabled::placeholder,
+.reflect-input:disabled::placeholder,
+.step-input:disabled::placeholder {
+  color: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+
+/* BẢN GHI đáp án đã nộp — cố ý KHÔNG mang dáng ô nhập: không viền kiểu input,
+   không nền trắng, có nhãn. Đọc lướt là biết "cái này đã xong", không phải
+   "cái này chờ mình gõ". */
+.ans-daghi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-strong);
+  background: color-mix(in oklab, var(--navy) 4%, transparent);
+}
+.ans-daghi-nhan {
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  flex: none;
+}
+.ans-daghi-noi {
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Ô TRÒ CHUYỆN: hình dạng chat, không lẫn với ô đáp án. */
+.reflect-nhan {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.reflect-nhan svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.reflect-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--sun, #f2b705) 22%, #fff);
+  align-self: center;
+}
+.reflect-avatar img { max-width: none; }
+/* Bo TRÒN hẳn (999px) — ô đáp án bo 10px. Khác dáng ngay từ cái nhìn đầu. */
+.reflect-input {
+  border-radius: 999px;
+  padding-left: 14px;
+}
+
+/* KHUÔN CÂU TRẢ LỜI (lỗi #29) — đứng ngay dưới nhãn dạng câu, TRÊN đề bài.
+   Cố ý là một dòng nhẹ chứ không phải hộp cảnh báo: đây là lời chỉ dẫn bình
+   thường, không phải chuyện em đã làm sai điều gì. */
+.dang-tl {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -2px 0 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.dang-tl svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+/* LỖI #28 — TÊN chủ đề dưới mỗi con số ở màn phụ huynh. Hai con số trần trụi
+   trả lời được "bao nhiêu" nhưng không trả lời được "cái gì", mà "cái gì" mới
+   là thứ phụ huynh mở app lên để biết. Chữ nhỏ, xuống dòng thoải mái — đây là
+   phần đọc kỹ, không phải phần liếc. */
+.pr-stat-ten {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.pr-stat-them {
+  margin: -2px 0 0;
+  font-size: 0.8rem;
+}

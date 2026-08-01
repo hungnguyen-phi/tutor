@@ -153,3 +153,54 @@ export function nextReviewISO(box: number, fromMs: number): string {
   const i = Math.max(0, Math.min(box, LEITNER_DAYS.length - 1));
   return new Date(fromMs + LEITNER_DAYS[i]! * DAY_MS).toISOString();
 }
+
+/**
+ * CHỌN BẬC GỢI Ý cho lượt này — luật "chỉ tiến, không lùi" (lỗi #27).
+ *
+ * Người thử 1 đợt 2, khi được hỏi *nếu chỉ được sửa MỘT thứ*: "Sư tử nên có các
+ * gợi ý tăng cấp độ hướng dẫn lên và đừng hiển thị một gợi ý giống nhau hai ba
+ * lần." Trước đó con trỏ chỉ chạy theo `engaged` (số lượt em thật sự trình bày
+ * suy nghĩ), nên em bấm sai ba lần liền là nhận `rungs[0]` ba lần.
+ *
+ * Vì sao "không lùi" KHÔNG phải là chặn em xuống mức dễ hơn: thang Socratic đi
+ * từ ÍT đỡ tới NHIỀU đỡ (bậc 1 siêu nhận thức → 2 hướng chú ý → 3 dẫn về tiền
+ * đề → 4 giàn giáo mạnh — đúng thứ tự ở cả 2.628 thang trong ngân hàng). Đi tới
+ * CHÍNH LÀ dễ hơn; lùi lại là rút giàn giáo đi.
+ *
+ * `bacDaTrao` phải là các bậc đã trao CỦA CHÍNH THANG NÀY. Em sai sang một quan
+ * niệm sai khác thì đó là thang khác, nội dung khác, phải được bắt đầu lại từ
+ * bậc 1 của nó — dùng chung con trỏ là nuốt mất hai bậc đầu của thang mới.
+ */
+export function chonBacGoiY(i: {
+  /** Số lượt em đã thật sự trình bày suy nghĩ (thinking_quality ≥ ngưỡng). */
+  engaged: number;
+  /** Các bậc ĐÃ TRAO của thang này (chỉ số 0-based). */
+  bacDaTrao: number[];
+  totalRungs: number;
+  /** Van xả: kẹt quá lâu thì cho chạm đáy dù chưa trình bày đủ. */
+  exhausted: boolean;
+  /**
+   * Nhánh này có được phép chạm `totalRungs` (mở đáy thang) không.
+   * Nhánh CHẤM: có. Nhánh ĐỐI THOẠI: KHÔNG — chat nhiều không moi được đáy (B4).
+   */
+  choPhepDay: boolean;
+}): number {
+  const tran = Math.max(0, i.totalRungs - 1);
+  const cao = i.bacDaTrao.length ? Math.max(...i.bacDaTrao) : -1;
+  // Đã trao HẾT thang mà vẫn sai → đừng lặp bậc cuối. Trả `totalRungs` để cổng
+  // hạ xuống đáy (rồi vá nền ở nhánh dưới). Tới được đây nghĩa là em đã nhận đủ
+  // mọi gợi ý và vẫn sai — đó là nỗ lực thật, không phải cửa hậu.
+  const hetThang = cao >= tran;
+  if (i.choPhepDay && (i.exhausted || hetThang)) return i.totalRungs;
+
+  // HAI TRỤC, kẹp KHÁC NHAU — chỗ này bộ kiểm đã bắt tôi một lần:
+  //  · leo vì ĐÃ TRAO (chống lặp)  → kẹp dưới đáy. Bấm sai liên tục chỉ leo hết
+  //    thang là hết, KHÔNG tự mua được đáy.
+  //  · leo vì NỖ LỰC THẬT         → KHÔNG kẹp. Em trình bày suy nghĩ đủ số lần
+  //    thì xứng đáng chạm đáy, đó là luật có từ 29/07. Kẹp cả trục này (bản vá
+  //    đầu của tôi) là giam đúng em chịu khó nhất ở bậc cuối cho tới khi van
+  //    `exhausted` mở — tức phạt em vì đã cố gắng.
+  const tuDaTrao = Math.min(cao + 1, tran);
+  const tuNoLuc = i.choPhepDay ? i.engaged : Math.min(i.engaged, tran);
+  return Math.min(Math.max(tuNoLuc, tuDaTrao), i.choPhepDay ? i.totalRungs : tran);
+}

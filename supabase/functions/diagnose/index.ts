@@ -5,6 +5,7 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can, hasActiveConsent } from "../_shared/auth.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { orderedOptions } from "../_shared/options.ts";
+import { goiYDinhDang } from "../_shared/dang-tra-loi.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { parseInteractive } from "../_shared/interactive.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit } from "../_shared/overrides.ts";
@@ -165,6 +166,11 @@ Deno.serve(async (req: Request) => {
         prompt: promptFilled,
         ...(inter ? { interactive: inter } : {}),
       };
+      // LỖI #29 — nói rõ KHUÔN câu trả lời được chấp nhận. Client không nhận
+      // `dap_an` (đúng, không được lộ) nên chỗ duy nhất suy ra được khuôn là
+      // đây. Hàm chỉ trả hằng số viết sẵn, không ghép mẩu nào của đáp án vào —
+      // đo trên 468 câu tự luận đang sống: 0 gợi ý chứa nguyên đáp án.
+      const goiY = goiYDinhDang(String(q.dap_an ?? ""), q.dang_cau_hoi);
       if (q.loai_danh_gia === "objective") {
         // Có phương án nhiễu → MCQ (thay params vào từng phương án); không có
         // (điền đáp án) → ô nhập tự do, chấm bằng CAS.
@@ -175,9 +181,11 @@ Deno.serve(async (req: Request) => {
           // Thứ tự TẤT ĐỊNH theo mã câu (options.ts): cùng câu → muôn đời cùng
           // thứ tự, nên in được bảng đáp án; nhưng đáp án đúng KHÔNG dồn về ô đầu.
           const opts = orderedOptions(q.id, fill(String(q.dap_an)), distractors.map((d) => fill(d.phuong_an)));
+          // MCQ tự nói ra mình cần gì (bốn ô để bấm) — thêm dòng gợi ý khuôn
+          // chỉ là nhiễu. Người thử khen đúng hai dạng này "ổn".
           return { ...base, options: opts };
         }
-        return base;
+        return { ...base, ...(goiY ? { goiYDinhDang: goiY } : {}) };
       }
       if (q.loai_danh_gia === "rubric") return { ...base, rubric: q.rubric };
       return base;

@@ -17,8 +17,11 @@ import {
   Timer,
   LifeBuoy,
   Paperclip,
+  MessageCircle,
+  Info,
 } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 import RedirectToLogin from "./RedirectToLogin";
 import Splash from "./Splash";
 import AppShell, { type NavKey } from "./AppShell";
@@ -85,6 +88,32 @@ function errText(e: unknown): string {
 /** Hết phiên đăng nhập — lỗi này phải xử RIÊNG: mọi lệnh gọi server đều hỏng
  *  nên vá từng chỗ là vô ích, phải mời đăng nhập lại một lần cho cả màn. */
 const isExpired = (e: unknown) => e instanceof ApiError && e.code === SESSION_EXPIRED;
+
+/**
+ * BÀI ĐANG GÕ DỞ — giữ lại qua mọi lần văng (lỗi #26).
+ *
+ * Màn "phiên đã hết hạn" vẫn viết "bài đang dở vẫn còn nguyên". Đó là NÓI DỐI:
+ * bấm đăng nhập lại là `signOut()` + chuyển trang, mọi thứ em vừa gõ bay sạch.
+ * Người thử 1 đợt 2: *"việc bị văng ra khỏi app sẽ làm hs nản và dễ từ bỏ."*
+ * Mất bài đúng lúc bị văng là cú thứ hai, và nó mới là cú làm em bỏ cuộc.
+ *
+ * localStorage chứ không phải state: nó phải sống qua cả lần tải lại trang.
+ * Bọc try/catch vì chế độ riêng tư của trình duyệt chặn localStorage — mất chỗ
+ * lưu nháp thì tiếc, chứ không được phép làm hỏng buổi học.
+ */
+const KHOA_NHAP = (qid: string) => `tutor:nhap:${qid}`;
+const docNhap = (qid: string): string => {
+  try { return localStorage.getItem(KHOA_NHAP(qid)) ?? ""; } catch { return ""; }
+};
+const luuNhap = (qid: string, v: string): void => {
+  try {
+    if (v.trim()) localStorage.setItem(KHOA_NHAP(qid), v);
+    else localStorage.removeItem(KHOA_NHAP(qid));
+  } catch { /* riêng tư chặn — bỏ qua */ }
+};
+const xoaNhap = (qid: string): void => {
+  try { localStorage.removeItem(KHOA_NHAP(qid)); } catch { /* như trên */ }
+};
 
 type Msg =
   | { role: "student"; text: string }
@@ -153,6 +182,11 @@ export default function TutorApp() {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
+  /** ĐÁP ÁN EM VỪA NỘP — để màn "thử lại" ghi lại được em đã trả lời gì thay vì
+   *  chìa ra một ô nhập chết (lỗi #25). Chốt ở lúc nộp chứ không đọc lại từ
+   *  `text`/`picked`: câu nhiều bước ghép đáp án từ ba nguồn, đọc lại là dựng
+   *  sai chuỗi em thật sự đã gửi. */
+  const [daTraLoi, setDaTraLoi] = useState<string | null>(null);
   // Đáp án canonical của dạng tương tác (sap_xep/noi_cot): null = chưa hoàn tất.
   const [interactiveAns, setInteractiveAns] = useState<string | null>(null);
   // Đợt B: bảng điểm rubric (viết/nói) — formative.
@@ -172,6 +206,8 @@ export default function TutorApp() {
   const [error, setError] = useState<string | null>(null);
   // Hết phiên: banner riêng, đứng trên mọi thứ, có nút đăng nhập lại.
   const [expired, setExpired] = useState(false);
+  /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
+  const [dangNoiLai, datDangNoiLai] = useState(false);
 
   const [progress, setProgress] = useState<G.Progress>(G.load);
   const [bump, setBump] = useState(false);
@@ -499,6 +535,18 @@ export default function TutorApp() {
   const q: DiagnoseQuestion | undefined = injectedQ ?? ses?.questions[qi];
   const active = SUBJECTS.find((s) => s.key === subject)!;
 
+  // NẠP LẠI BÀI GÕ DỞ của câu này (lỗi #26). Chạy khi mở câu; nếu không có nháp
+  // thì KHÔNG đụng vào `text` — các đường reset đã lo phần làm sạch, ghi đè ở
+  // đây sẽ xoá mất phần em vừa gõ ngay trong cùng một câu.
+  const idCauDaNap = useRef<string | null>(null);
+  useEffect(() => {
+    const id = q?.id;
+    if (!id || idCauDaNap.current === id) return;
+    idCauDaNap.current = id;
+    const nhap = docNhap(id);
+    if (nhap) setText(nhap);
+  }, [q?.id]);
+
   // ── Học liệu cho node đang học ────────────────────────────────────────
   // Endpoint `resources` có thể chưa live: lỗi hay rỗng thì mục "Tài liệu"
   // không hiện, buổi học vẫn chạy bình thường.
@@ -525,6 +573,7 @@ export default function TutorApp() {
     setMsgs([]);
     setText("");
     setPicked(null);
+    setDaTraLoi(null);
     setInteractiveAns(null);
     setRubricResult(null);
     setWorkFile(null);
@@ -600,6 +649,7 @@ export default function TutorApp() {
   function softResetForNewQuestion() {
     setVerdict(null);
     setPicked(null);
+    setDaTraLoi(null);
     setText("");
     setInteractiveAns(null);
     setRubricResult(null);
@@ -647,6 +697,7 @@ export default function TutorApp() {
 
     if (res.correct) {
       setVerdict("ok");
+      if (q) xoaNhap(q.id); // xong câu → không còn nháp để giữ (lỗi #26)
       // Đúng ở lần thứ nhất hay lần thứ tư đều cộng như nhau — không phạt số lần thử.
       if (!serverXp) grant(G.XP.correct);
       // Quyết định nút TIẾP TỤC sẽ đưa đi đâu. CHỈ xử lý climb/continue KHI đang
@@ -825,6 +876,7 @@ export default function TutorApp() {
         setProgress(G.syncFromServer(res.xp));
       }
       if (res.feedback) setMsgs((m) => [...m, { role: "tutor", text: res.feedback! }]);
+      xoaNhap(q.id);
       setVerdict("submitted");
     } catch (e) {
       { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
@@ -1028,19 +1080,34 @@ export default function TutorApp() {
         <div className="ws-panel expired-panel" role="alert">
           <Lion mood="thinking" size={72} decorative />
           <h2 className="ws-panel-title">Phiên đăng nhập đã hết hạn</h2>
+          {/* Câu này TRƯỚC ĐÂY LÀ NÓI DỐI: không có gì được lưu, bấm nút là
+              signOut + chuyển trang và bài em vừa gõ bay sạch. Nay bài gõ dở
+              được giữ trong localStorage theo từng câu (xem `luuNhap`), nên
+              câu hứa mới đúng — và chỉ hứa đúng phần giữ được. */}
           <p className="muted">
-            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Đăng nhập lại là học tiếp
-            được ngay — bài đang dở vẫn còn nguyên.
+            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Bài em đang gõ dở đã được
+            giữ lại — đăng nhập lại là thấy nguyên.
           </p>
           <button
             className="btn btn-gold"
+            data-loading={dangNoiLai || undefined}
+            disabled={dangNoiLai}
             onClick={() => {
-              void signOut().finally(() => {
-                window.location.href = "/login/";
-              });
+              // THỬ NỐI LẠI TRƯỚC KHI ĐUỔI RA. Phần lớn ca "văng" là access
+              // token chết trong khi refresh token vẫn sống (máy vừa ngủ dậy,
+              // mở hai tab, token xoay vòng). Đá thẳng em về màn đăng nhập là
+              // bắt gõ lại mật khẩu cho một phiên chưa hề chết.
+              datDangNoiLai(true);
+              void supabase.auth.refreshSession()
+                .then(({ data }) => {
+                  if (data.session) { setExpired(false); return; }
+                  return signOut().finally(() => { window.location.href = "/login/"; });
+                })
+                .catch(() => signOut().finally(() => { window.location.href = "/login/"; }))
+                .finally(() => datDangNoiLai(false));
             }}
           >
-            Đăng nhập lại
+            {dangNoiLai ? "Đang nối lại…" : "Học tiếp"}
           </button>
         </div>
       </AppShell>
@@ -1443,7 +1510,9 @@ export default function TutorApp() {
         .filter(Boolean)
         .join("; ");
     }
-    if (ans) void submitObjective(ans);
+    if (!ans) return;
+    setDaTraLoi(String(ans));
+    void submitObjective(ans);
   };
 
   return (
@@ -1535,6 +1604,16 @@ export default function TutorApp() {
       {q && (
         <>
           <p className="eyebrow lesson-kind">{kindEyebrow(q)}</p>
+          {/* LỖI #29 — KHUÔN câu trả lời. Người thử 1: "trả lời đúng 80% câu hỏi
+              nhưng vẫn bị sư tử giữ lại". Gốc phổ biến nhất: đề có hai chỗ
+              trống mà em chỉ điền một, vì không chỗ nào nói ra điều đó.
+              Chỉ hiện khi CÒN phải trả lời — đọc lại lúc đã xong là thừa. */}
+          {q.goiYDinhDang && verdict == null && !interactiveShown && (
+            <p className="dang-tl">
+              <Info aria-hidden strokeWidth={2.25} />
+              {q.goiYDinhDang}
+            </p>
+          )}
           {/* Dạng tương tác tự dựng đề (câu dẫn + các mục) → ẩn qcard mặc định. */}
           {!interactiveShown && stepParsed ? (
             /* ── Đề NHIỀU BƯỚC: câu dẫn + thẻ từng bước. Bước (Có/Không) hiện
@@ -1778,6 +1857,20 @@ export default function TutorApp() {
           bước đã có ô kết luận nằm trong bước cuối (lỗi 17). */}
       {q && q.kind === "objective" && !q.options && !isTrueFalse && !interactiveShown && verdict !== "ok" &&
         (!stepParsed || !stepInteractive) && (
+        verdict === "retry" ? (
+          /* LỖI #25 — HAI KHUNG NHẬP, người thử 1 đợt 2 tự chấm "chặn hẳn":
+             "có hai khung chat để điền đáp án… học sinh sẽ điền vào khung nào?"
+             Trước đây lúc thử lại ô này VẪN VẼ RA, chỉ `disabled` — mà app
+             không hề có kiểu :disabled cho ô nhập, nên nó trông y hệt một ô
+             đang sống, lại nằm cạnh ô "kể cách em nghĩ" dùng CHUNG bộ CSS.
+             Hai ô giống hệt nhau, ô ghi "đáp án" thì gõ không được.
+             Nay lúc thử lại nó KHÔNG còn là ô nhập nữa mà là một BẢN GHI những
+             gì em đã trả lời — trên màn chỉ còn đúng MỘT chỗ gõ được. */
+          <div className="ans-daghi" role="status">
+            <span className="ans-daghi-nhan">Em đã trả lời</span>
+            <span className="ans-daghi-noi"><MathText>{daTraLoi ?? text}</MathText></span>
+          </div>
+        ) : (
         /* Ô TỰ CAO DẦN, không phải ô một dòng: cùng một dạng "nhập đáp án" có câu
            chỉ điền một cụm từ, có câu đòi giải thích cả đoạn (đáp án mẫu dài trên
            200 chữ). Ô một dòng làm học sinh gõ đoạn dài mà không thấy mình viết
@@ -1789,10 +1882,11 @@ export default function TutorApp() {
           rows={1}
           placeholder={stepParsed && stepInteractive ? "Kết luận của em…" : "Nhập đáp án của bạn…"}
           value={text}
-          disabled={busy || verdict === "retry"}
+          disabled={busy}
           autoFocus
           onChange={(e) => {
             setText(e.target.value);
+            luuNhap(q.id, e.target.value); // sống qua cả lần văng/tải lại trang
             const el = e.currentTarget;
             el.style.height = "auto";
             el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
@@ -1810,6 +1904,7 @@ export default function TutorApp() {
           autoCorrect="off"
           spellCheck={false}
         />
+        )
       )}
 
       {q && q.kind === "writing" && verdict == null && (
@@ -1843,7 +1938,7 @@ export default function TutorApp() {
           <BaiLamEditor
             key={q.id} /* câu mới → ô mới, xoá chiều cao đã nới của câu trước */
             value={text}
-            onChange={setText}
+            onChange={(v) => { setText(v); luuNhap(q.id, v); }}
             disabled={busy}
           />
           <div className="submit-row">
@@ -2061,8 +2156,21 @@ export default function TutorApp() {
             )}
             {/* B0/B1 (29/07): LƯỢT CỦA EM — kể cách nghĩ / xin gợi ý, tách hẳn
                 khỏi ô đáp án. Sư tử hỏi "em nghĩ sao?" thì đây là chỗ trả lời;
-                cổng nỗ lực đọc từ đây, không còn đếm số lần bấm. */}
+                cổng nỗ lực đọc từ đây, không còn đếm số lần bấm.
+
+                LỖI #25 — ô này từng dùng CHUNG bộ CSS với ô đáp án nên hai cái
+                giống hệt nhau và em không biết cái nào nhận đáp án. Nay nó mang
+                hình dạng CHAT không lẫn vào đâu được: sư tử ngồi ngay trong ô,
+                bo tròn kiểu bong bóng, kèm một dòng nói thẳng đây KHÔNG phải
+                chỗ nộp đáp án. */}
+            <p className="reflect-nhan">
+              <MessageCircle aria-hidden strokeWidth={2.25} />
+              Nói chuyện với sư tử — chỗ này không chấm đáp án
+            </p>
             <div className="reflect-row">
+              <span className="reflect-avatar" aria-hidden>
+                <Lion mood="idle" size={28} decorative />
+              </span>
               <input
                 className="reflect-input"
                 type="text"

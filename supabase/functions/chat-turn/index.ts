@@ -12,7 +12,7 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer, type CasResult } from "../_shared/cas.ts";
 import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
-import { evaluateEffortGate } from "../_shared/pedagogy.ts";
+import { evaluateEffortGate, chonBacGoiY } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
 import { buildGuideSystem, buildGuideUser, buildScoredRubricSystem } from "../_shared/prompts.ts";
@@ -529,7 +529,7 @@ Deno.serve(async (req: Request) => {
           supa.from("attempts").select("id, attempt_no, thinking_quality, created_at")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
-          supa.from("socratic_ladders").select("rungs, bottom_out, cong_no_luc")
+          supa.from("socratic_ladders").select("id, rungs, bottom_out, cong_no_luc")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .eq("status", "active").limit(1),
           supa.from("kg_nodes").select("label")
@@ -540,11 +540,13 @@ Deno.serve(async (req: Request) => {
             sessionId: s.id, studentId: s.student_id, questionId: q.id,
             names, omitContent: reasoning,
           }).catch(() => null),
-          // Lượt EM NÓI gần đây — để đếm "đã nói bao nhiêu lần kể từ lần thử
-          // cuối". Đi cùng chuyến, không thêm vòng chờ.
-          supa.from("session_turns").select("created_at, meta")
-            .eq("session_id", s.id).eq("role", "student")
-            .order("created_at", { ascending: false }).limit(40),
+          // Lượt gần đây của CẢ HAI VAI, một chuyến duy nhất:
+          //  · vai student → đếm "đã nói bao nhiêu lần kể từ lần thử cuối";
+          //  · vai tutor   → đọc BẬC THANG ĐÃ TRAO cho luật chỉ-tiến (lỗi #27).
+          // Lọc vai ở phía mình thay vì thêm một truy vấn nữa.
+          supa.from("session_turns").select("created_at, role, meta")
+            .eq("session_id", s.id)
+            .order("created_at", { ascending: false }).limit(120),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
@@ -578,7 +580,24 @@ Deno.serve(async (req: Request) => {
         // truyền qua đường đối thoại này. Xin giúp nhiều nhất chỉ đi hết thang,
         // không bao giờ chạm đáy.
         const ketThat = Math.max(0, (mem?.xinGiupLienTiep ?? 0) - 1);
-        const currentRungR = Math.min(engagedR + ketThat, Math.max(0, totalRungs - 1));
+        // LUẬT CHỈ-TIẾN, dùng CHUNG con trỏ với nhánh chấm (lỗi #27). Hai nhánh
+        // đọc cùng một dấu vết `meta.bacTrao` nên em hỏi qua ô trò chuyện hay
+        // sai qua ô đáp án đều leo tiếp cùng một thang, không ai nhận lại đúng
+        // câu gợi ý vừa đọc.
+        const daTraoR = new Set<number>();
+        for (const r of (chatRes?.data ?? []) as Array<{ role: string; meta: Record<string, unknown> | null }>) {
+          if (r.role !== "tutor") continue;
+          const mt = r.meta ?? {};
+          if (mt.questionId !== q.id) continue;
+          if (ladder?.id && mt.thangId && mt.thangId !== ladder.id) continue;
+          if (typeof mt.bacTrao === "number") daTraoR.add(mt.bacTrao);
+        }
+        const currentRungR = chonBacGoiY({
+          engaged: engagedR + ketThat, bacDaTrao: [...daTraoR], totalRungs,
+          exhausted: false,
+          // Đối thoại KHÔNG bao giờ chạm đáy: chat nhiều không moi được đáp án (B4).
+          choPhepDay: false,
+        });
         // Kẹt thật thì cũng phải QUA được cổng, không thì stage kẹt ở
         // "need_think" và bậc thang vừa mở ra lại không được dùng.
         const bestR = ketThat > 0 ? Math.max(best, 0.5) : best;
@@ -612,8 +631,9 @@ Deno.serve(async (req: Request) => {
           ? String((attRes.data ?? [])[attRows.length - 1]?.created_at ?? "")
           : "";
         const noiSauLanThuCuoi = ((chatRes?.data ?? []) as Array<
-          { created_at: string; meta: { kind?: string; questionId?: string } | null }
+          { created_at: string; role: string; meta: { kind?: string; questionId?: string } | null }
         >).filter((r) =>
+          r.role === "student" &&
           r.meta?.kind === "reflect" && r.meta?.questionId === q.id &&
           (!lastAttAt || r.created_at > lastAttAt)
         ).length;
@@ -646,7 +666,14 @@ Deno.serve(async (req: Request) => {
           envelope: { correct: false, gate: "reflect", graded: false },
           fallback: msg,
           map,
-          persistMeta: { gate: "reflect", stage },
+          // GHI lại bậc vừa trao khi thật sự có trao (stage "guide") — đây là
+          // dấu vết mà cả hai nhánh đọc để không trao lại đúng bậc cũ (lỗi #27).
+          persistMeta: {
+            gate: "reflect", stage, questionId: q.id,
+            ...(stage === "guide" && rungText
+              ? { bacTrao: Math.min(currentRungR, Math.max(0, rungs.length - 1)), thangId: ladder?.id ?? null }
+              : {}),
+          },
           questionId: q.id,
           llm: Deno.env.get("OPENROUTER_API_KEY")
             ? {
@@ -929,12 +956,24 @@ Deno.serve(async (req: Request) => {
 
       // Sai → thang Socratic soạn sẵn, qua cổng nỗ lực. Chọn thang khớp đúng
       // quan niệm sai vừa bắt được; không khớp thì lấy thang đầu của node.
-      const { data: ladders } = await supa
-        .from("socratic_ladders")
-        .select("id, rungs, bottom_out, cong_no_luc, misconception")
-        .eq("kg_version_id", s.kg_version_id)
-        .eq("node_key", q.node_key)
-        .eq("status", "active");
+      const [{ data: ladders }, luotTutor] = await Promise.all([
+        supa
+          .from("socratic_ladders")
+          .select("id, rungs, bottom_out, cong_no_luc, misconception")
+          .eq("kg_version_id", s.kg_version_id)
+          .eq("node_key", q.node_key)
+          .eq("status", "active"),
+        // Bậc thang ĐÃ TRAO trong phiên này — nền của luật "gợi ý chỉ tiến,
+        // không lùi" (lỗi #27). Đi CÙNG chuyến với truy vấn thang, không thêm
+        // vòng chờ nào cho học sinh.
+        supa
+          .from("session_turns")
+          .select("meta")
+          .eq("session_id", s.id)
+          .eq("role", "tutor")
+          .order("created_at", { ascending: true })
+          .limit(150),
+      ]);
       const ladder =
         (matched && (ladders ?? []).find((l) => l.misconception === matched)) || (ladders ?? [])[0] || null;
 
@@ -968,7 +1007,37 @@ Deno.serve(async (req: Request) => {
       const rungTurns = prevRows.slice(Math.max(0, minAttempts - 1));
       const engaged = rungTurns.filter((r) => Number(r.thinking_quality ?? 0) >= 0.5).length;
       const exhausted = attemptNo >= minAttempts + totalRungs + 2;
-      const currentRung = exhausted ? totalRungs : engaged;
+
+      // ── LỖI #27: GỢI Ý CHỈ ĐƯỢC TIẾN, KHÔNG ĐƯỢC LÙI ───────────────────────
+      // Người thử 1 đợt 2, khi được hỏi "nếu chỉ được sửa MỘT thứ": *"Sư tử nên
+      // có các gợi ý tăng cấp độ hướng dẫn lên và đừng hiển thị một gợi ý giống
+      // nhau hai ba lần."*
+      //
+      // Gốc: `currentRung = engaged`, mà `engaged` chỉ đếm lượt CÓ trình bày
+      // suy nghĩ. Em bấm sai ba lần liền thì engaged đứng ở 0 ⇒ nhận đúng
+      // `rungs[0]` ba lần. Câu mở lời có xoay vòng nên nghe hơi khác, còn RUỘT
+      // gợi ý thì y nguyên. Đã đếm trên DB: 204/204 node đều có thang ≥3 bậc và
+      // 0/2.628 thang có hai bậc trùng chữ — nội dung thừa sức, chỉ con trỏ đứng.
+      //
+      // Vì sao "không lùi" KHÔNG phải là chặn em xuống mức dễ hơn: thang này đi
+      // từ ÍT đỡ tới NHIỀU đỡ (bậc 1 siêu nhận thức → 2 hướng chú ý → 3 dẫn về
+      // tiền đề → 4 giàn giáo mạnh, đúng thứ tự ở cả 2.628 thang). ĐI TỚI CHÍNH
+      // LÀ DỄ HƠN; lùi lại là RÚT giàn giáo đi, ném lại câu mơ hồ nhất cho đúng
+      // em đang kẹt nhất.
+      //
+      // Con trỏ tính THEO TỪNG THANG: em sai kiểu A rồi sang kiểu B thì thang B
+      // là nội dung khác hẳn, phải được bắt đầu lại từ bậc 1 của chính nó — nếu
+      // không nó bị vào thẳng bậc 3 và nuốt mất hai bậc đầu.
+      const daTrao = new Set<number>();
+      for (const r of (luotTutor.data ?? []) as Array<{ meta: Record<string, unknown> | null }>) {
+        const m = r.meta ?? {};
+        if (m.questionId !== q.id) continue;
+        if (ladder?.id && m.thangId && m.thangId !== ladder.id) continue;
+        if (typeof m.bacTrao === "number") daTrao.add(m.bacTrao);
+      }
+      const currentRung = chonBacGoiY({
+        engaged, bacDaTrao: [...daTrao], totalRungs, exhausted, choPhepDay: true,
+      });
 
       const gate = evaluateEffortGate({
         attempts: attemptNo,
@@ -1182,7 +1251,8 @@ Deno.serve(async (req: Request) => {
       }
 
       // advance_rung — trao đúng câu gợi mở đã soạn (nguyên văn, không LLM).
-      const rung = rungs[Math.min(currentRung, rungs.length - 1)];
+      const bacTrao = Math.min(currentRung, Math.max(0, rungs.length - 1));
+      const rung = rungs[bacTrao];
       const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
       // Bắt được quan niệm sai → GỌI TÊN nó (lỗi 9c: "không giải thích vì sao
       // bị đánh sai") — dữ liệu quan_niem_sai được soạn đúng cho việc này, không
@@ -1209,7 +1279,12 @@ Deno.serve(async (req: Request) => {
         : (en
             ? `${lead}Not quite. Which piece of the question have you not used yet?`
             : `${lead}Chưa đúng. Trong đề bài còn dữ kiện nào bạn chưa dùng đến?`);
-      persist("tutor", msg, "engine", { gate: gate.action, currentRung, matched, questionId: q.id });
+      // GHI LẠI bậc vừa trao + THANG nào (lỗi #27). Không ghi thì lượt sau
+      // không có gì để đọc và con trỏ lại đứng im đúng như cũ.
+      persist("tutor", msg, "engine", {
+        gate: gate.action, currentRung, matched, questionId: q.id,
+        bacTrao, thangId: ladder?.id ?? null,
+      });
       return json({ correct: false, attemptNo, gate: gate.action, currentRung, message: msg, ...(xp ? { xp } : {}) });
     }
 
