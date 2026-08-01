@@ -1,24 +1,41 @@
 "use client";
 
 /**
- * Ô SOẠN CÔNG THỨC (MathLive) — mở ra khi học sinh bấm "Chèn công thức".
+ * BẢNG SOẠN CÔNG THỨC — bấm hình, không gõ lệnh.
  *
- * Vì sao cần (chủ dự án chốt 01/08): bài tự luận nay AI chấm hết, nên em phải
- * gõ được công thức RA CHỮ chứ không chụp ảnh nữa. Mà em lớp 10 không biết
- * LaTeX. MathLive cho gõ như viết tay: bấm nút phân số là ra khung phân số, và
- * trên điện thoại có bàn phím toán ảo — thứ bàn phím thường không làm được.
+ * Chủ dự án chốt 01/08: "học sinh không biết LaTeX, nếu điền công thức thì phải
+ * là trình soạn thảo có sẵn công thức rồi nhấn hoặc kéo thả vào."
  *
- * KHÔNG bao giờ nằm trong gói đầu: tệp này chỉ được nạp qua `next/dynamic`
- * (ssr:false) ở BaiLamEditor, và chỉ khi em bấm nút. Màn đăng nhập và màn lộ
- * trình không gánh một byte nào của MathLive.
+ * Bản đầu của tôi CHỈ có ô MathLive trần. Trên điện thoại thì ổn (MathLive tự
+ * bật bàn phím toán ảo), nhưng trên máy tính của trường — nơi phần lớn em ngồi
+ * học — nó hiện ra một ô trống, và em vẫn phải biết gõ `\frac`. Đó vẫn là bắt
+ * em học LaTeX, chỉ giấu kỹ hơn một tầng. Nên:
  *
- * Dựng phần tử bằng tay thay vì viết <math-field> trong JSX: web component
- * không có kiểu JSX sẵn, và cách này cho đặt thẳng thuộc tính lên phần tử —
- * đúng cách một custom element muốn được dùng.
+ *   · BẢNG CÔNG THỨC luôn hiện, nút vẽ ĐÚNG HÌNH DẠNG công thức (khung phân số
+ *     rỗng, dấu căn rỗng) bằng chính KaTeX của app — em nhìn thấy cái mình cần
+ *     rồi bấm, không phải nhớ tên lệnh nào.
+ *   · Bấm xong con trỏ nằm sẵn trong ô trống đầu tiên (placeholder `#0` của
+ *     MathLive), gõ số vào là xong; Tab nhảy sang ô trống kế.
+ *   · Nút "Bàn phím toán" mở bàn phím ảo đầy đủ của MathLive — trước đây chỉ
+ *     thiết bị cảm ứng mới có, nay máy tính cũng gọi được.
+ *
+ * Nhóm công thức bám chương trình Toán 10 (lib/congthuc.ts), không phải bảng ký
+ * hiệu toán học chung chung.
+ *
+ * Tệp này KHÔNG bao giờ nằm trong gói đầu: chỉ nạp qua `next/dynamic` (ssr:false)
+ * ở BaiLamEditor, và chỉ khi em mở bảng.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, Keyboard, X } from "lucide-react";
+import { MathText } from "../lib/mathrender";
+import { NHOM_CONG_THUC } from "../lib/congthuc";
+
+type Mf = HTMLElement & {
+  value: string;
+  insert: (latex: string, opts?: Record<string, unknown>) => void;
+  mathVirtualKeyboardPolicy: string;
+};
 
 export default function MathKeypad({
   banDau = "",
@@ -30,8 +47,9 @@ export default function MathKeypad({
   onDong: () => void;
 }) {
   const hop = useRef<HTMLDivElement | null>(null);
-  const truong = useRef<HTMLElement & { value: string } | null>(null);
+  const truong = useRef<Mf | null>(null);
   const [san, datSan] = useState(false);
+  const [nhom, datNhom] = useState(NHOM_CONG_THUC[0]!.id);
 
   useEffect(() => {
     let huy = false;
@@ -40,64 +58,129 @@ export default function MathKeypad({
       if (huy || !hop.current) return;
 
       // PHÔNG: MathLive dùng ĐÚNG bộ phông KaTeX mà trang này đã nạp sẵn
-      // (TutorApp import "katex/dist/katex.min.css"). Để `fontsDirectory` mặc
-      // định là nó đi tải lại 20 tệp woff2 y hệt từ một đường dẫn không tồn tại
-      // trong bản xuất tĩnh → vừa 404 vừa thừa. Đặt null: các quy tắc @font-face
-      // của KaTeX ở tài liệu ngoài vẫn áp được vào shadow DOM của ô.
+      // (TutorApp import "katex/dist/katex.min.css"). Đo trong trình duyệt: ký
+      // hiệu trong ô render bằng KaTeX_Math / KaTeX_Main, 0 lỗi tải. Để mặc
+      // định thì nó đi tải lại 20 tệp woff2 y hệt từ đường dẫn không tồn tại
+      // trong bản xuất tĩnh.
       MathfieldElement.fontsDirectory = null;
-      // Không có tệp âm thanh trong bản dựng → tắt hẳn, đỡ một loạt 404.
       MathfieldElement.soundsDirectory = null;
 
-      const mf = new MathfieldElement();
+      const mf = new MathfieldElement() as unknown as Mf;
       mf.value = banDau;
-      // "auto": máy tính thì dùng bàn phím thường, điện thoại/máy tính bảng thì
-      // tự bật bàn phím toán ảo — đúng chỗ nó có ích nhất.
-      mf.mathVirtualKeyboardPolicy = "auto";
+      // "manual": bàn phím ảo chỉ mở khi em bấm nút bên dưới. Để "auto" thì trên
+      // điện thoại nó bật đè lên bảng công thức, hai bàn phím tranh chỗ nhau.
+      mf.mathVirtualKeyboardPolicy = "manual";
       mf.className = "mk-field";
-      mf.setAttribute("aria-label", "Ô soạn công thức toán");
+      mf.setAttribute("aria-label", "Ô công thức");
 
-      hop.current.replaceChildren(mf);
-      truong.current = mf as HTMLElement & { value: string };
+      hop.current.replaceChildren(mf as unknown as Node);
+      truong.current = mf;
       datSan(true);
-      // Đặt con trỏ vào ô ngay — em bấm "Chèn công thức" là để gõ.
       queueMicrotask(() => mf.focus());
     })();
     return () => { huy = true; };
-    // banDau cố ý KHÔNG nằm trong deps: dựng lại ô giữa chừng là mất phần em
-    // đang gõ dở.
+    // banDau cố ý KHÔNG nằm trong deps: dựng lại ô giữa chừng là mất phần đang gõ.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const chen = () => {
-    const v = (truong.current?.value ?? "").trim();
-    if (v) onChen(v);
-    else onDong();
+  /** Bấm một nút trong bảng → chèn tại con trỏ, dừng ở ô trống đầu tiên. */
+  const bam = (latex: string) => {
+    const mf = truong.current;
+    if (!mf) return;
+    mf.insert(latex, {
+      insertionMode: "replaceSelection",
+      // Nhảy thẳng vào ô trống đầu tiên — bấm "phân số" xong là gõ TỬ được ngay,
+      // không phải tự mò con trỏ vào trong khung.
+      selectionMode: "placeholder",
+      focus: true,
+      format: "latex",
+    });
+    mf.focus();
   };
 
+  const moBanPhimAo = () => {
+    const vk = (window as unknown as { mathVirtualKeyboard?: { show: () => void } }).mathVirtualKeyboard;
+    truong.current?.focus();
+    vk?.show();
+  };
+
+  const chen = () => {
+    const v = (truong.current?.value ?? "").trim();
+    if (v) onChen(v); else onDong();
+  };
+
+  const nhomHienTai = NHOM_CONG_THUC.find((n) => n.id === nhom) ?? NHOM_CONG_THUC[0]!;
+
   return (
-    <div className="mk-wrap" role="group" aria-label="Soạn công thức">
+    <div className="mk-wrap" role="group" aria-label="Bảng soạn công thức">
       <div
         className="mk-host"
         ref={hop}
         onKeyDown={(e) => {
-          // Enter = chèn, Esc = đóng. Bàn phím toán ảo nuốt Enter của chính nó
-          // nên chỉ bắt khi phím đi tới đây.
-          if (e.key === "Enter") { e.preventDefault(); chen(); }
+          // Esc đóng. Enter KHÔNG chèn: trong ô toán, Enter là xuống dòng của
+          // chính công thức (hệ phương trình), cướp nó là hỏng đúng cái em cần.
           if (e.key === "Escape") { e.preventDefault(); onDong(); }
         }}
       >
         {!san && <p className="mk-loading muted">Đang mở bảng công thức…</p>}
       </div>
+
+      {/* BẢNG CÔNG THỨC — nút vẽ đúng hình dạng, bấm là chèn. */}
+      <div className="mk-tabs" role="tablist" aria-label="Nhóm công thức">
+        {NHOM_CONG_THUC.map((n) => (
+          <button
+            key={n.id}
+            type="button"
+            role="tab"
+            aria-selected={n.id === nhom}
+            className="mk-tab"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => datNhom(n.id)}
+          >
+            {n.nhan}
+          </button>
+        ))}
+      </div>
+
+      <div className="mk-grid" role="group" aria-label={`Công thức nhóm ${nhomHienTai.nhan}`}>
+        {nhomHienTai.muc.map((mc) => (
+          <button
+            key={`${nhomHienTai.id}:${mc.ten}`}
+            type="button"
+            className="mk-key"
+            title={mc.ten}
+            aria-label={mc.ten}
+            disabled={!san}
+            /* Giữ con trỏ trong ô công thức: bấm nút mà ô mất focus thì chèn
+               xong con trỏ rơi về đầu, em gõ tiếp ra sai chỗ. */
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => bam(mc.chen)}
+          >
+            <MathText>{`$${mc.hien}$`}</MathText>
+          </button>
+        ))}
+      </div>
+
       <div className="mk-row">
         <button type="button" className="btn btn-check mk-ok" disabled={!san} onClick={chen}>
           <Check aria-hidden strokeWidth={2.5} />
           Chèn vào bài
         </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={!san}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={moBanPhimAo}
+          title="Mở bàn phím toán đầy đủ (có cả ký hiệu không nằm trong bảng)"
+        >
+          <Keyboard aria-hidden strokeWidth={2.25} />
+          Bàn phím toán
+        </button>
         <button type="button" className="btn btn-ghost" onClick={onDong}>
           <X aria-hidden strokeWidth={2.25} />
           Bỏ
         </button>
-        <span className="muted mk-hint">Gõ như viết tay — bấm nút phân số, căn, mũ ở bàn phím toán.</span>
       </div>
     </div>
   );
