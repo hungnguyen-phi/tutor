@@ -33,6 +33,39 @@ Bám PRD v3. 100% = **pilot production Việt Anh trọn vẹn** (2 môn đủ n
 
 ## 4. Đã làm
 
+### Phiên 01/08 — **AI CHẤM HẾT BÀI TỰ LUẬN, giáo viên không chấm nữa**
+
+Quyết định của chủ dự án, thay hẳn mô hình cũ. **Số liệu đẩy tới quyết định này:**
+69 bản nộp từ trước tới nay, **0 bản từng được giáo viên chấm Đạt**, 60 bản nằm chờ.
+Mà `[NOPBAI]` là **323/1.930 câu** và thường là câu DOK≥3 *duy nhất* của node ⇒ 60 em
+đó có lộ trình đứng im vĩnh viễn.
+
+- **Ba cửa vào → MỘT bộ chấm.** `_shared/doc-bai-lam.ts` quy mọi đường nộp về một
+  chuỗi trước khi chấm: em gõ · tệp `.docx` · ảnh bài viết tay.
+- **Đọc `.docx` không thêm thư viện** (`_shared/docx.ts`): tự đọc bảng thư mục ZIP +
+  `DecompressionStream("deflate-raw")`, rồi đổi công thức **OMML → LaTeX** (phân số,
+  mũ, chỉ số, căn, tổng/tích phân, ngoặc, hàm, dấu mũ). Không dùng mammoth vì mammoth
+  **vứt bỏ công thức** — đúng phần quan trọng nhất của bài toán.
+- **Đọc ảnh bằng mô hình NHÌN** — thêm tầng `vision` trong `llm.ts` (`LLM_VISION_MODEL`,
+  mặc định `google/gemini-2.5-flash`) + tham số `images` (data URL, KHÔNG dùng link ký
+  để không lộ cấu trúc bucket). Có danh sách dự phòng RIÊNG cho tầng nhìn: rơi sang model
+  văn bản thuần thì nó vẫn trả lời trôi chảy về một bài **nó chưa hề thấy**.
+- **Phán quyết = mastery + XP ngay** (đảo quyết định 29/07). Đai an toàn gom vào một hàm
+  thuần `chotPhanQuyet()`: LLM hỏng ⇒ *"chưa chấm được"*, **không bao giờ** thành điểm
+  trượt; mô hình gật cho bài vài chữ trong khi đáp án là đoạn văn ⇒ hạ thành trượt.
+- **Ô soạn công thức MathLive** (`BaiLamEditor` + `MathKeypad`), nạp trễ và chỉ khi em
+  bấm nút — đo trên bản dựng: `/learn` 231 kB, `/login` 175 kB, **không trang nào nạp
+  chunk MathLive** (796 kB nằm riêng). `fontsDirectory = null`: đo trong trình duyệt thấy
+  ký hiệu render bằng chính `KaTeX_Math`/`KaTeX_Main` mà trang đã có ⇒ **0 byte phông thêm**.
+- **Tab "Chấm bài" của giáo viên: ẨN** sau cờ `GRADING_ENABLED` trong `TeacherDashboard.tsx`.
+  Mã `GradingTab` + function `teacher-grading` **giữ nguyên**, bật lại là một dòng.
+- **Dọn 60 bản treo:** function mới `regrade-submissions` (`{"action":"dry"}` xem trước,
+  `{"action":"run"}` chấm thật, `limit` mặc định 25). Dùng ĐÚNG bộ chấm + bộ đọc tệp của
+  lượt nộp mới, không có bản sao thứ hai để trôi lệch.
+- **Bộ kiểm:** `tools/docx-matrix.mjs` (đọc .docx + KaTeX render 6/6), `tools/nopbai-matrix.mjs`
+  (phán quyết 11/11). Toàn bộ bộ kiểm cũ vẫn xanh: grading 118, memory 28, stream 19,
+  gate-trace, vitest pedagogy 6.
+
 ### Phiên 24/07 (nhánh `feat/kg-ingest-v2.2`, 3 commit — xem §2)
 - **Re-key ID (P3+P4): ĐÃ NGHIỆM THU.** Studio đổi mã atom → `KC-/Q-/E-/R-/L-`, chạy P3 remap 544 node sống + 2.967 câu + 5 cột dữ liệu HS. `learning-path` đổi tiebreak sang `kc_registry.vi_tri_trong_ct`, deploy + verify **ĐẠT toàn bộ** (0 key cũ sót, đếm dòng khớp, tiến độ HS nguyên, thứ tự lộ trình đúng). Chi tiết: `docs/DoiUng-Tutor-ReKey.md` mục A–I.
 - **Onboard môn GDKTPL 10** (nhân bản môn — P1+P2): `import-kg` nhận subject mới; `scripts/import-gdktpl.mjs` + `scripts/publish-gdktpl.mjs` nạp 200 node/388 cạnh/215 câu + `ALTER TYPE subject ADD 'GDKTPL'` + publish. Frontend: GDKTPL vào `Subject` type + `SubjectPicker` (live). **Verify end-to-end**: `learning-path` trả đúng 200 node cho acc demo.

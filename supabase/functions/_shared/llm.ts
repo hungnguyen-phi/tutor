@@ -5,7 +5,7 @@
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
-type Tier = "cheap" | "default" | "strong";
+type Tier = "cheap" | "default" | "strong" | "vision";
 
 // ── Token budget: trần token/HS/ngày (PRD §9.4, giữ MVP < $500/tháng) ─────────
 // Kiểm TRƯỚC khi gọi OpenRouter; chạm trần → ném BudgetExceededError thay vì tiêu
@@ -42,8 +42,20 @@ const MODELS: Record<Tier, string> = {
   cheap: "deepseek/deepseek-v4-flash",
   default: "deepseek/deepseek-v4-pro",
   strong: "deepseek/deepseek-v4-pro",
+  // Tầng NHÌN (01/08) — đọc ảnh bài làm viết tay. Ba tầng trên đều là DeepSeek
+  // VĂN BẢN THUẦN: đưa ảnh vào là mất ảnh trong im lặng, không báo lỗi. Đặt qua
+  // env để đổi model mà không phải deploy lại — chỗ này là dòng chi phí mới nên
+  // chủ dự án cần xoay được ngay khi giá đổi.
+  vision: Deno.env.get("LLM_VISION_MODEL") ?? "google/gemini-2.5-flash",
 };
 const FALLBACK = ["deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v3.2"];
+/**
+ * Dự phòng RIÊNG cho tầng nhìn. KHÔNG được dùng chung `FALLBACK`: OpenRouter
+ * nhận mảng `models` và tự rơi sang model kế khi model đầu hỏng — rơi vào một
+ * model văn bản thuần thì nó vẫn trả lời trôi chảy, chỉ là **bịa** vì không hề
+ * thấy ảnh. Bài của học sinh bị chấm bằng một bài tưởng tượng.
+ */
+const FALLBACK_VISION = ["google/gemini-2.5-flash", "qwen/qwen2.5-vl-72b-instruct"];
 
 /**
  * ĐỊNH TUYẾN cho lượt ĐỐI THOẠI — cân giữa tốc độ và tiền, theo đúng thứ tự ưu tiên.
@@ -155,12 +167,24 @@ export interface LlmCallArgs {
    * GHÉP ĐƯỢC với bộ lọc mức lượng tử hoá bên dưới — `:nitro` thì không.
    */
   fastRoute?: boolean;
+  /**
+   * ẢNH gửi kèm, dạng **data URL** (`data:image/jpeg;base64,…`) — dùng cho tầng
+   * `vision` khi đọc bài làm chụp/quét.
+   *
+   * Cố ý là data URL chứ KHÔNG phải link đã ký của bucket: link ký lộ luôn cấu
+   * trúc `bai-lam/<tenant>/<student>/…` cho nhà cung cấp và cho phép họ tự tải
+   * bài về. Data URL thì gói gọn trong lượt gọi, đúng lối ẩn danh của cả tệp này.
+   */
+  images?: string[];
 }
 
-/** Khoá cache = SHA-256 của (agent | tier | system | user). Băm để khoá ngắn,
- *  không chứa bài làm của học sinh dưới dạng đọc được (PDPL). */
+/** Khoá cache = SHA-256 của (agent | tier | system | user | ẢNH). Băm để khoá
+ *  ngắn, không chứa bài làm của học sinh dưới dạng đọc được (PDPL).
+ *
+ *  ẢNH PHẢI nằm trong khoá: thiếu nó thì hai bài chụp KHÁC NHAU của cùng một đề
+ *  băm ra cùng khoá, và em nộp sau nhận nguyên phán quyết của bài em nộp trước. */
 async function cacheKeyOf(a: LlmCallArgs): Promise<string> {
-  const raw = `${a.agent}|${a.tier ?? "default"}|${a.system}|${a.user}`;
+  const raw = `${a.agent}|${a.tier ?? "default"}|${a.system}|${a.user}|${(a.images ?? []).join("|")}`;
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -233,8 +257,14 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   const primary = MODELS[tier];
   const dedupe = (a: string[]) => a.filter((m, i, arr) => arr.indexOf(m) === i);
   // OpenRouter caps the `models` array at 3 items.
-  const models = dedupe([primary, ...FALLBACK]).slice(0, 3);
-  const retryModels = dedupe(["deepseek/deepseek-v4-flash", ...models]).slice(0, 3);
+  // Có ảnh → CHỈ xếp model nhìn được vào danh sách (xem FALLBACK_VISION).
+  const coAnh = (args.images?.length ?? 0) > 0;
+  const models = coAnh
+    ? dedupe([primary, ...FALLBACK_VISION]).slice(0, 3)
+    : dedupe([primary, ...FALLBACK]).slice(0, 3);
+  const retryModels = coAnh
+    ? models
+    : dedupe(["deepseek/deepseek-v4-flash", ...models]).slice(0, 3);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
@@ -245,11 +275,21 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   if (referer) headers["HTTP-Referer"] = referer;
   if (title) headers["X-Title"] = title;
 
+  // Không ảnh → giữ NGUYÊN dạng chuỗi như trước (đừng đổi mọi lượt gọi sẵn có
+  // sang dạng mảng: một số nhà cung cấp đối xử khác nhau với hai dạng, và lưu
+  // đệm tiền tố của DeepSeek băm theo đúng thân yêu cầu).
+  const userContent: unknown = coAnh
+    ? [
+      { type: "text", text: args.user },
+      ...args.images!.map((url) => ({ type: "image_url", image_url: { url } })),
+    ]
+    : args.user;
+
   const payload = (extraModels: string[]) => ({
     models: extraModels,
     messages: [
       { role: "system", content: args.system },
-      { role: "user", content: args.user },
+      { role: "user", content: userContent },
     ],
     max_tokens: args.maxTokens ?? 420,
     temperature: args.temperature ?? 0.3,
@@ -319,6 +359,12 @@ export async function callLLMStream(
   assertAnonymized(`${args.system}\n${args.user}`);
   const key = Deno.env.get("OPENROUTER_API_KEY");
   if (!key) throw new Error("OPENROUTER_API_KEY not set in function secrets.");
+  // Đường PHÁT DẦN không dựng nội dung dạng mảng và không chọn model nhìn được.
+  // Lọt ảnh vào đây là nó bay thẳng tới một model văn bản thuần, model đó trả
+  // lời trôi chảy về một bài nó chưa từng thấy. Thà hỏng to còn hơn hỏng ngầm.
+  if (args.images?.length) {
+    throw new Error("llm: callLLMStream không nhận ảnh — dùng callLLM với tier 'vision'.");
+  }
 
   // Trần token/ngày: kiểm y như lượt thường — phát dần không phải cửa sau.
   if (args.supa && args.studentId) {
@@ -475,6 +521,9 @@ function recordCall(
           usage,
           ...(ms != null ? { ms } : {}),
           ...(args.fastRoute ? { fastRoute: true } : {}),
+          // SỐ ảnh (không phải ảnh) — để tách được phần hoá đơn do đọc ảnh sinh
+          // ra khỏi phần đối thoại, thay vì nhìn tổng rồi đoán.
+          ...(args.images?.length ? { images: args.images.length } : {}),
         },
       });
       // Cộng dồn token_usage cho (HS, ngày) để lần gọi sau kiểm budget có số thật.

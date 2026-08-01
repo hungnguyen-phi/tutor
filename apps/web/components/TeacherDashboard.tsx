@@ -125,6 +125,18 @@ const initialOf = (name: string) => (name.split(/\s+/).pop() ?? "?").charAt(0).t
 
 type Tab = "overview" | "students" | "topics" | "hoclieu" | "grading" | "content";
 
+/**
+ * CÔNG TẮC TAB "CHẤM BÀI". TẠM TẮT 01/08 theo quyết định của chủ dự án: bài tự
+ * luận nay AI chấm hết, giáo viên không chấm nữa.
+ *
+ * Vì sao tắt chứ không xoá: đo trên prod ngày đổi — 69 bản nộp, **0 bản từng
+ * được chấm Đạt**, 60 bản nằm chờ. Vòng "học sinh nộp → giáo viên chấm" chưa
+ * khép nổi lần nào, mà [NOPBAI] thường là câu DOK≥3 duy nhất của node nên 60 em
+ * đó có lộ trình đứng im. Mã của `GradingTab` và edge function `teacher-grading`
+ * GIỮ NGUYÊN, chạy được ngay: đổi cờ này thành `true` là tab hiện lại.
+ */
+const GRADING_ENABLED = false;
+
 export default function TeacherDashboard() {
   const { session, profile, roles, ready } = useAuth();
   const [data, setData] = useState<TeacherStats | null>(null);
@@ -328,7 +340,9 @@ function Console({
     { id: "students", label: "Học sinh", icon: <Users aria-hidden strokeWidth={2} />, badge: roster?.total },
     { id: "topics", label: "Chủ đề", icon: <BookOpen aria-hidden strokeWidth={2} />, badge: topics.length || undefined },
     { id: "hoclieu", label: "Học liệu", icon: <Gift aria-hidden strokeWidth={2} /> },
-    { id: "grading", label: "Chấm bài", icon: <ClipboardCheck aria-hidden strokeWidth={2} />, badge: gradingCount || undefined },
+    ...(GRADING_ENABLED
+      ? [{ id: "grading" as const, label: "Chấm bài", icon: <ClipboardCheck aria-hidden strokeWidth={2} />, badge: gradingCount || undefined }]
+      : []),
     { id: "content", label: "Duyệt & nội dung", icon: <Inbox aria-hidden strokeWidth={2} />, badge: pendingReview || undefined },
   ];
 
@@ -395,7 +409,9 @@ function Console({
       {tab === "students" && <StudentsTab roster={roster} studentNodes={data.studentNodes} />}
       {tab === "topics" && <TopicsTab topics={topics} />}
       {tab === "hoclieu" && <HocLieuTab />}
-      {tab === "grading" && <GradingTab onCount={setGradingCount} />}
+      {/* Cờ tắt thì tab không có trong thanh, nhưng vẫn phải chặn ở đây: state
+          `tab` có thể còn giữ "grading" từ trước lúc tắt. */}
+      {GRADING_ENABLED && tab === "grading" && <GradingTab onCount={setGradingCount} />}
       {tab === "content" && (
         <ContentTab
           data={data}

@@ -39,6 +39,7 @@ import * as G from "../lib/gamify";
 import * as Prefs from "../lib/prefs";
 import { usePresence, PRESENCE_ENABLED } from "../lib/presence";
 import LearnAside from "./LearnAside";
+import BaiLamEditor from "./BaiLamEditor";
 import { useRotation, pickGreeting } from "../lib/nudges";
 import { MathText } from "../lib/mathrender";
 import "katex/dist/katex.min.css";
@@ -157,7 +158,6 @@ export default function TutorApp() {
   // Đợt B: bảng điểm rubric (viết/nói) — formative.
   const [rubricResult, setRubricResult] = useState<RubricResult | null>(null);
   const [workFile, setWorkFile] = useState<File | null>(null); // tệp bài làm chờ nộp
-  const [aiPassed, setAiPassed] = useState(false); // AI sơ khảo ĐẠT bài gõ của câu hiện tại
   const [stepAns, setStepAns] = useState<Record<number, string>>({});
   // Bài làm CHỮ của từng bước (bước không phải Có/Không) — lỗi #11: trước đây
   // chỉ có MỘT ô gõ cho cả câu, đặt tận dưới khung đối thoại.
@@ -528,7 +528,6 @@ export default function TutorApp() {
     setInteractiveAns(null);
     setRubricResult(null);
     setWorkFile(null);
-    setAiPassed(false);
     setStepAns({});
     setStepText({});
     setVerdict(null);
@@ -605,7 +604,6 @@ export default function TutorApp() {
     setInteractiveAns(null);
     setRubricResult(null);
     setWorkFile(null);
-    setAiPassed(false);
     setStepAns({});
     setStepText({});
     setAttempts(0);
@@ -778,9 +776,10 @@ export default function TutorApp() {
     }
   }
 
-  /** Nộp bài tự luận dài. Q1 (29/07): AI chỉ đọc SƠ BỘ — điểm/mastery tính khi
-   *  GIÁO VIÊN duyệt. Bài gõ của em hiện thành bong bóng trong khung đối thoại
-   *  (lỗi 15 — trước đây lời em gửi biến mất, chỉ thấy sư tử nói một mình). */
+  /** Nộp bài tự luận dài. Từ 01/08 AI chấm HẲN: đạt là mastery + XP ghi ngay,
+   *  chưa đạt thì nói thiếu ý gì rồi mời nộp lại. Bài gõ của em hiện thành bong
+   *  bóng trong khung đối thoại (lỗi 15 — trước đây lời em gửi biến mất, chỉ
+   *  thấy sư tử nói một mình). */
   async function submitWorkFile() {
     if (!ses || !q || busy || (!text.trim() && !workFile)) return;
     setBusy(true);
@@ -803,14 +802,28 @@ export default function TutorApp() {
         return;
       }
       setAttempts((n) => n + 1);
-      if (res.aiPreview?.dung === false) {
-        // AI đọc sơ thấy thiếu ý → giữ nguyên bài gõ cho em bổ sung rồi NỘP LẠI.
+      if (res.dat === false) {
+        // Chưa đạt → giữ nguyên bài gõ cho em bổ sung rồi NỘP LẠI.
         wrongRef.current.add(q.id);
         if (res.feedback) setMsgs((m) => [...m, { role: "hint", text: res.feedback! }]);
         setVerdict("retry");
         return;
       }
-      setAiPassed(res.aiPreview?.dung === true);
+      // `dat == null` = server GIỮ bài nhưng chưa chấm được (LLM hỏng / hết
+      // ngân sách token). KHÔNG được vẽ ra như đã xong: giữ ô nhập, mời thử
+      // lại. Đây là chỗ dễ nói dối nhất trong cả màn này.
+      if (res.dat == null) {
+        if (res.feedback) setMsgs((m) => [...m, { role: "hint", text: res.feedback! }]);
+        return;
+      }
+      // XP server-authoritative, cùng đường với nhánh trắc nghiệm: số của server
+      // thắng, máy chỉ chép lại. Trước 01/08 nhánh này không có XP nào để chép
+      // vì bài nộp không được tính điểm.
+      if (res.xp) {
+        if (res.xp.gained > 0) setEarned((e) => e + res.xp!.gained);
+        setLastGain(res.xp.gained);
+        setProgress(G.syncFromServer(res.xp));
+      }
       if (res.feedback) setMsgs((m) => [...m, { role: "tutor", text: res.feedback! }]);
       setVerdict("submitted");
     } catch (e) {
@@ -1821,34 +1834,27 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* NỘP BÀI — câu tự luận dài. GÕ là đường chính (AI chấm ngay, thầy cô
-          xem lại sau); ảnh/tệp cho phần phải VẼ hoặc em thích viết tay. Hiện cả
-          khi verdict='retry' để em sửa bài theo góp ý rồi nộp lại. */}
+      {/* NỘP BÀI — câu tự luận dài. Từ 01/08 AI chấm hẳn, nên cả ba đường vào
+          đều dẫn tới cùng một kết quả ngay tại chỗ: gõ (có ô công thức), tệp
+          Word, hoặc ảnh bài viết tay. Hiện cả khi verdict='retry' để em sửa bài
+          theo góp ý rồi nộp lại. */}
       {q && q.kind === "nop_bai" && verdict !== "ok" && verdict !== "submitted" && (
         <div className="submit-box">
-          <textarea
-            key={q.id}
-            className="ans-input work-input"
-            rows={3}
-            placeholder="Viết bài làm của em ở đây — giải thích như đang nói với bạn…"
+          <BaiLamEditor
+            key={q.id} /* câu mới → ô mới, xoá chiều cao đã nới của câu trước */
             value={text}
+            onChange={setText}
             disabled={busy}
-            onChange={(e) => {
-              setText(e.target.value);
-              const el = e.currentTarget;
-              el.style.height = "auto";
-              el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
-            }}
-            autoCapitalize="sentences"
-            autoCorrect="off"
-            spellCheck={false}
           />
           <div className="submit-row">
             <label className="submit-attach">
               <input
                 className="sr-only"
                 type="file"
-                accept="image/*,.pdf,.doc,.docx,.txt"
+                /* .pdf và .doc cũ CỐ Ý không còn trong danh sách: server đọc
+                   không ra hai định dạng đó, nhận vào rồi báo hỏng ở bước sau
+                   thì em mất công tải lên một lượt mới biết. */
+                accept="image/*,.docx,.txt"
                 /* Điện thoại: mở thẳng camera sau thay vì thư viện ảnh. */
                 capture="environment"
                 disabled={busy}
@@ -1861,7 +1867,7 @@ export default function TutorApp() {
               <span>
                 {workFile
                   ? `${workFile.name} (${Math.round(workFile.size / 1024)} KB)`
-                  : "Đính kèm ảnh bài làm (nếu có hình vẽ)"}
+                  : "Nộp ảnh bài viết tay hoặc tệp Word"}
               </span>
             </label>
             {/* Đ1 — chụp thẳng bằng camera máy. Ô "chọn tệp" chỉ tiện trên điện
@@ -1877,8 +1883,8 @@ export default function TutorApp() {
             )}
           </div>
           <p className="muted submit-note">
-            Em gõ bài làm là hay nhất — trợ lý đọc được ngay. Bài có hình vẽ thì chụp ảnh đính kèm.
-            Thầy cô luôn xem lại sau.
+            Nộp xong là biết kết quả ngay. Chưa đạt thì mình nói rõ còn thiếu ý nào — sửa rồi nộp
+            lại bao nhiêu lần cũng được.
           </p>
         </div>
       )}
@@ -1979,24 +1985,18 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* Đã nộp (Q1 29/07): AI chỉ đọc SƠ BỘ — nói thật là chờ thầy cô duyệt,
-          không hứa "được tính điểm luôn" nữa (AI không còn quyền đó). */}
+      {/* ĐÃ NỘP VÀ ĐẠT. Từ 01/08 `verdict='submitted'` CHỈ đặt khi bài đạt —
+          chưa đạt thì rơi về 'retry' (còn ô nhập để sửa), còn chưa chấm được
+          thì không đổi trạng thái. Nên ở đây không còn nhánh "chờ thầy cô" nào:
+          nói thẳng là xong, và cho cái reo đúng lúc em xứng đáng nghe. */}
       {verdict === "submitted" && (
-        <div className="lfoot" data-verdict={aiPassed ? "ok" : "done"} role="status">
+        <div className="lfoot" data-verdict="ok" role="status">
           <div className="lfoot-inner">
             <div className="lfoot-says">
               <Lion mood="cheer" size={48} decorative />
-              {aiPassed ? (
-                <>
-                  <b className="lfoot-title">Đã nộp — mình đọc sơ thấy bài đủ ý chính!</b>
-                  <span className="muted">Thầy cô duyệt là bài được tính vào lộ trình ngay.</span>
-                </>
-              ) : (
-                <>
-                  <b className="lfoot-title">Đã nộp bài — thầy cô sẽ chấm sau</b>
-                  <span className="muted">Chấm xong em sẽ thấy kết quả ngay trên lộ trình.</span>
-                </>
-              )}
+              <b className="lfoot-title">Bài đạt rồi!</b>
+              {lastGain > 0 && <span className="xp-chip num">+{lastGain} XP</span>}
+              <span className="muted">Mình đã ghi bài này vào lộ trình của em.</span>
             </div>
             <button className="btn btn-block" data-loading={busy || undefined} onClick={advance}>
               {last ? "HOÀN THÀNH" : "HỌC TIẾP"}

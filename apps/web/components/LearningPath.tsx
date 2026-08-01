@@ -11,8 +11,11 @@ import { useCountUp, useGrow } from "../lib/anim";
  * Trạng thái một điểm kiến thức trên lộ trình.
  * `stale` = em đã học, nhưng giáo viên đã sửa NGHĨA của nội dung sau đó.
  * Dấu "đã học" không bao giờ bị xoá — chỉ chuyển vàng để mời ôn lại.
- * `redo` = em đã NỘP bài làm ngoài nhưng thầy cô chấm CHƯA ĐẠT → bàn chân đỏ,
- * mời làm lại. Trạng thái này ĐÈ lên mọi trạng thái khác và không bị khoá.
+ * `redo` = em đã NỘP bài tự luận nhưng bị chấm CHƯA ĐẠT → bàn chân đỏ, mời làm
+ * lại. Trạng thái này ĐÈ lên mọi trạng thái khác và không bị khoá.
+ * (Từ 01/08 người chấm là AI, ngay lúc nộp — trước đó là giáo viên, và dấu đỏ
+ * phải chờ tới khi có người rảnh xem. Các thẻ "Thầy cô nhắn" bên dưới vẫn giữ
+ * vì lời nhắn cũ của giáo viên còn nằm trong dữ liệu.)
  */
 export type NodeState = "mastered" | "stale" | "current" | "available" | "locked" | "redo";
 
@@ -55,7 +58,7 @@ const HINT: Record<NodeState, string> = {
   current: "Bắt đầu ở đây",
   available: "Chưa học",
   locked: "Chưa mở",
-  redo: "Thầy cô yêu cầu làm lại bài này",
+  redo: "Bài nộp chưa đạt — sửa rồi nộp lại",
 };
 
 /* Icon theo trạng thái (hi-fi 3a) — node `available` KHÔNG dùng icon mà hiện
@@ -253,7 +256,7 @@ export default function LearningPath({
     // nên số dang dở / chờ chấm phải nhập vào aria-label của chính cái nút.
     const extra = [
       showProg ? `đã làm ${n.doneCount ?? 0} trên ${n.totalCount ?? 0} câu` : null,
-      waiting ? `${n.pending} bài đang chờ thầy cô chấm` : null,
+      waiting ? `${n.pending} bài đang chờ chấm` : null,
     ].filter(Boolean);
     return (
       <li
@@ -319,10 +322,11 @@ export default function LearningPath({
             )}
           </span>
         </button>
-        {/* Bài đang chờ thầy cô chấm — nói ra, kẻo em tưởng app nuốt bài nộp.
-            Bài ĐANG HỌC không cần badge rời: chờ chấm đã nằm trong .node-card. */}
+        {/* Bài đang chờ chấm. Từ 01/08 AI chấm ngay lúc nộp nên badge này gần
+            như không còn xuất hiện — nó chỉ còn cho bản nộp cũ chưa chạy lại và
+            cho lúc AI tạm hỏng. Vẫn phải nói ra, kẻo em tưởng app nuốt bài. */}
         {waiting && !isCurrent && (
-          <span className="node-pending" aria-hidden title={`${n.pending} bài đang chờ thầy cô chấm`}>
+          <span className="node-pending" aria-hidden title={`${n.pending} bài đang chờ chấm`}>
             <Hourglass aria-hidden strokeWidth={2.25} />
             chờ chấm
           </span>
@@ -444,8 +448,8 @@ export default function LearningPath({
             {/* Đếm theo CÂU, khớp đúng số nút bên dưới — đếm theo bài thì hiện
                 "1 bài cần làm lại" mà dưới lại có hai nút. */}
             <span className="notice-text">
-              Thầy cô đã chấm — <b>{redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0)} bài</b> cần
-              làm lại
+              <b>{redoNodes.reduce((n, x) => n + Math.max(1, x.redo?.length ?? 1), 0)} bài</b> nộp chưa đạt —
+              sửa rồi nộp lại
             </span>
             <ChevronDown className="notice-chev" aria-hidden strokeWidth={2.5} />
           </summary>

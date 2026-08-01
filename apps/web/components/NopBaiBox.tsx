@@ -5,9 +5,12 @@
  *
  * Vì sao có (lỗi 1, người thử báo 28/07): em tải phiếu về, làm ra giấy, rồi
  * "không có phần upload lên, hoặc chụp hình lên" — bài làm chết ở đó. Khối này
- * dùng lại nguyên đường `submitWork` + `uploadWork` sẵn có nên bài chảy đúng vào
- * hàng đợi chấm của giáo viên, KHÔNG đổi schema: bản nộp vẫn gắn vào một câu
- * [NOPBAI] có thật của bài (server `resources` trả `nopBaiQuestionId`).
+ * dùng lại nguyên đường `submitWork` + `uploadWork` sẵn có, KHÔNG đổi schema:
+ * bản nộp vẫn gắn vào một câu [NOPBAI] có thật của bài (server `resources` trả
+ * `nopBaiQuestionId`).
+ *
+ * 01/08 — AI CHẤM HẾT, không còn hàng đợi giáo viên. Nộp xong biết kết quả
+ * ngay; chưa đạt thì được nói rõ thiếu ý nào và nộp lại bao nhiêu lần cũng được.
  *
  * Kèm Đ1 (người thử 3 đề xuất): CHỤP BẰNG CAMERA LAPTOP — nhiều em học bằng máy
  * của trường, không có điện thoại. `capture="environment"` lo phần điện thoại;
@@ -17,6 +20,7 @@
 import { useState } from "react";
 import { Check, Paperclip, Send, X } from "lucide-react";
 import { diagnose, submitWork, uploadWork, type Subject } from "../lib/api";
+import BaiLamEditor from "./BaiLamEditor";
 import CameraShot from "./CameraShot";
 import Lion from "./Lion";
 
@@ -35,6 +39,8 @@ export default function NopBaiBox({
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** Kết quả chấm: true đạt · false chưa đạt · null chưa chấm được. */
+  const [dat, setDat] = useState<boolean | null>(null);
 
   async function send() {
     if (busy || (!text.trim() && !file)) return;
@@ -61,8 +67,15 @@ export default function NopBaiBox({
         setMsg(res.feedback ?? "Bài chưa đủ để nộp — bạn viết rõ hơn rồi gửi lại nhé.");
         return;
       }
+      setMsg(res.feedback ?? null);
+      // CHƯA đạt hoặc CHƯA chấm được thì KHÔNG chuyển sang màn "xong": giữ
+      // nguyên bài em vừa viết để sửa rồi nộp lại — đóng màn lại là mất bài.
+      if (res.dat !== true) {
+        setDat(res.dat ?? null);
+        return;
+      }
+      setDat(true);
       setDone(true);
-      setMsg(res.feedback ?? "Đã nhận bài của bạn! Thầy cô sẽ chấm và báo lại.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -76,7 +89,7 @@ export default function NopBaiBox({
         <div className="nb-done">
           <Lion mood="cheer" size={48} decorative />
           <div>
-            <b>Đã nộp bài cho thầy cô!</b>
+            <b>Bài đạt rồi — đã ghi vào lộ trình!</b>
             <p className="muted">{msg}</p>
           </div>
         </div>
@@ -89,28 +102,20 @@ export default function NopBaiBox({
       <header className="nb-head">
         <Send aria-hidden strokeWidth={2.25} />
         <div>
-          <b>Làm xong phiếu rồi? Nộp cho thầy cô</b>
+          <b>Làm xong phiếu rồi? Nộp bài</b>
           <span className="muted">
-            Gõ bài làm, hoặc chụp ảnh bài trên giấy. Thầy cô chấm xong sẽ báo lại trên lộ trình.
+            Gõ bài làm (có ô chèn công thức), hoặc chụp ảnh bài trên giấy. Nộp xong biết kết quả ngay.
           </span>
         </div>
       </header>
 
-      <textarea
-        className="ans-input"
-        rows={2}
-        placeholder="Gõ bài làm của bạn ở đây (nếu bài viết tay thì chụp ảnh bên dưới)…"
+      <BaiLamEditor
         value={text}
+        onChange={setText}
         disabled={busy}
-        onChange={(e) => {
-          setText(e.target.value);
-          const el = e.currentTarget;
-          el.style.height = "auto";
-          el.style.height = `${Math.min(el.scrollHeight, 260)}px`;
-        }}
-        autoCapitalize="sentences"
-        autoCorrect="off"
-        spellCheck={false}
+        rows={2}
+        maxHeight={260}
+        placeholder="Gõ bài làm của bạn ở đây (bài viết tay thì chụp ảnh bên dưới)…"
       />
 
       <div className="nb-row">
@@ -118,7 +123,9 @@ export default function NopBaiBox({
           <input
             className="sr-only"
             type="file"
-            accept="image/*,.pdf,.doc,.docx,.txt"
+            /* .pdf và .doc cũ CỐ Ý bỏ khỏi danh sách: server đọc không ra hai
+               định dạng đó, nhận vào rồi mới báo hỏng là bắt em tải công cốc. */
+            accept="image/*,.docx,.txt"
             capture="environment"
             disabled={busy}
             onChange={(e) => {
@@ -127,7 +134,7 @@ export default function NopBaiBox({
             }}
           />
           <Paperclip aria-hidden strokeWidth={2.25} />
-          <span>{file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : "Chọn ảnh / tệp bài làm"}</span>
+          <span>{file ? `${file.name} (${Math.round(file.size / 1024)} KB)` : "Chọn ảnh bài viết tay / tệp Word"}</span>
         </label>
         {!file && <CameraShot disabled={busy} onCapture={setFile} onError={setErr} />}
         {file && (
@@ -137,7 +144,9 @@ export default function NopBaiBox({
         )}
       </div>
 
-      {msg && <p className="nb-msg">{msg}</p>}
+      {/* `data-dat` cho CSS tô đúng giọng: chưa đạt là lời hướng dẫn (không phải
+          báo lỗi đỏ lòm), chưa chấm được là lời trấn an. */}
+      {msg && <p className="nb-msg" data-dat={dat === false ? "chua" : dat === null ? "cho" : undefined}>{msg}</p>}
       {err && <p className="nb-err">{err}</p>}
 
       <button
@@ -147,7 +156,7 @@ export default function NopBaiBox({
         onClick={send}
       >
         <Check aria-hidden strokeWidth={2.5} />
-        NỘP BÀI CHO THẦY CÔ
+        {dat === false ? "NỘP LẠI" : "NỘP BÀI"}
       </button>
     </section>
   );

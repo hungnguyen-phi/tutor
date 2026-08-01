@@ -12795,3 +12795,105 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 .step-pill[aria-pressed="true"] {
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--navy) 12%, transparent);
 }
+
+/* ── Ô VIẾT BÀI TỰ LUẬN: chữ + công thức (BaiLamEditor / MathKeypad) ───────
+   Từ 01/08 bài tự luận do AI chấm, nên em phải GÕ được công thức chứ không
+   chụp ảnh nữa. Khối này gom ba thứ thành một vật thể liền: ô chữ, nút mở bảng
+   công thức, và bản xem trước — rời nhau ra thì màn nộp bài trông như ba món
+   lạ xếp cạnh nhau. */
+.ble {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ble-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+/* Nút mở bảng công thức: cùng họ viền với ô đáp án (--pick-line, 3,26:1) để đọc
+   ra là "chỗ nhập liệu", không phải một nút hành động nguy hiểm. */
+.ble-fx {
+  border-color: var(--pick-line);
+  min-height: 40px;
+  gap: 6px;
+}
+.ble-fx[aria-expanded="true"] {
+  border-color: var(--pick-strong);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--navy) 10%, transparent);
+}
+.ble-tip {
+  font-size: 0.86rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* Bảng soạn công thức — nổi lên như một khay kéo ra từ ô chữ. */
+.mk-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--pick-line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff 0%, #f7fafe 100%);
+  box-shadow: inset 0 1px 2px rgb(38 39 93 / 6%);
+}
+.mk-host {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+/* math-field là web component: cho nó chiếm trọn hàng và mặc bộ chữ của app. */
+.mk-host .mk-field {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 10px;
+  font-size: 1.15rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+}
+.mk-host .mk-field:focus-within {
+  border-color: var(--pick-strong);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--navy) 10%, transparent);
+}
+.mk-loading {
+  font-size: 0.9rem;
+  margin: 0;
+}
+.mk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mk-hint {
+  font-size: 0.84rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+/* Xem trước: KHÔNG phải một khung cảnh báo — nó là "bài của em, sạch sẽ". Nền
+   trắng, viền mảnh, nhãn nhỏ ở trên. */
+.ble-preview {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.ble-preview-label {
+  display: block;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.ble-preview-body {
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-x: auto; /* công thức dài không được đẩy ngang cả trang */
+}

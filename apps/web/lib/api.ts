@@ -381,12 +381,17 @@ export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });
 
 /**
- * Nộp bài tự luận dài. Hai đường trong một:
- *  · `text` — bài em GÕ: AI đọc SƠ BỘ để phản hồi ngay + gợi ý cho giáo viên,
- *    nhưng KHÔNG còn tự tính điểm/mastery (Q1 29/07) — chỉ giáo viên bấm Đạt
- *    mới tính vào lộ trình.
- *  · `filePath` — ảnh/tệp đã tải thẳng lên storage bằng JWT của học sinh
- *    (policy `student_work_insert` chặn ghi ra ngoài thư mục của mình).
+ * Nộp bài tự luận dài — AI CHẤM HẾT (chủ dự án chốt 01/08; trước đó phán quyết
+ * là của giáo viên, nhưng đo được 0/69 bản nộp từng được chấm Đạt).
+ *
+ * Ba cửa vào, server quy về một chuỗi rồi mới chấm:
+ *  · `text`     — bài em gõ (công thức bọc trong `$…$`, xem BaiLamEditor).
+ *  · `filePath` — ẢNH bài viết tay → mô hình nhìn chép lại, hoặc tệp .docx →
+ *    server tự giải nén, đổi công thức Word sang LaTeX. Tệp tải thẳng lên
+ *    storage bằng JWT của học sinh (policy `student_work_insert` chặn ghi ra
+ *    ngoài thư mục của mình).
+ * Gửi cả hai cũng được — em gõ lời giải rồi chụp thêm hình vẽ là chuyện thường,
+ * và server chấm trên BÀI GỘP chứ không chấm nửa này bỏ nửa kia.
  */
 export const submitWork = (
   sessionId: string,
@@ -397,13 +402,24 @@ export const submitWork = (
 ) =>
   callFn<{
     kind: string;
-    /** false = cổng ý định chặn (bài rác / lời xin trợ giúp) — chưa nhận bài. */
+    /** false = cổng ý định chặn (bài rác / lời xin trợ giúp / tệp không đọc
+     *  được) — chưa nhận bài, ô nhập giữ nguyên cho em sửa. */
     submitted: boolean;
-    /** true = bài nằm hàng đợi giáo viên; điểm/mastery tính khi thầy cô duyệt. */
-    pendingTeacher?: boolean;
+    /**
+     * PHÁN QUYẾT (01/08 — AI chấm hết, giáo viên không chấm nữa):
+     *   true  = đạt, mastery + XP đã ghi.
+     *   false = chưa đạt, xem `thieu`, nộp lại bao nhiêu lần cũng được.
+     *   null  = CHƯA chấm được (LLM hỏng / hết ngân sách token). Bài vẫn giữ.
+     *           Đây KHÔNG phải điểm trượt — client phải nói đúng như vậy.
+     */
+    dat?: boolean | null;
     feedback?: string;
-    /** AI đọc sơ bộ (chỉ tham khảo, KHÔNG phải kết quả chấm). */
-    aiPreview?: { dung: boolean; thieu: string };
+    /** Ý còn thiếu, chỉ có khi `dat === false`. */
+    thieu?: string;
+    /** Chỗ đọc hụt khi bài nộp bằng ảnh/Word (ảnh mờ, công thức Word lạ). */
+    canhBao?: string;
+    mastered?: boolean;
+    xp?: { total: number; streak: number; gained: number };
   }>("chat-turn", {
     sessionId,
     action: "submit-work",
