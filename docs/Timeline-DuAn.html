@@ -1,0 +1,612 @@
+<title>AI Tutor — Hành trình tới đợt thử 2</title>
+<style>
+  :root {
+    --navy: #26275d;
+    --navy-soft: #4a4c85;
+    --gold: #f9dd0e;
+    --gold-deep: #a68a00;
+    --canvas: #f6f9fd;
+    --surface: #ffffff;
+    --ink: #26275d;
+    --ink-2: #3d4761;
+    --muted: #5a6b8c;
+    --line: #dce6f2;
+    --ok: #146c43;
+    --ok-bg: #e8f4ec;
+    --warn: #b45309;
+    --warn-bg: #fdf1e3;
+    --rail: #cddbee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #aeb1ea;
+      --navy-soft: #8e91d0;
+      --gold: #f9dd0e;
+      --gold-deep: #f0d64a;
+      --canvas: #0f1428;
+      --surface: #191f38;
+      --ink: #eef0f8;
+      --ink-2: #c2c9dc;
+      --muted: #93a0bd;
+      --line: #2b3253;
+      --ok: #6fd39b;
+      --ok-bg: #16301f;
+      --warn: #f0ac5e;
+      --warn-bg: #33230f;
+      --rail: #333c63;
+    }
+  }
+  :root[data-theme="dark"] {
+    --navy: #aeb1ea; --navy-soft: #8e91d0; --gold: #f9dd0e; --gold-deep: #f0d64a;
+    --canvas: #0f1428; --surface: #191f38; --ink: #eef0f8; --ink-2: #c2c9dc;
+    --muted: #93a0bd; --line: #2b3253; --ok: #6fd39b; --ok-bg: #16301f;
+    --warn: #f0ac5e; --warn-bg: #33230f; --rail: #333c63;
+  }
+  :root[data-theme="light"] {
+    --navy: #26275d; --navy-soft: #4a4c85; --gold: #f9dd0e; --gold-deep: #a68a00;
+    --canvas: #f6f9fd; --surface: #ffffff; --ink: #26275d; --ink-2: #3d4761;
+    --muted: #5a6b8c; --line: #dce6f2; --ok: #146c43; --ok-bg: #e8f4ec;
+    --warn: #b45309; --warn-bg: #fdf1e3; --rail: #cddbee;
+  }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink-2);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+
+  /* ── Đầu trang ─────────────────────────────────────────────── */
+  header { margin-bottom: 3rem; }
+  .kicker {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 0.6rem;
+  }
+  h1 {
+    margin: 0 0 0.75rem; color: var(--ink);
+    font-size: clamp(1.9rem, 5vw, 2.9rem); line-height: 1.12;
+    font-weight: 800; letter-spacing: -0.02em; text-wrap: balance;
+  }
+  .lede { margin: 0; max-width: 42rem; font-size: 1.05rem; color: var(--muted); }
+
+  /* ── Dải số ────────────────────────────────────────────────── */
+  .stats {
+    display: grid; gap: 1px; margin: 2.5rem 0 0;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    background: var(--line); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden;
+  }
+  .stat { background: var(--surface); padding: 1rem 1.1rem; }
+  .stat b {
+    display: block; color: var(--ink); font-size: 1.6rem; font-weight: 800;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  }
+  .stat span { font-size: 0.8125rem; color: var(--muted); }
+
+  /* ── Timeline ──────────────────────────────────────────────── */
+  .tl { margin-top: 3.5rem; display: flex; flex-direction: column; gap: 1.75rem; }
+  .row { display: grid; grid-template-columns: 7.5rem 1fr; gap: 1.5rem; align-items: start; }
+  @media (max-width: 40rem) { .row { grid-template-columns: 1fr; gap: 0.5rem; } }
+
+  .when { text-align: right; padding-top: 0.15rem; }
+  @media (max-width: 40rem) { .when { text-align: left; } }
+  .date {
+    display: block; color: var(--ink); font-weight: 700;
+    font-variant-numeric: tabular-nums; font-size: 0.95rem;
+  }
+  .count { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .card {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 14px; padding: 1.15rem 1.35rem;
+  }
+  /* Đường ray nối các mốc — vẽ từ thẻ, không phải phần tử rỗng */
+  .row:not(:last-child) .card::after {
+    content: ""; position: absolute; left: -1.5rem; top: 1.6rem; bottom: -2.6rem;
+    width: 2px; background: var(--rail);
+  }
+  @media (max-width: 40rem) { .row .card::after { display: none; } }
+  .card::before {
+    content: ""; position: absolute; left: calc(-1.5rem - 4px); top: 1.35rem;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--rail); box-shadow: 0 0 0 4px var(--canvas);
+  }
+  @media (max-width: 40rem) { .card::before { display: none; } }
+
+  h2 {
+    margin: 0 0 0.45rem; color: var(--ink); font-size: 1.0625rem;
+    font-weight: 700; letter-spacing: -0.005em;
+  }
+  .card p { margin: 0; font-size: 0.9375rem; }
+  .card p + p { margin-top: 0.55rem; }
+
+  ul.facts { margin: 0.7rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.35rem; }
+  ul.facts li { font-size: 0.875rem; padding-left: 1.1rem; position: relative; }
+  ul.facts li::before {
+    content: ""; position: absolute; left: 0; top: 0.62em;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--navy-soft);
+  }
+
+  .tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 999px;
+    background: var(--ok-bg); color: var(--ok); margin-bottom: 0.55rem;
+  }
+  .tag[data-kind="thu"] { background: var(--warn-bg); color: var(--warn); }
+
+  /* Mốc HÔM NAY — điểm nhấn gold duy nhất của trang */
+  .row.today .card {
+    border-color: var(--gold); border-width: 2px;
+    box-shadow: 0 10px 30px -18px rgb(38 39 93 / 45%);
+  }
+  .row.today .card::before { background: var(--gold); width: 12px; height: 12px; left: calc(-1.5rem - 5px); }
+  .row.today h2 { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .today-badge {
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--gold); color: #26275d; padding: 0.2rem 0.55rem; border-radius: 999px;
+  }
+
+  /* ── Bảng việc đợt thử 2 ───────────────────────────────────── */
+  .check { margin-top: 3.5rem; }
+  .check h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+  .tbl-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 0.9rem; }
+  th, td { padding: 0.7rem 1rem; text-align: left; border-bottom: 1px solid var(--line); }
+  th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td b { color: var(--ink); }
+  .pill { font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+  .pill.on { background: var(--ok-bg); color: var(--ok); }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+
+  /* ── Thanh tiến độ ─────────────────────────────────────────── */
+  .prog {
+    margin-top: 2.5rem; padding: 1.35rem 1.5rem;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  }
+  .prog-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem;
+  }
+  .prog-head h2 { margin: 0; font-size: 1.0625rem; }
+  .prog-pct {
+    color: var(--ink); font-size: 2rem; font-weight: 800;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1;
+  }
+  .prog-pct span { font-size: 1.1rem; color: var(--muted); font-weight: 700; }
+  .bar {
+    display: flex; height: 12px; border-radius: 999px; overflow: hidden;
+    background: var(--line);
+  }
+  .seg { width: var(--w); display: block; }
+  .seg.done { background: var(--navy); }
+  .seg.doing { background: var(--gold); }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem;
+    margin-top: 0.8rem; font-size: 0.8125rem; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .legend-note { color: var(--muted); font-style: italic; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+  .dot.done { background: var(--navy); }
+  .dot.doing { background: var(--gold); }
+  .dot.todo { background: var(--line); box-shadow: inset 0 0 0 1px var(--rail); }
+  .prog-note { margin: 0.9rem 0 0; font-size: 0.875rem; }
+  .warn-note {
+    padding: 0.7rem 0.9rem; border-radius: 10px;
+    background: var(--warn-bg); color: var(--warn);
+  }
+  .warn-note b, .warn-note i { color: inherit; }
+
+  /* ── Việc còn lại ──────────────────────────────────────────── */
+  .rest { margin-top: 3.5rem; }
+  .rest > h2 { font-size: 1.25rem; margin-bottom: 0.4rem; }
+  .rest > p.intro { margin: 0 0 1.25rem; font-size: 0.9375rem; color: var(--muted); max-width: 44rem; }
+  .rest-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+  .lot {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 1.05rem 1.2rem;
+  }
+  .lot h3 {
+    margin: 0 0 0.15rem; color: var(--ink); font-size: 0.9375rem; font-weight: 700;
+  }
+  .lot .who { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 0.6rem; }
+  .lot ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; }
+  .lot li { font-size: 0.8125rem; padding-left: 1rem; position: relative; }
+  .lot li::before {
+    content: ""; position: absolute; left: 0; top: 0.6em;
+    width: 4px; height: 4px; border-radius: 50%; background: var(--navy-soft);
+  }
+
+  /* ── Ngưỡng go-live ────────────────────────────────────────── */
+  .gate { margin-top: 3.5rem; }
+  .gate > h2 { font-size: 1.25rem; margin-bottom: 0.4rem; }
+  .gate .intro { margin: 0 0 1.25rem; font-size: 0.9375rem; color: var(--muted); max-width: 46rem; }
+  ol.gates {
+    margin: 0; padding: 0; list-style: none;
+    display: grid; gap: 0.75rem; counter-reset: g;
+  }
+  .gate-item {
+    counter-increment: g;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 1rem 1.2rem 1rem 3.1rem; position: relative;
+  }
+  /* Số thứ tự CÓ nghĩa ở đây: ba cửa đầu là điều kiện kỹ thuật, bốn cửa sau
+     cần người — thứ tự mã hoá đúng trình tự phải qua. */
+  .gate-item::before {
+    content: counter(g);
+    position: absolute; left: 1.1rem; top: 1.05rem;
+    width: 1.35rem; height: 1.35rem; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 0.75rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--ok-bg); color: var(--ok);
+  }
+  .gate-item[data-state="off"]::before { background: var(--warn-bg); color: var(--warn); }
+  .gate-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.4rem;
+  }
+  .gate-head b { color: var(--ink); font-size: 0.9375rem; }
+  .gate-item .how { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+  .gate-item .now { margin: 0.4rem 0 0; font-size: 0.8125rem; }
+  .gate-foot {
+    margin: 1.25rem 0 0; padding: 0.85rem 1.1rem; border-radius: 12px;
+    background: var(--warn-bg); color: var(--warn); font-size: 0.875rem;
+  }
+  .gate-foot b { color: inherit; }
+
+  footer { margin-top: 3rem; font-size: 0.8125rem; color: var(--muted); }
+  a { color: var(--navy); }
+  :where(a, button):focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">AI Tutor · Trường Liên cấp Việt Anh</p>
+    <h1>Từ bản dựng đầu tiên đến đợt thử thứ hai</h1>
+    <p class="lede">
+      Gia sư AI đối thoại kiểu Socratic cho Toán 10 và Tiếng Anh 10. Dòng thời gian dưới đây
+      dựng từ lịch sử commit thật và số đo trên cơ sở dữ liệu đang chạy — không phải kế hoạch,
+      mà là những gì đã xảy ra.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><b>135</b><span>commit</span></div>
+      <div class="stat"><b>1.868</b><span>câu hỏi đang hoạt động</span></div>
+      <div class="stat"><b>204</b><span>điểm kiến thức</span></div>
+      <div class="stat"><b>24</b><span>lỗi vào hồ sơ</span></div>
+      <div class="stat"><b>118</b><span>ca kiểm tự động</span></div>
+    </div>
+
+    <section class="prog">
+      <div class="prog-head">
+        <h2>Tiến độ tới pilot trọn vẹn</h2>
+        <b class="prog-pct">88,1<span>%</span></b>
+      </div>
+      <div class="bar" role="img"
+           aria-label="88,1 phần trăm: 99 việc xong, 6 đang làm, 10 chưa bắt đầu trên tổng 115">
+        <i class="seg done" style="--w: 86.1%"></i>
+        <i class="seg doing" style="--w: 5.2%"></i>
+      </div>
+      <div class="legend">
+        <span><i class="dot done"></i><b>99</b> xong</span>
+        <span><i class="dot doing"></i><b>6</b> đang làm</span>
+        <span><i class="dot todo"></i><b>10</b> chưa bắt đầu</span>
+        <span class="legend-note">trên tổng 115 việc — thanh vẽ theo đầu việc, con số 88,1% là của bảng theo dõi (việc đang làm được tính một phần)</span>
+      </div>
+      <p class="prog-note">
+        Mốc 100% là <b>pilot production trọn vẹn</b>: hai môn đủ nội dung, đủ vai và công cụ,
+        gamification, đo hiệu quả A/B, nhà máy nội dung vận hành được. Những thứ như IRT/CAT,
+        đăng nhập một lần, quét bài bằng OCR hay mở thêm môn nằm <i>ngoài</i> 100% — đó là chặng sau.
+      </p>
+      <p class="prog-note">
+        Đây là <b>con số sàn</b>: bảng theo dõi rà ngày 24/07, chưa tính bảy ngày sau đó — đợt thử 1,
+        24 lỗi vào hồ sơ và toàn bộ việc sửa từ 28 đến 31/07 đều đã xong nhưng chưa được cộng vào.
+        Thực tế cao hơn; muốn có con số mới thì rà lại bảng, đừng ước lượng.
+      </p>
+      <p class="prog-note warn-note">
+        Và dù là bao nhiêu phần trăm, nó vẫn chỉ đo <b>phạm vi đã dựng</b> — không đo chất lượng đã
+        được kiểm chứng. Đợt thử 1 cho thấy hai thứ đó lệch nhau khá xa: 88% xong mà giáo viên vẫn
+        nói chưa dùng được. Bảy ngưỡng ở cuối trang mới là thước đo thật.
+      </p>
+    </section>
+  </header>
+
+  <div class="tl">
+
+    <div class="row">
+      <div class="when"><span class="date">18–23/06</span><span class="count">33 commit</span></div>
+      <div class="card">
+        <span class="tag">Nền móng</span>
+        <h2>Dựng bộ khung</h2>
+        <p>
+          Đồ thị tri thức, engine chấm tất định tách khỏi mô hình ngôn ngữ, thang Socratic bốn
+          bậc và cổng nỗ lực. Nguyên tắc chốt từ đầu và không đổi: máy chấm đúng/sai, AI chỉ
+          dẫn dắt.
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="when"><span class="date">21–24/07</span><span class="count">17 commit</span></div>
+      <div class="card">
+        <span class="tag">Nội dung</span>
+        <h2>Nạp giáo trình thật, đưa web lên máy chủ</h2>
+        <ul class="facts">
+          <li>1.416 câu hỏi và 888 thang Socratic từ ngân hàng của trường, phủ 204/204 điểm kiến thức</li>
+          <li>Mọi công thức chuyển sang render KaTeX ở phía trình duyệt</li>
+          <li>Đóng gói Docker, tự động dựng và đẩy lên máy chủ sau mỗi lần push</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="when"><span class="date">25–27/07</span><span class="count">38 commit</span></div>
+      <div class="card">
+        <span class="tag">Lên sóng</span>
+        <h2>tutor.vietanh.org chạy thật</h2>
+        <p>
+          Sửa chuỗi lỗi chặn đường vào bài học, dựng các dạng câu tương tác (đúng/sai nhiều ý,
+          sắp xếp, nối cột), và mở màn hình cho giáo viên, phụ huynh, cố vấn.
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="when"><span class="date">28/07</span><span class="count">8 commit</span></div>
+      <div class="card">
+        <span class="tag" data-kind="thu">Đợt thử 1</span>
+        <h2>Ba người thử đi hết 32 chặng</h2>
+        <p>
+          Cả ba hoàn thành toàn bộ kịch bản cá nhân. Nhưng câu trả lời quan trọng nhất trong
+          phiếu là của một giáo viên:
+        </p>
+        <p><b>“Chưa sẵn sàng. Vì phần hướng dẫn của sư tử đang còn chưa được logic, hơi lộn xộn.”</b></p>
+        <p>
+          Lý do họ nêu không phải giao diện, không phải tốc độ — mà đúng phần lõi sư phạm.
+        </p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="when"><span class="date">29/07</span><span class="count">21 commit</span></div>
+      <div class="card">
+        <span class="tag">Sửa lỗi</span>
+        <h2>Ngày nhiều thay đổi nhất</h2>
+        <p>
+          Bảy nhóm lỗi sửa xong, kèm ba vòng rà đối kháng — mỗi vòng đi tìm lỗi trong chính
+          bản vá của vòng trước.
+        </p>
+        <ul class="facts">
+          <li>Phát hiện gốc: sư tử hỏi “em nghĩ thế nào?” mà giao diện không có chỗ nào để trả lời</li>
+          <li>Cổng nỗ lực từng chỉ là cái đếm số lần bấm — nay chấm theo nội dung học sinh viết</li>
+          <li>Ký tự sách in (x₀, √, ≥) quy đổi sang ký tự bàn phím: gõ đúng nghĩa không còn bị chấm sai</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="when"><span class="date">30/07</span><span class="count">13 commit</span></div>
+      <div class="card">
+        <span class="tag">Thiết kế &amp; tốc độ</span>
+        <h2>Bài học diễn ra trong tranh, và trang nhẹ đi một phần ba</h2>
+        <ul class="facts">
+          <li>Màn làm bài đặt vào chín bức tranh thế giới theo chương; tiến độ thành đường dấu chân có sư tử đứng làm quân cờ</li>
+          <li>Sprite linh vật 4.495 KB → 672 KB, đo pixel để chắc không mất nét</li>
+          <li>Bỏ bộ chữ nghiêng không ai dùng khỏi danh sách tải trước: nhẹ thêm 64 KB</li>
+          <li>Dấu căn hiện thiếu thanh ngang — thủ phạm là ký tự √ đi thẳng vào bộ render</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row today">
+      <div class="when"><span class="date">31/07</span><span class="count">5 commit</span></div>
+      <div class="card">
+        <h2>Bịt bốn lỗ chấm sai <span class="today-badge">Hôm nay</span></h2>
+        <p>
+          Lỗi nặng nhất cả đợt: học sinh cố tình chọn sai vẫn được khen “Chính xác”. Quét toàn
+          bộ ngân hàng thì thấy nó không phải một lỗi mà là bốn.
+        </p>
+        <ul class="facts">
+          <li><b>32 → 2</b> phương án nhiễu bị chấm là đúng (hai ca còn lại là lỗi soạn đề, không phải lỗi chấm)</li>
+          <li>Nét phủ định của ∉ và ⊄ từng bị xoá y như dấu thanh tiếng Việt</li>
+          <li>Dấu phẩy thập phân “0,8” bị cắt thành tập hợp, khiến hai đáp án trái dấu bằng nhau</li>
+          <li>Lời chẩn đoán có chỗ lộ nguyên văn đáp án ngay lần sai đầu — đã cắt, giữ nguyên 99,2% phần lành</li>
+          <li>45/46 câu nhiều bước trước đây không có ô trả lời nào</li>
+          <li>Học liệu biến mất sau khi bấm đúng cái nút app mời bấm</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <section class="check">
+    <h2>Trạng thái trước đợt thử 2</h2>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr><th>Hạng mục</th><th>Chi tiết</th><th>Trạng thái</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Web</b></td><td>tutor.vietanh.org, bản mới nhất đã lên</td><td><span class="pill on">Sẵn sàng</span></td></tr>
+          <tr><td><b>Máy chủ chấm</b></td><td>chat-turn bản 28</td><td><span class="pill on">Sẵn sàng</span></td></tr>
+          <tr><td><b>Tài khoản học sinh</b></td><td>4 em, đủ lớp và đồng thuận</td><td><span class="pill on">Sẵn sàng</span></td></tr>
+          <tr><td><b>Tài khoản phụ huynh</b></td><td>4 tài khoản, đều đã nối con</td><td><span class="pill on">Sẵn sàng</span></td></tr>
+          <tr><td><b>Tài khoản giáo viên</b></td><td>4 tài khoản · 53 bài chờ chấm, 9 bài đã trả</td><td><span class="pill on">Sẵn sàng</span></td></tr>
+          <tr><td><b>Kho học liệu</b></td><td>mới 4 tài liệu cho 204 bài</td><td><span class="pill wait">Chờ nội dung</span></td></tr>
+          <tr><td><b>Kịch bản phối hợp</b></td><td>0/11 đã chạy ở đợt 1</td><td><span class="pill wait">Chưa thử</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rest">
+    <h2>Còn lại gì, và ai làm được</h2>
+    <p class="intro">
+      Từ 24/07, <b>backlog lập trình coi như xong</b> — không còn hạng mục nào chờ viết mã. Mười sáu
+      việc còn lại đều nằm ngoài bàn phím của kỹ thuật: chúng cần nội dung, cần người thật, hoặc
+      cần một quyết định. Xếp theo <i>ai gỡ được</i> chứ không theo thứ tự ưu tiên.
+    </p>
+    <div class="rest-grid">
+
+      <div class="lot">
+        <h3>Nội dung dạy học</h3>
+        <span class="who">Xưởng học liệu &amp; giáo viên bộ môn</span>
+        <ul>
+          <li>Kho học liệu mới có 4 tài liệu cho 204 bài</li>
+          <li>Thang Socratic cho Tiếng Anh 10 hiện chưa có</li>
+          <li>Câu dạng nghe kèm bản ghi lời</li>
+          <li>Bổ sung câu bậc vận dụng cho các điểm kiến thức còn thiếu</li>
+        </ul>
+      </div>
+
+      <div class="lot">
+        <h3>Đo hiệu quả</h3>
+        <span class="who">Nhà trường + chủ dự án</span>
+        <ul>
+          <li>Thiết kế nhóm đối chứng</li>
+          <li>Đo đầu vào phải làm <b>trước</b> khi học sinh thật dùng app</li>
+          <li>Gắn với điểm kiểm tra của trường</li>
+          <li>Theo dõi tỉ lệ quay lại sau nhiều tuần</li>
+        </ul>
+      </div>
+
+      <div class="lot">
+        <h3>Vận hành &amp; pháp lý</h3>
+        <span class="who">Ngoài phạm vi mã nguồn</span>
+        <ul>
+          <li>Rà soát pháp lý phần dữ liệu cá nhân</li>
+          <li>Cảnh báo và theo dõi hệ thống khi có sự cố</li>
+          <li>Kiểm tải trước khi mở cho cả khối</li>
+          <li>Sổ theo dõi phản hồi cho xưởng nội dung</li>
+        </ul>
+      </div>
+
+      <div class="lot">
+        <h3>Quyết định phạm vi</h3>
+        <span class="who">Chủ dự án chốt</span>
+        <ul>
+          <li>Tính năng học cùng nhau: bật lại hay bỏ hẳn</li>
+          <li>Báo cáo phụ huynh định kỳ có nằm trong pilot không</li>
+          <li>Điểm kiến thức không có câu bậc cao: nới luật hay soạn thêm câu</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="gate">
+    <h2>Ngưỡng mở cho học sinh thật</h2>
+    <p class="intro">
+      Bảy điều kiện dưới đây là <b>cửa chặn</b>, không phải danh sách mong muốn: mỗi cái có một
+      phép đo cụ thể, và chỉ cần một cái đỏ là chưa mở. Ba cái đầu bảo vệ chuyện học — nếu máy
+      chấm sai hoặc lỡ miệng nói đáp án thì mọi con số tiến độ, huy hiệu, báo cáo gửi phụ huynh
+      đều là số giả.
+    </p>
+
+    <ol class="gates">
+      <li class="gate-item" data-state="on">
+        <div class="gate-head">
+          <b>Máy chấm không được nhận sai thành đúng</b>
+          <span class="pill on">Đạt</span>
+        </div>
+        <p class="how">
+          Đo: quét toàn bộ câu trắc nghiệm đang hoạt động, thử chấm từng phương án nhiễu.
+          Ngưỡng: <b>0 nhiễu</b> được chấm đúng.
+        </p>
+        <p class="now">
+          Hôm nay: <b>32 → 0 lỗi chấm.</b> Quét lại còn đúng hai câu báo khớp, nhưng cả hai là
+          <b>đề soạn sai</b> chứ không phải máy chấm sai: một câu có phương án nhiễu chỉ đảo thứ
+          tự của chính đáp án (tập hợp thì không có thứ tự), câu kia chỉ thêm cặp ngoặc. Máy nhận
+          chúng bằng nhau là <i>đúng</i> — hai câu đó cần người soạn viết lại nhiễu.
+        </p>
+      </li>
+
+      <li class="gate-item" data-state="on">
+        <div class="gate-head">
+          <b>Không lộ đáp án trước khi học sinh đủ nỗ lực</b>
+          <span class="pill on">Đạt</span>
+        </div>
+        <p class="how">
+          Đo: quét lời chẩn đoán của mọi phương án nhiễu, tìm câu chứa nguyên văn đáp án.
+          Ngưỡng: <b>0 câu lộ</b> ở lượt trả lời đầu.
+        </p>
+        <p class="now">Hôm nay: đã cắt 30 câu lộ, giữ nguyên 99,2% phần chẩn đoán lành.</p>
+      </li>
+
+      <li class="gate-item" data-state="on">
+        <div class="gate-head">
+          <b>Bài nộp chỉ được tính khi giáo viên chấm</b>
+          <span class="pill on">Đạt</span>
+        </div>
+        <p class="how">
+          Đo: đọc mã đường ghi bằng chứng thành thạo. Ngưỡng: <b>không đường nào</b> để mô hình
+          tự ghi cho câu tự luận.
+        </p>
+        <p class="now">Hôm nay: đã chặn cả cửa chính lẫn cửa hậu (gọi nhầm kênh cũng bị từ chối).</p>
+      </li>
+
+      <li class="gate-item" data-state="off">
+        <div class="gate-head">
+          <b>Một giáo viên đi trọn vòng và nói “dùng được”</b>
+          <span class="pill wait">Chưa</span>
+        </div>
+        <p class="how">
+          Đo: câu cuối phiếu trải nghiệm — <i>“Sẵn sàng cho lớp mình dùng chưa?”</i>
+        </p>
+        <p class="now">Đợt 1 trả lời <b>“Chưa sẵn sàng”</b>, lý do là chất lượng dẫn dắt. Đây là ngưỡng quan trọng nhất và chỉ đợt thử 2 mới trả lời được.</p>
+      </li>
+
+      <li class="gate-item" data-state="off">
+        <div class="gate-head">
+          <b>Chuỗi nộp bài → chấm → xem kết quả chạy trọn một lần</b>
+          <span class="pill wait">Chưa</span>
+        </div>
+        <p class="how">
+          Đo: kịch bản phối hợp KB5, ba vai thật nối tiếp nhau.
+        </p>
+        <p class="now">Đợt 1: <b>0/11</b> kịch bản phối hợp được chạy. Đây đúng là chuỗi vừa sửa nhiều nhất nên cũng là chuỗi ít bằng chứng nhất.</p>
+      </li>
+
+      <li class="gate-item" data-state="off">
+        <div class="gate-head">
+          <b>Học sinh học đều một tuần thì lộ trình phải xanh lên</b>
+          <span class="pill wait">Chưa</span>
+        </div>
+        <p class="how">
+          Đo: một em học thật 5 buổi, xem số điểm thành thạo có tăng không.
+        </p>
+        <p class="now">Trước 31/07 con số này đứng im ở 0 dù đã trả lời đúng 32 lần — luật đòi câu bậc cao mà nhiều điểm kiến thức không có câu bậc cao nào. Đã nới, <b>nhưng chưa ai kiểm chứng bằng một tuần học thật.</b></p>
+      </li>
+
+      <li class="gate-item" data-state="off">
+        <div class="gate-head">
+          <b>Mỗi bài có đủ thứ để học, không chỉ để làm</b>
+          <span class="pill wait">Chưa</span>
+        </div>
+        <p class="how">
+          Đo: tỉ lệ điểm kiến thức có ít nhất một học liệu.
+        </p>
+        <p class="now">Hôm nay: <b>4 tài liệu cho 204 bài</b>. Cửa đăng học liệu chạy tốt — nút thắt là nội dung, không phải công cụ.</p>
+      </li>
+    </ol>
+
+    <p class="gate-foot">
+      Ba ngưỡng đầu là việc của kỹ thuật và đã đo xong. Bốn ngưỡng còn lại <b>không ai gỡ hộ được
+      bằng code</b> — chúng cần một đợt thử có người thật đi hết, và cần nội dung. Đó là lý do đợt
+      thử 2 quan trọng hơn bất kỳ commit nào.
+    </p>
+  </section>
+
+  <footer>
+    Số liệu lấy từ lịch sử git và truy vấn chỉ-đọc trên cơ sở dữ liệu đang chạy, ngày 31/07/2026;
+    phần trăm tiến độ lấy từ bảng theo dõi 115 việc, rà ngày 24/07.
+    Việc gần nhất cần người: chạy đủ 11 kịch bản phối hợp — nhất là chuỗi học sinh nộp bài →
+    giáo viên chấm → học sinh xem kết quả, đợt 1 chưa ai đi hết.
+  </footer>
+</div>

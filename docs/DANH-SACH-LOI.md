@@ -585,6 +585,99 @@ chứ không phải nói về việc em thiếu.
 
 # ĐỢT BỔ SUNG — chủ dự án tự thử đối thoại (30/07)
 
+# ĐỢT THỬ 2 — 31/07, đọc từ `Phieu-Trai-Nghiem-Tutor` (sheet sửa lúc 16:30 VN)
+
+> **CHỈ NGƯỜI THỬ 1 (chủ nhiệm 10A1) làm đợt 2.** Người thử 2 và 3 chưa động vào —
+> nghĩa là các lỗi họ báo ở đợt 1 (điền khuyết bắt nhập chính xác, câu nhiều bước nhập số
+> bừa vẫn báo đúng, app load hơn 1 phút) **chưa ai xác nhận đã hết**.
+>
+> **Chuyển biến lớn nhất:** câu "Sẵn sàng cho lớp mình dùng chưa?" đi từ *"Chưa sẵn sàn.
+> Vì phần hướng dẫn của sư tử đang còn chưa được logic, hơi lộn xộn"* (đợt 1) sang
+> ***"Có thể cho lớp THPT thử nghiệm"*** (đợt 2). Ngưỡng go-live số 4 coi như đã qua.
+>
+> **Đã hết lỗi ở đợt 2:** chặng 20 (phụ huynh thấy đúng tên con — trước là "Không đúng"),
+> chặng 24 (AI sơ khảo tab Chấm bài — trước là "AI bảo đủ ý chính" cho bài gõ "em ok"),
+> chặng 1 (đăng nhập lâu — hết ghi chú).
+
+## 25. 🔴 CHẶN HẲN — HAI khung nhập đáp án, học sinh không biết điền vào đâu
+
+> Người thử 1, đợt 2, vai Học sinh, tự chấm **"Chặn hẳn không đi tiếp được"**:
+> *"Có hai khung chat để điền đáp án, một khung nay dưới câu hỏi khung còn lại dưới cùng
+> màn hình"* — mong muốn: *"Học sinh sẽ điền đáp án vào khung nào?"*
+
+**Lỗi MỚI, chưa từng có ở đợt 1.** Nghi ngay bản vá 29/07 mở "lượt của học sinh": ô
+`.ans-input` (điền đáp án, nằm dưới đề) và ô `.reflect-input` ("Kể cách em nghĩ cho sư tử
+nghe…", nằm trong `.lfoot` dưới đáy màn) **cùng hiện khi `verdict === "retry"`**. Hai ô
+trông giống hệt nhau, không có gì phân biệt cái nào nộp đáp án cái nào để trò chuyện.
+Chưa điều tra kỹ — cần dựng lại đúng màn retry rồi mới kết luận.
+
+## 26. 🔴 CHẶN HẲN — học sinh bị văng khỏi app khi đang làm bài
+
+> Người thử 1, đợt 2: *"Đang làm bài thì học sinh bị văng ra khỏi app"* — *"Việc bị văng
+> ra khỏi app sẽ làm hs nản và dễ từ bỏ không làm tiếp"*
+
+**Lỗi MỚI.** Chưa có bằng chứng gốc rễ. Nghi phiên đăng nhập hết hạn (đã từng gây "màn
+nộp bài trắng trơn" hôm 29/07 — commit `6e73e53`, khi đó `callFn` rơi về anon key và mọi
+lệnh gọi server trả 401). Cần hỏi lại: văng ra màn đăng nhập hay đứng im? Có báo gì không?
+Xảy ra sau bao lâu?
+
+## 27. 🟠 Sư tử lặp GỢI Ý y hệt nhau 2–3 lần
+
+> Người thử 1, đợt 2, chặng 10: *"Bạn sư tử một mẫu câu gợi ý lặp lại hai lần"*
+> Nhật ký: *"Khi nhờ sư tử gợi ý lần 2 nếu sư tử vẫn đưa ra gợi ý như lần một sẽ dễ gây
+> cảm giác khó chịu"*
+> Câu hỏi mở: *"App đưa ra ba gợi ý trong ba lần giống y chang nhau."*
+> Và khi được hỏi **"nếu chỉ được sửa MỘT thứ"**: *"Sư tử nên có các gợi ý tăng cấp độ
+> hướng dẫn lên và đừng hiển thị một gợi ý giống nhau hai ba lần."*
+
+Đây là **lỗi 19 tái phát ở dạng khác**. Lần trước là chuỗi tất định lặp khuôn (đã xoay
+vòng). Lần này là **cùng một BẬC THANG Socratic bị trao lại nhiều lần**: `currentRung`
+không tiến khi học sinh xin gợi ý liên tiếp, nên `rungs[currentRung]` trả về đúng câu cũ.
+Người thử nói thẳng cái cần: **gợi ý phải TĂNG CẤP mỗi lần xin**.
+
+## 28. 🔴 CHẶN HẲN — màn phụ huynh vẫn mơ hồ (đợt 1 đã đỡ, chưa đóng)
+
+> Người thử 1, đợt 2, chặng 21 (từ "Không đúng" lên "Một phần"):
+> *"Màn hình chỉ mới hiển thị điểm thành thạo và điểm đang rèn luyện"*
+> Nhật ký: *"Điểm thành thạo này là thành thạo kĩ năng kiến thức gì? Điểm đang rèn luyện
+> này là đang rèn luyện cái gì? Thông tin hiển thị mơ hồ chưa có mô tả được học sinh đang
+> làm gì trên app cho phụ huynh"*
+> Câu hỏi mở: *"Chưa yên tâm được."*
+
+Con số đúng nhưng **vô nghĩa với phụ huynh**: họ cần biết con đang học CHỦ ĐỀ gì, chứ
+không phải hai con số trần trụi. Lưu ý: hôm 30/07 chủ dự án đã cho gỡ khối PDPL và thẻ
+"Tiến độ mục tiêu" rỗng khỏi màn này — giờ nó càng trống. Cần bổ sung **tên điểm kiến
+thức** đang thành thạo / đang luyện, không phải chỉ đếm.
+
+## 29. 🟠 Câu tự luận: học sinh đúng ~80% vẫn bị giữ lại
+
+> Người thử 1, đợt 2, câu "học sinh lớp 10 khựng ở đâu": *"Trong câu hỏi tự luận nên cho
+> hint về dạng câu trả lời sẽ được chấp nhận để tránh trường hợp là học sinh trả lời đúng
+> 80% câu hỏi nhưng vẫn bị sư tử giữ lại để điều chỉnh đáp án."*
+> Câu "thích nhất": *"Làm trắc nghiệm 4 lựa chọn và trắc nghiệm đúng sai trên app ổn. Tuy
+> nhiên các dạng thức câu hỏi tự luận cần điều chỉnh lại về quy định câu trả lời cần có
+> dạng như thế nào."*
+
+Trắc nghiệm và Đúng/Sai được khen ổn; **tự luận thì không nói rõ chờ đợi gì**. Đây là mặt
+kia của lỗi 16 (chấm quá khít): nay chấm đã nới, nhưng học sinh vẫn phải đoán định dạng.
+
+## 30. ⚠️ QUY TRÌNH — sổ lỗi trống 100%, ba con số "đã xong" đang nói dối
+
+Sheet **SỔ LỖI**: 200 mã L001–L200, **không một dòng nào có nội dung** (trừ dòng ví dụ
+mẫu). Người thử ghi hết vào "nhật ký tự do" của sheet riêng.
+
+Hậu quả: khối "ĐÃ XONG CHƯA?" ở sheet TỔNG HỢP hiện `Còn lỗi CHẶN HẲN = 0` và `Dòng sổ
+lỗi chưa đóng = 0` — **cả hai là hệ quả của việc không ai ghi sổ, không phải app sạch
+lỗi.** Thực tế riêng đợt 2 đã có **ba mục người thử tự đánh dấu "Chặn hẳn"**.
+Tương tự, các số 0 ở cột "Đợt 2" của TỔNG HỢP phần lớn chỉ vì Người thử 2 và 3 chưa kiểm
+lại — không phải vì lỗi đã hết.
+
+**11 KỊCH BẢN PHỐI HỢP vẫn chưa ai chạy** — kể cả đợt 1. Đây là phần thiết kế riêng để
+lòi ra rò rỉ dữ liệu giữa các học sinh và phụ huynh (KB5: mỗi phụ huynh chỉ được thấy
+đúng một tên). **Rủi ro riêng tư vẫn chưa hề được kiểm.**
+
+---
+
 ## 24. ✅ ĐỢT SỬA CUỐI 31/07 — #8 (cửa hậu), #11 (câu nhiều bước), #19 (lặp khuôn), #23 (mastery)
 
 **#23 · node CỤT DOK — đã nới đúng chỗ.** Luật đòi ≥1 câu DOK≥3 đúng, mà nhiều node
