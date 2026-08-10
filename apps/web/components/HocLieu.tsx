@@ -123,10 +123,41 @@ const NHOM_CUA: Partial<Record<ResourceFormat, NhomId>> = Object.fromEntries(
  *  nhầm nhóm còn hơn biến mất khỏi màn hình. */
 export const nhomCua = (f: ResourceFormat): NhomId => NHOM_CUA[f] ?? "doc";
 
+/**
+ * Nhóm THẬT của một mục — MÔI TRƯỜNG thắng NHÃN khi hai thứ đá nhau.
+ *
+ * Nhãn `format` là ý đồ sư phạm của thầy cô, và nó SAI được. Đo trên kho thật
+ * 10/08: 2 trong 3 mục đang sống là link YouTube, mà một cái mang nhãn
+ * `slide`. Nếu gom theo nhãn thì nó nằm dưới "Đọc" — em bấm vào định đọc, cái
+ * phát ra là một đoạn phim. Tên nhóm ở đây trả lời câu "giờ mình sẽ LÀM GÌ với
+ * cái này", mà việc đó do MÔI TRƯỜNG quyết chứ không do nhãn: phim thì là xem,
+ * tiếng thì là nghe, hình thì là nhìn.
+ *
+ * Chỉ đảo khi môi trường nói CHẮC CHẮN (video/audio/image). Còn `pdf`, `html`,
+ * `embed`, `file` thì cùng một môi trường phục vụ nhiều việc khác nhau — một
+ * PDF có thể là bài đọc hay là phiếu bài tập — nên chỗ đó nhãn của thầy cô vẫn
+ * là nguồn đáng tin nhất.
+ */
+export function nhomThat(r: NodeResource): NhomId {
+  if (!r.uri) return nhomCua(r.format);
+  // Link YouTube/Vimeo KHÔNG có đuôi tệp nên `renderKind` trả "embed" — mà đó
+  // đúng là ca đang sống trong kho. Bắt riêng theo tên miền, nếu không thì bản
+  // vá này không chạm được vào chính thứ đẻ ra nó.
+  if (LA_PHIM_NGOAI.test(r.uri)) return "xem";
+  const kind = renderKind(r.uri);
+  if (kind === "video") return "xem";
+  if (kind === "audio") return "nghe";
+  if (kind === "image") return "nhin";
+  return nhomCua(r.format);
+}
+
+/** Nhà cung cấp phim nhúng được — cùng danh sách mà `embedUrl` biết đổi. */
+const LA_PHIM_NGOAI = /(?:youtube\.com|youtu\.be|vimeo\.com)/i;
+
 /** Gom rổ học liệu thành các nhóm KHÔNG RỖNG, giữ đúng thứ tự sư phạm ở trên. */
 export function gomTheoNhom(rs: NodeResource[]): { nhom: NhomDinhDang; muc: NodeResource[] }[] {
   return NHOM_DINH_DANG
-    .map((nhom) => ({ nhom, muc: rs.filter((r) => nhomCua(r.format) === nhom.id) }))
+    .map((nhom) => ({ nhom, muc: rs.filter((r) => nhomThat(r) === nhom.id) }))
     .filter((g) => g.muc.length > 0);
 }
 
