@@ -4208,6 +4208,38 @@ html[data-motion="reduce"] .spin {
   width: 14px;
   height: 14px;
 }
+/* ── BIẾN THỂ "SÂN KHẤU" — dùng ở màn Kho báu ────────────────────────────────
+   Ở cột phụ cạnh bài học, khung xem là một khối cao cố định trong dòng chảy.
+   Ở Kho báu thì ngược lại: nội dung LÀ màn hình, nên khung phải ăn hết chiều
+   cao còn lại thay vì đứng một mình giữa khoảng trống. `min-height: 0` ở mọi
+   mắt xích là bắt buộc — thiếu một cái là con 1fr đội cả trang dài ra. */
+.lsv-stage[data-bien-the="san"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+.lsv-stage[data-bien-the="san"] .lsv-frame,
+.lsv-stage[data-bien-the="san"] .lsv-img-wrap,
+.lsv-stage[data-bien-the="san"] .lsv-audio-wrap,
+.lsv-stage[data-bien-the="san"] .lsv-file-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+}
+/* Ảnh: giữ tỉ lệ, canh giữa trên nền tối — sơ đồ tư duy khổ ngang và
+   infographic khổ dọc phải cùng vừa khung mà không méo, không cắt. */
+.lsv-stage[data-bien-the="san"] .lsv-img-wrap {
+  display: grid;
+  place-items: center;
+}
+.lsv-stage[data-bien-the="san"] .lsv-img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
 /* Khung xem học liệu — cao theo MÀN HÌNH, không phải con số cứng (lỗi 1).
    440px cố định trên laptop 1080p là ~1/3 trang A4 → PDF sinh cuộn-trong-cuộn,
    người thử phải kéo hai tầng thanh trượt mới đọc hết một phiếu bài tập. */
@@ -4297,24 +4329,59 @@ html[data-motion="reduce"] .spin {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* NGHE không phải XEM. Bản cũ nhét cái tai nghe với thanh phát vào một hàng
+   ngang cao 60px rồi để trống toàn bộ phần còn lại của khung — nghe podcast mà
+   màn hình trông như đang hỏng. Nay là một BÀN NGHE: dấu tai nghe lớn giữa
+   khung, tên bài, thanh phát rộng. Không có nút toàn màn hình (chẳng có gì để
+   phóng to). */
 .lsv-audio-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 18px;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px 20px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--canvas-flat);
 }
-.lsv-audio-wrap svg {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  color: var(--sky);
+.lsv-audio-disc {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--mane-tint);
+  color: var(--mane-ink);
+}
+.lsv-audio-disc svg { width: 40px; height: 40px; }
+.lsv-audio-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--navy);
+  text-align: center;
+  text-wrap: balance;
 }
 .lsv-audio {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  max-width: 34rem;
+}
+/* Tệp phải tải về: thẻ tải + MỘT CÂU nói vì sao không mở được tại chỗ. Thiếu câu
+   đó thì em tưởng app hỏng chứ không nghĩ "loại tệp này vốn phải mở bằng Word". */
+.lsv-file-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 20px;
+}
+.lsv-file-why {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
 }
 .lsv-why {
   margin-top: 8px;
@@ -6861,67 +6928,295 @@ html[data-motion="reduce"] .think-dots::after {
 /* Màn KHO BÁU (mở từ lộ trình). Cột Học trên desktop rộng gần 1.500px — thả
    nội dung chạy hết chiều ngang là chữ dài hết cỡ, khung xem méo, nút to như
    cái biển. Kẹp lại đúng bề ngang đọc được rồi căn giữa. */
+/* ═══ KHO BÁU — BÀN LÀM VIỆC HAI PHẦN ══════════════════════════════════════
+   Viết lại 10/08. Bản cũ kẹp `max-width: 760px` nên màn 27 inch vẫn xem PDF
+   trong một cột hẹp, và mọi định dạng đổ chung vào một dải ô giống hệt nhau
+   với một khung TRỐNG bên dưới. Nay: rãnh trái gom theo nhóm việc · sân khấu
+   phải chiếm hết phần còn lại · cao đúng bằng màn hình. */
 .kb {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 12px;
+  min-width: 0;
+}
+/* Màn hẹp: xếp chồng, sân khấu vẫn phải đủ cao để đọc được một trang A4. */
+@media (max-width: 899.98px) {
+  .kb {
+    grid-template-rows: auto auto auto auto;
+    padding-bottom: 8px;
+  }
+}
+/* ≥900px `.learn-main` đã là flex column cao 100% → kho báu ăn trọn chiều cao
+   còn lại. `min-height: 0` là bắt buộc, thiếu nó thì con 1fr tràn khỏi màn. */
+@media (min-width: 900px) {
+  .kb {
+    flex: 1;
+    min-height: 0;
+    padding: 14px 20px 12px;
+  }
+}
+
+/* ── Thanh trên: về lộ trình · tên bài · bậc mức · nút chính ─────────────── */
+.kb-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.kb-ve { flex: none; }
+.kb-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+.kb-bar-title > svg {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--gold-icon);
+}
+.kb-bar-title div { display: flex; flex-direction: column; min-width: 0; }
+.kb-bar-title b {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.kb-bar-title span {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Bậc mức thu thành CHUỖI HẠT, không còn dải chạy hết chiều ngang: nó là chỉ
+   báo trạng thái, không phải nội dung chính của màn. */
+.kb-pips { display: flex; gap: 6px; flex: none; }
+.kb-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.kb-pip svg { width: 13px; height: 13px; }
+.kb-pip[data-state="done"] {
+  background: var(--ok-tint);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+/* Mức đang mở = nền gold + chữ navy (luật gold: không bao giờ gold làm màu chữ). */
+.kb-pip[data-state="now"] {
+  background: var(--gold-tint);
+  box-shadow: inset 0 0 0 1.5px var(--gold-press);
+  color: var(--navy);
+}
+.kb-done { flex: none; min-width: 200px; }
+
+/* ── Lời khen sau khi mở thêm mức ────────────────────────────────────────── */
+.kb-khen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--r);
+  background: var(--gold-tint);
+  color: var(--navy);
+  font-size: 0.875rem;
+}
+.kb-khen img { flex: none; }
+
+/* ── Thân: rãnh trái + sân khấu ──────────────────────────────────────────── */
+.kb-body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .kb-body { grid-template-columns: 296px minmax(0, 1fr); }
+}
+.kb-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+/* Dưới 1000px rãnh nằm NGANG: mỗi nhóm một cột hẹp, vuốt ngang để đi qua các
+   nhóm. Giữ nguyên cách gom nhóm thay vì đổ phẳng thành một hàng ô — mất nhóm
+   là mất đúng thứ vừa thêm vào. */
+@media (max-width: 999.98px) {
+  .kb-rail {
+    flex-direction: row;
+    gap: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+  .kb-group {
+    flex: none;
+    width: min(74vw, 260px);
+    scroll-snap-align: start;
+  }
+}
+.kb-group { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.kb-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px;
+  margin: 0;
+}
+.kb-group-head b {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: 0.01em;
+}
+.kb-group-head span {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.kb-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Họ màu theo nhóm — lấy từ bảng icon có sẵn, không đẻ màu mới. Nhóm "Nhìn"
+   dùng nền gold-tint với icon NAVY (luật gold trong DESIGN.md). */
+.kb-group[data-nhom="xem"] { --fam-ink: var(--sky); --fam-tint: var(--sky-tint); }
+.kb-group[data-nhom="nghe"] { --fam-ink: var(--mane-ink); --fam-tint: var(--mane-tint); }
+.kb-group[data-nhom="nhin"] { --fam-ink: var(--navy); --fam-tint: var(--gold-tint); }
+.kb-group[data-nhom="doc"] { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
+.kb-group[data-nhom="lam"] { --fam-ink: var(--ok); --fam-tint: var(--ok-tint); }
+.kb-group-nop { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
+
+/* HÀNG, không phải thẻ: thẻ ở đây chỉ đẻ ra một lưới ô giống hệt nhau — đúng
+   thứ bản cũ mắc phải. Hàng cho phép tên dài thở và icon dẫn mắt xuống dọc. */
+.kb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px 8px 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.kb-item:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.kb-item[aria-current] {
+  background: var(--fam-tint);
+  box-shadow: inset 0 0 0 2px var(--fam-ink);
+}
+.kb-item-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--fam-tint);
+  color: var(--fam-ink);
+}
+.kb-item[aria-current] .kb-item-ico { background: var(--surface); }
+.kb-item-ico svg { width: 19px; height: 19px; }
+.kb-item-text { display: flex; flex-direction: column; min-width: 0; }
+.kb-item-text b {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Mẩu chữ nói TRƯỚC sẽ mở ra cái gì ("PDF", "Tệp Word — tải về"). --muted đạt
+   4,64:1; KHÔNG dùng --ink-faint ở đây, nó mang nghĩa chứ không trang trí. */
+.kb-item-text small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-item-nop { box-shadow: inset 0 0 0 1.5px var(--navy); }
+/* Chuyển động ở đây vốn đã là crossfade màu (không dịch chuyển gì), nhưng vẫn
+   tắt hẳn theo ý người dùng — luật chung của app. */
+@media (prefers-reduced-motion: reduce) {
+  .kb-item { transition: none; }
+  .kb-rail { scroll-snap-type: none; }
+}
+
+/* ── Sân khấu ────────────────────────────────────────────────────────────── */
+.kb-stage {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-row);
+  overflow: hidden;
+}
+.kb-stage > * { flex: 1; min-width: 0; min-height: 0; }
+@media (max-width: 899.98px) {
+  .kb-stage { min-height: 62dvh; }
+}
+.kb-nop-wrap {
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+/* ── Chân màn + các trạng thái rỗng ──────────────────────────────────────── */
+.kb-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.78125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.kb-foot svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--gold-icon); }
+.kb-khong-nop { margin: 0; font-size: 0.8125rem; }
+.kb-thong-bao {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 760px;
-  margin: 0 auto;
-  padding-bottom: 24px;
+  align-items: flex-start;
+  padding: 14px 20px;
 }
-.kb-head {
+.kb-trong {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.kb-head svg { width: 30px; height: 30px; color: var(--gold-ink, #8a6d00); flex: none; }
-.kb-steps {
-  display: flex;
-  gap: 8px;
-  margin: 2px 0 6px;
-}
-.kb-step {
-  flex: 0 1 160px;
-  padding: 8px 6px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  gap: 6px;
+  width: 100%;
+  padding: 40px 20px 48px;
   text-align: center;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--muted);
 }
-.kb-step[data-state="done"] { border-color: var(--ok, #2f9e6b); color: var(--ok, #2f9e6b); }
-.kb-step[data-state="now"] {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: var(--navy);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
-}
-.kb-note {
-  margin-top: 2px;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-}
-/* Nút "xem xong mức" đứng vừa người, căn trái theo nội dung — không phải một
-   dải chạy hết chiều ngang màn hình như nút KIỂM TRA trong bài. */
-.kb-done {
-  align-self: flex-start;
-  min-width: 240px;
-}
-/* Kho báu cũng cao theo màn: trước đây kẹp cứng 360px để chừa chỗ cho bậc thang
-   + nút, nhưng đổi lại là PDF đọc không nổi (lỗi 1, người thử báo 29/07). Nay
-   thấp hơn màn bài học một nhịp (70vh) — vẫn thấy nút mà đọc được ra hồn. */
-.kb .lsv-frame,
-.kb .lsv-img {
-  height: min(70vh, 820px);
-  max-height: min(70vh, 820px);
-  min-height: 360px;
-}
-.kb .lsv {
-  margin: 0;
-}
+.kb-trong b { font-size: 1.0625rem; font-weight: 800; color: var(--navy); }
+.kb-trong p { margin: 0; max-width: 34ch; }
 
 /* ── NỘP BÀI: câu tự luận dài, làm ngoài rồi tải ảnh/tệp lên ──────────────── */
 .submit-box {
