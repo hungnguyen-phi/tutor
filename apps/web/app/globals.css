@@ -1638,6 +1638,49 @@ ul {
 .path::-webkit-scrollbar {
   display: none;
 }
+/* ── "VỀ HIỆN TẠI" — đường về chỗ đang học ──────────────────────────────────
+   Lộ trình dài 204 dấu chân và em cuộn được thoải mái để ngó trước các chương;
+   nhưng đi xa rồi thì đường về là cuộn tay ngược lại cả chục màn. Nút chỉ hiện
+   KHI dấu chân hiện tại đã trôi khỏi khung (IntersectionObserver trên chính
+   vùng cuộn `.path`) — đứng đúng chỗ thì màn hình không có gì thêm.
+   Neo vào `.scene` (position: relative) chứ không `fixed`: nó thuộc về màn Học,
+   không được treo lơ lửng trên các tab khác. */
+.path-back {
+  position: absolute;
+  right: 16px;
+  /* Trên thanh nav đáy + vùng an toàn của máy có khấc. */
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px; /* vùng chạm — em dùng ngón cái */
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--navy);
+  box-shadow: 0 4px 0 var(--navy-press, #1a1b45), 0 6px 16px rgb(38 39 93 / 28%);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  animation: path-back-in 180ms var(--ease) both;
+}
+.path-back svg { width: 17px; height: 17px; color: var(--gold); }
+.path-back:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--navy-press, #1a1b45); }
+/* Vòng focus GOLD trên nền navy (DESIGN.md §Focus — món nợ "navy trên navy"). */
+.path-back:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+@media (min-width: 900px) {
+  /* Desktop không có nav đáy. */
+  .path-back { bottom: 20px; right: 24px; }
+}
+@keyframes path-back-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .path-back { animation: none; }
+}
 .path > li {
   display: flex;
   flex-direction: column;
@@ -4046,117 +4089,11 @@ html[data-motion="reduce"] .spin {
   width: 100%;
 }
 
-/* ═══ Bài đặc biệt (LessonView) — học liệu Xưởng đưa vào buổi học ═══════════
-   Nổi bật ở ĐẦU node: banner + playlist học liệu + khung xem lớn. */
-.lsv {
-  margin: 4px 0 18px;
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: var(--shadow-row);
-  overflow: hidden;
-}
-.lsv-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--sky-tint-2);
-}
-.lsv-badge {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  border-radius: var(--r-pill);
-  background: var(--navy);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #fff;
-}
-.lsv-badge svg {
-  width: 15px;
-  height: 15px;
-  color: var(--gold);
-}
-.lsv-head-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.lsv-head-text b {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--navy);
-}
-.lsv-head-text span {
-  font-size: 0.78125rem;
-  line-height: 1.4;
-  color: var(--ink-2);
-}
-.lsv-picker {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.lsv-picker::-webkit-scrollbar {
-  display: none;
-}
-.lsv-tile {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 0 14px 0 10px;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.lsv-tile:hover {
-  border-color: var(--line-strong);
-}
-.lsv-tile[aria-selected="true"] {
-  border-color: var(--navy);
-  background: var(--navy-tint);
-}
-.lsv-tile-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--sky-tint);
-  color: var(--sky);
-}
-.lsv-tile-icon svg {
-  width: 17px;
-  height: 17px;
-}
-.lsv-tile[aria-selected="true"] .lsv-tile-icon {
-  background: var(--navy);
-  color: #fff;
-}
-.lsv-tile-label {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  line-height: 1.2;
-}
-.lsv-tile-label b {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--navy);
-}
-.lsv-tile-label small {
-  font-size: 0.6875rem;
-  color: var(--muted);
-}
+/* ═══ KHUNG XEM HỌC LIỆU (HocLieuStage) ═════════════════════════════════════
+   Dùng ở màn Kho báu. Tiền tố `.lsv-` giữ nguyên từ thời LessonView để khỏi
+   đụng vào từng chỗ; LessonView đã xoá 10/08 khi học liệu rời khỏi màn làm bài,
+   nên phần playlist/tile/banner của nó cũng đi theo. Còn lại đúng những gì
+   khung xem cần: thanh công cụ, khung nhúng, ảnh, bàn nghe, thẻ tải tệp. */
 .lsv-stage {
   padding: 10px 16px 6px;
 }
@@ -4251,30 +4188,6 @@ html[data-motion="reduce"] .spin {
   border-radius: 12px;
   background: var(--canvas-flat);
 }
-.lsv-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 30px 16px;
-  border: 1.5px dashed var(--line-strong);
-  border-radius: 12px;
-  background: var(--canvas-flat);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-}
-.lsv-empty svg {
-  width: 18px;
-  height: 18px;
-}
-.lsv-empty:hover {
-  color: var(--navy);
-  border-color: var(--sky);
-}
-/* Ảnh (sơ đồ tư duy, infographic): bày trọn khung, bấm để phóng to ở tab mới. */
 .lsv-img-wrap {
   display: block;
   border: 1px solid var(--line);
@@ -4387,20 +4300,6 @@ html[data-motion="reduce"] .spin {
   margin-top: 8px;
   font-size: 0.78125rem;
   line-height: 1.5;
-}
-.lsv-foot {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px 14px;
-  font-size: 0.71875rem;
-  color: var(--muted);
-}
-.lsv-foot svg {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  color: var(--gold-icon);
 }
 @media (max-width: 560px) {
   /* Điện thoại: bàn phím + thanh địa chỉ ăn mất chiều cao, nên nhường một nhịp. */
@@ -12095,73 +11994,15 @@ body:has(.lsn-grid) {
   background: var(--surface);
 }
 
-/* NGƯỠNG 1360px, không phải 1200px — đo mới biết (30/07).
-   Bố cục ba cột ở 1200px làm cột ĐỀ BÀI chỉ còn 296px, HẸP HƠN cả cột học liệu
-   380px: 26 ký tự một dòng, dưới xa mức đọc được (45–75). Canh giữa mà không
-   đọc nổi thì hỏng đúng thứ định sửa.
-   Nay chỉ tách cột khi CÓ ĐỦ CHỖ THẬT: 356 + 28 + 544 + 28 + 356 + đệm 48 =
-   1360. Dưới ngưỡng đó về MỘT cột (học liệu nằm trên) — vẫn canh giữa tuyệt
-   đối, đúng yêu cầu, chỉ là không bày ngang được. */
-@media (min-width: 1360px) {
-  /* Nới trần cho MÀN BÀI HỌC, không đụng --content-w của các màn khác. */
-  .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1420px); }
-  /* BA cột, không phải hai (chủ dự án chốt 30/07: "câu hỏi LUÔN LUÔN ở giữa").
-     Bản hai cột đẩy đề bài lệch hẳn sang trái vì học liệu chiếm 380px bên phải
-     — mắt đọc lệch tâm suốt buổi. Cột trái là khoảng ĐỆM rỗng đúng bằng cột
-     học liệu, nên đề bài nằm chính giữa màn, còn học liệu vẫn ở bên cạnh. */
-  .lsn-grid {
-    display: grid;
-    grid-template-columns:
-      var(--lsn-aside-w, 356px)
-      minmax(0, 1fr)
-      var(--lsn-aside-w, 356px);
-    gap: var(--lsn-gap, 28px);
-    align-items: start;
-  }
-  .lsn-main { grid-column: 2; grid-row: 1; }
-  .lsn-aside {
-    grid-column: 3;
-    grid-row: 1;
-    position: sticky;
-    /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
-    top: 76px;
-    max-height: calc(100dvh - 96px);
-    overflow: auto;
-    /* Thanh cuộn riêng của cột này không được đẩy chữ nhảy khi hiện/ẩn. */
-    scrollbar-gutter: stable;
-  }
-  /* Học liệu rỗng (bài chưa có gì) → LessonView trả null ⇒ aside trống:
-     trả về MỘT cột, đừng chừa 380px không khí. */
-  /* Bài KHÔNG có học liệu → LessonView trả null ⇒ aside rỗng. Về MỘT cột, và
-     kéo bề ngang đọc về mức thường: để nguyên trần 1.160px thì một câu trắc
-     nghiệm bị dàn ngang gần một mét hai, mắt phải quét chứ không đọc được.
-     Đệm của thanh nút đáy cũng phải trả về giữa theo. */
-  .lsn-grid:has(.lsn-aside:empty) { display: block; }
-  .lsn-grid:has(.lsn-aside:empty) .lsn-main {
-    max-width: var(--content-w);
-    margin-inline: auto;
-  }
-  .shell-main:has(.lsn-aside:empty) ~ .lfoot .lfoot-inner,
-  body:has(.lsn-aside:empty) .lfoot-inner {
-    padding-inline: 20px;
-  }
-  /* Khung xem trong cột hẹp — thấp hơn màn bài học một nhịp, NHƯNG không quay
-     lại con số cứng (lỗi #1, rà 31/07). Cột rộng 356px, PDF render #view=FitH
-     nên một trang A4 cao ≈ 356 × 1,414 ≈ 500px: trần 260px cắt mất gần một nửa
-     trang, đúng cái đẻ ra lời phàn nàn "xem không hết" ban đầu. Cột này vốn đã
-     tự cuộn (max-height: calc(100dvh - 96px)), nên cho khung cao theo màn và
-     chặn bằng vh thay vì px — màn cao thì đọc được nhiều, màn thấp vẫn không
-     tràn. Nút "Toàn màn hình" của LessonView là lối thoát cho ca đọc kỹ. */
-  .lsn-aside .lsv-frame,
-  .lsn-aside .lsv-img { height: min(52vh, 560px); max-height: min(52vh, 560px); min-height: 260px; }
-  .lsn-aside .lsv { margin: 0; }
-  /* Nút hành động dưới đáy bám ĐÚNG cột giữa — cùng trục với đề bài. Bố cục ba
-     cột nên đệm cả hai bên, không chỉ bên phải như bản hai cột. */
-  .lfoot-inner {
-    max-width: var(--lsn-w, 1420px);
-    padding-inline: calc(var(--lsn-aside-w, 356px) + var(--lsn-gap, 28px));
-  }
-}
+/* BỐ CỤC BA CỘT ĐÃ GỠ (10/08) — học liệu rời khỏi màn làm bài, sang Kho báu.
+   Cả bộ khung ≥1360px (đệm rỗng · đề bài · học liệu, cột phải sticky, và một
+   mớ rule bù trừ cho ca `.lsn-aside:empty`) tồn tại CHỈ để giữ đề bài ở chính
+   giữa trong khi vẫn bày được cột học liệu. Không còn cột đó thì nó hết lý do:
+   `.shell-main` giữ nguyên `--content-w` là đề bài đã tự canh giữa, và
+   `.lfoot-inner` về đệm mặc định. Xoá hẳn thay vì để một cột rỗng.
+   Ghi lại vì đây là kết quả của ba đợt canh chỉnh (29/07 hai cột → 30/07 ba
+   cột, ngưỡng 1200 → 1360): đừng dựng lại lưới nếu học liệu quay về, hãy đọc
+   `git log` khối này trước. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ĐỢT "APP SỐNG" — 30/07/2026

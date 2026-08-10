@@ -22,6 +22,18 @@ import type { CSSProperties, ReactNode } from "react";
  * Tất cả tắt theo prefers-reduced-motion.
  */
 
+/**
+ * ⛔ `sad` và `miss` CÒN TRONG DANH MỤC NHƯNG KHÔNG ĐƯỢC DÙNG TRONG APP HỌC SINH
+ * (chủ dự án chốt 10/08: "buồn là không được").
+ *
+ * `miss` = head-sad + trái tim TAN VỠ, từng dùng ở hero lộ trình khi em nghỉ
+ * mấy hôm. Đó là dỗi — bắt em thấy có lỗi vì đã vắng, trái thẳng với bối cảnh
+ * sư phạm bất biến (không bao giờ trừng phạt; vắng/sai là dữ liệu, không phải
+ * thất bại). Vắng lâu thì MỪNG em quay lại.
+ *
+ * Giữ lại trong danh mục vì art vẫn nằm trong bộ sprite chính chủ và bảng này
+ * là bản kiểm kê của bộ đó — nhưng đừng cắm vào màn nào của học sinh.
+ */
 export type LionMood =
   // 4 mood gốc — mọi call-site cũ giữ nguyên nghĩa
   | "idle" | "thinking" | "cheer" | "sleepy"

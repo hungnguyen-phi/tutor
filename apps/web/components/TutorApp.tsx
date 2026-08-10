@@ -31,7 +31,6 @@ import PresenceStrip from "./PresenceStrip";
 import LearningPath, { type PathNode } from "./LearningPath";
 import CameraShot from "./CameraShot";
 import Lion from "./Lion";
-import LessonView from "./LessonView";
 import KhoBauView from "./KhoBauView";
 import ReviewView from "./ReviewView";
 import QuestsView from "./QuestsView";
@@ -339,8 +338,6 @@ export default function TutorApp() {
   // còn nhấp nháy. Chỉ chặn lần đầu; các lần đồng bộ sau (pathVersion) im lặng.
   const [firstReady, setFirstReady] = useState(false);
   const [pathVersion, setPathVersion] = useState(0); // tăng sau mỗi buổi học để nạp lại
-  // Học liệu của node đang học (resources). Rỗng = không hiện mục "Tài liệu".
-  const [resources, setResources] = useState<NodeResource[]>([]);
 
   // ── Dữ liệu phụ cho hi-fi ─────────────────────────────────────────────
   // Nhãn phiên bản KG (tên chương thật) cho banner chương; null → tên môn.
@@ -547,27 +544,11 @@ export default function TutorApp() {
     if (nhap) setText(nhap);
   }, [q?.id]);
 
-  // ── Học liệu cho node đang học ────────────────────────────────────────
-  // Endpoint `resources` có thể chưa live: lỗi hay rỗng thì mục "Tài liệu"
-  // không hiện, buổi học vẫn chạy bình thường.
+  // Node đang học — còn dùng để chọn BẦU TRỜI cho sân khấu bài (worldOfLesson).
   const currentNodeKey = ses ? (q?.nodeKey ?? ses.node ?? null) : null;
-  useEffect(() => {
-    setResources([]);
-    if (!currentNodeKey) return;
-    let alive = true;
-    nodeResources(subject, currentNodeKey)
-      .then((r) => {
-        if (alive) setResources(Array.isArray(r?.resources) ? r.resources : []);
-      })
-      .catch((e) => {
-        // Nuốt im lặng CHỈ khi pipeline học liệu chưa sẵn sàng. Hết phiên thì
-        // phải nói — nuốt là đúng cái làm màn hình trống câm (lỗi 20).
-        if (alive && isExpired(e)) setExpired(true);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [subject, currentNodeKey]);
+  // Học liệu KHÔNG còn nạp ở màn làm bài (chủ dự án chốt 10/08): nó sống ở Kho
+  // báu. Cú gọi `nodeResources` mỗi lần đổi câu đã gỡ theo — giữ lại là một
+  // lượt đi-về mạng mỗi câu để lấy thứ không còn chỗ nào hiển thị.
 
   function resetQuestion() {
     setMsgs([]);
@@ -1373,7 +1354,14 @@ export default function TutorApp() {
               subtitle={bannerSubtitle}
               nodes={nodes}
               preview={!active.live}
-              heroMood={G.isCold(progress) ? "miss" : "greet"}
+              /* LUÔN "greet" — KHÔNG buồn (chủ dự án chốt 10/08: "buồn là không
+                 được"). Trước đây em nghỉ mấy hôm quay lại thì sư tử để mặt
+                 `miss`: sprite head-sad + trái tim TAN VỠ. Đó là dỗi, là bắt em
+                 thấy có lỗi vì đã vắng — trái thẳng với bối cảnh sư phạm bất
+                 biến (không bao giờ trừng phạt, sai/vắng là dữ liệu chứ không
+                 phải thất bại). Vắng lâu thì mừng em quay lại, không trách.
+                 Lời chào vẫn đổi theo bối cảnh qua pickGreeting("cold"). */
+              heroMood="greet"
               /* ĐỔI GIÓ (30/07): mỗi lần mở app một câu khác trong cùng BỐI CẢNH
                  (lần đầu / nguội / đang đi đều) — kho câu ở lib/nudges.ts. Bối
                  cảnh vẫn phải đúng: câu "lần đầu" bắt buộc nêu luật "mình hỏi,
@@ -1585,21 +1573,15 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* BỐ CỤC BA CỘT trên màn rộng (29/07 dựng, 30/07 canh lại giữa).
-          Gốc: cột nội dung khoá ở 42rem nên màn 1920px bỏ trống gần 1.200px hai
-          bên, mà học liệu lại nằm ĐÈ lên đầu, đẩy câu hỏi xuống dưới màn.
-          Bản hai cột sửa được chỗ đó nhưng đẩy đề bài lệch hẳn sang trái — chủ
-          dự án yêu cầu câu hỏi LUÔN ở giữa. Nay cột trái là khoảng ĐỆM rỗng
-          bằng đúng cột học liệu, nên đề bài nằm chính giữa màn.
-          Ngưỡng là 1360px chứ không phải 1200: đo ở 1200 thì cột đề bài chỉ còn
-          296px — hẹp hơn cả cột học liệu, 26 ký tự một dòng. Dưới ngưỡng về MỘT
-          cột (học liệu đứng trước: xem trước rồi luyện), vẫn canh giữa.
-          DOM giữ học liệu TRƯỚC để thứ tự đọc màn hình + mobile không đổi. */}
+      {/* MỘT CỘT, CANH GIỮA. Học liệu đã RỜI KHỎI màn làm bài (chủ dự án chốt
+          10/08): nó sống ở Kho báu, không nằm cạnh câu hỏi nữa.
+          Bố cục ba cột trước đây (đệm rỗng · đề bài · học liệu, ngưỡng 1360px)
+          tồn tại CHỈ để giữ đề bài ở chính giữa trong khi vẫn bày được cột học
+          liệu bên phải. Không còn cột đó thì cả bộ khung ấy hết lý do tồn tại —
+          gỡ luôn thay vì để một cột rỗng và một mớ rule bù trừ quanh nó.
+          `.lsn-grid` giữ lại vì nó là DẤU nhận màn làm bài (nền trắng qua
+          `body:has(.lsn-grid)`), không còn là lưới. */}
       <div className="lsn-grid">
-        <aside className="lsn-aside">
-          <LessonView resources={resources} />
-        </aside>
-
         <div className="lsn-main">
       {q && (
         <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, Lock, Paperclip, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, LocateFixed, Lock, Paperclip, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 import { MathText } from "../lib/mathrender";
@@ -150,7 +150,9 @@ export default function LearningPath({
   nodes: PathNode[];
   /** Lời sư tử nói ở đầu lộ trình. Bỏ trống thì không có bong bóng. */
   greeting?: string;
-  /** Cảm xúc của sư tử — `greet` vẫy chào; `miss` khi chuỗi ngày nguội. */
+  /** Cảm xúc của sư tử ở đầu lộ trình. Mặc định `greet` (vẫy chào) và nên giữ
+   *  nguyên: KHÔNG dùng mood buồn/dỗi kể cả khi em nghỉ lâu — xem ghi chú ở
+   *  đầu `Lion.tsx`. */
   heroMood?: LionMood;
   busy?: boolean;
   /** Môn XEM TRƯỚC (chưa có ngân hàng câu hỏi): node đầu ghi "XEM TRƯỚC"
@@ -168,15 +170,57 @@ export default function LearningPath({
   // Native: mở màn Học là THẤY NGAY dấu chân BẮT ĐẦU — path tự cuộn tới node
   // current (nhảy tức thời, không animation → tự thỏa reduced-motion).
   const pathRef = useRef<HTMLUListElement>(null);
+
+  /** Ô <li> chứa dấu chân đang học — dùng cho cả cuộn tự động lẫn nút quay về. */
+  const timONode = () =>
+    pathRef.current?.querySelector<HTMLElement>('.node[data-state="current"]')?.closest("li") ?? null;
+  /** Vị trí cuộn đặt dấu chân hiện tại ở khoảng 1/3 trên của khung. */
+  const viTriCuon = (ul: HTMLElement, li: HTMLElement) =>
+    Math.max(0, li.offsetTop - Math.max(0, (ul.clientHeight - li.offsetHeight) * 0.35));
+
   useEffect(() => {
     const ul = pathRef.current;
-    if (!ul) return;
-    const cur = ul.querySelector<HTMLElement>('.node[data-state="current"]');
-    const li = cur?.closest("li");
-    if (!li) return;
-    const top = li.offsetTop - Math.max(0, (ul.clientHeight - li.offsetHeight) * 0.35);
+    const li = timONode();
+    if (!ul || !li) return;
+    const top = viTriCuon(ul, li);
     if (top > 0) ul.scrollTop = top;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes]);
+
+  // ── NÚT "VỀ HIỆN TẠI" ────────────────────────────────────────────────────
+  // Lộ trình dài 204 dấu chân và em CUỘN ĐƯỢC thoải mái để xem trước các chương
+  // — đó là chủ ý (PRODUCT: "lộ trình phải nhìn thấy được"). Nhưng cuộn đi xa
+  // rồi thì đường về chỗ đang học là cuộn tay ngược lại, có khi cả chục màn.
+  // Nút chỉ hiện KHI CẦN: dấu chân hiện tại trôi khỏi khung. Đứng yên tại chỗ
+  // thì không có gì thêm trên màn.
+  const [lacChoDangHoc, datLacChoDangHoc] = useState(false);
+  useEffect(() => {
+    const ul = pathRef.current;
+    const li = timONode();
+    if (!ul || !li || typeof IntersectionObserver === "undefined") {
+      datLacChoDangHoc(false);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([e]) => datLacChoDangHoc(!(e?.isIntersecting ?? true)),
+      // root = chính vùng cuộn, KHÔNG phải viewport: `.path` mới là thứ cuộn.
+      { root: ul, threshold: 0.4 },
+    );
+    io.observe(li);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]);
+
+  const veHienTai = () => {
+    const ul = pathRef.current;
+    const li = timONode();
+    if (!ul || !li) return;
+    // Cuộn mượt là chỉ dẫn KHÔNG GIAN ở đây: em thấy mình đi ngược lại bao xa,
+    // nên không lạc. Giảm chuyển động thì nhảy thẳng.
+    const nhe = typeof window !== "undefined"
+      && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    ul.scrollTo({ top: viTriCuon(ul, li), behavior: nhe ? "auto" : "smooth" });
+  };
 
   const done = nodes.filter((n) => n.state === "mastered").length;
   const pct = nodes.length > 0 ? Math.round((done / nodes.length) * 100) : 0;
@@ -654,6 +698,15 @@ export default function LearningPath({
           </div>
           <Lock aria-hidden strokeWidth={2} className="gate-lock" />
         </div>
+      )}
+
+      {/* Đường về chỗ đang học — chỉ hiện khi dấu chân hiện tại đã trôi khỏi
+          khung. Nằm góc dưới-phải, trên thanh nav đáy ở điện thoại. */}
+      {lacChoDangHoc && (
+        <button type="button" className="path-back" onClick={veHienTai}>
+          <LocateFixed aria-hidden strokeWidth={2.25} />
+          Về hiện tại
+        </button>
       )}
     </section>
   );
