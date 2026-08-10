@@ -2098,7 +2098,7 @@ ul {
 .path-lion {
   position: absolute;
   top: 24px;
-  right: calc(50% + 40px);
+  right: calc(50% + 70px);
   z-index: -1;
   display: grid;
   justify-items: center;
@@ -2108,7 +2108,7 @@ ul {
 }
 .path-lion-r {
   right: auto;
-  left: calc(50% + 40px);
+  left: calc(50% + 70px);
 }
 .path-lion::before {
   content: "";
