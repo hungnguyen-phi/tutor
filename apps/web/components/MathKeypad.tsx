@@ -73,6 +73,9 @@ export default function MathKeypad({
       mf.className = "mk-field";
       mf.setAttribute("aria-label", "Ô công thức");
 
+      // replaceChildren an toàn vì `.mk-host` KHÔNG có con nào của React (xem
+      // ghi chú ở JSX bên dưới). Vẫn dùng replace thay vì append để lần gắn thứ
+      // hai (StrictMode gọi effect hai lượt) không để lại hai ô công thức.
       hop.current.replaceChildren(mf as unknown as Node);
       truong.current = mf;
       datSan(true);
@@ -113,6 +116,16 @@ export default function MathKeypad({
 
   return (
     <div className="mk-wrap" role="group" aria-label="Bảng soạn công thức">
+      {/* ⚠️ `.mk-host` phải RỖNG dưới mắt React — effect ở trên gắn ô MathLive
+          vào đây bằng DOM tay. Bản đầu đặt dòng "Đang mở bảng công thức…" NẰM
+          TRONG div này, và đó là lỗi làm sập cả app mỗi lần bấm "Chèn công
+          thức" (báo 10/08, "Application error: a client-side exception"):
+          React gắn <p> → effect `replaceChildren` gỡ mất <p> → `datSan(true)`
+          khiến React đi xoá <p> mà nó không còn là con của .mk-host nữa →
+          `removeChild` ném NotFoundError, thoát ra tới ranh giới lỗi gốc.
+          Luật: node nào mình mutate bằng tay thì KHÔNG cho React con nào ở đó.
+          Dòng chờ nay là ANH EM của host, không phải con. */}
+      {!san && <p className="mk-loading muted">Đang mở bảng công thức…</p>}
       <div
         className="mk-host"
         ref={hop}
@@ -121,9 +134,7 @@ export default function MathKeypad({
           // chính công thức (hệ phương trình), cướp nó là hỏng đúng cái em cần.
           if (e.key === "Escape") { e.preventDefault(); onDong(); }
         }}
-      >
-        {!san && <p className="mk-loading muted">Đang mở bảng công thức…</p>}
-      </div>
+      />
 
       {/* BẢNG CÔNG THỨC — nút vẽ đúng hình dạng, bấm là chèn. */}
       <div className="mk-tabs" role="tablist" aria-label="Nhóm công thức">

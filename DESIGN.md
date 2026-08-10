@@ -205,8 +205,19 @@ verdict qua `body:has(.lfoot[data-verdict="ok"])` nên không thêm state nào �
 **Cả 4 hình dạng câu cùng một ngôn ngữ vật thể**: thẻ từng bước (hết viền xám, mặt bắt
 sáng, bước đã trả lời thì ấm lên), lời trích (lõm vào phiến — lời của người khác), ô gõ
 đáp án (viền `--pick-line` như ô bấm, placeholder `--muted` để đạt 4,5:1). Nút Có/Không
-nâng lên 44px cho đúng ngưỡng vùng chạm. Xem trước ở `/demo` → "Bài học": nút *Bầu trời
-n/9* xoay 9 tranh, nút *Dạng: …* xoay 4 hình dạng câu.
+nâng lên 44px cho đúng ngưỡng vùng chạm.
+
+## Kiểm chứng giao diện — TRÊN APP THẬT, không có bàn xem trước
+
+Route `/demo` **đã xoá 10/08** theo quyết định chủ dự án. Lý do nó phải đi: một bàn xem
+trước dựng bằng dữ liệu bịa chỉ chứng minh được rằng *markup render ra không vỡ* — nó
+không chạm tới đường đi thật (đăng nhập → lộ trình → mở bài → bấm). Bảng soạn công thức
+là bằng chứng: nó **sập ngay lần bấm đầu tiên** trên prod suốt từ lúc lên, mà mọi khâu
+"đo trong trình duyệt" trước đó đều báo xanh vì không khâu nào đi qua đúng cú bấm ấy.
+
+Mọi thay đổi giao diện từ nay nghiệm thu bằng cách **mở app thật, đăng nhập, đi đúng
+đường học sinh đi**. Đo bundle, đọc computed-style, render lẻ một component — vẫn dùng
+được, nhưng KHÔNG cái nào tính là đã kiểm chứng.
 
 **Đừng đặt `position: relative` cho `.lsn-aside` mà quên trả lại `sticky` ≥1360px** —
 media query không thêm specificity nên rule đứng sau trong file sẽ đè mất, và cột học
