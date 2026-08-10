@@ -12372,14 +12372,6 @@ body:has(.lsn-grid) {
   padding: 14px 18px 18px;
   box-shadow: 0 30px 70px -34px rgb(10 12 40 / 55%);
 }
-/* Cột học liệu cùng chất liệu — nhưng CHỈ khi có đồ thật, aside rỗng mà mang
-   nền là lòi một hộp ma bên phải. */
-.lsn-aside:not(:empty) {
-  background: rgb(255 255 255 / 92%);
-  border-radius: var(--r-lg);
-  padding: 12px;
-  box-shadow: 0 30px 70px -34px rgb(10 12 40 / 55%);
-}
 
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
    Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,
@@ -12431,16 +12423,9 @@ body:has(.lsn-grid) {
    không đặt được z-index — đặt lên chính các con của nó. */
 .lesson-top,
 .lsn-main,
-.lsn-aside,
 .mend-banner {
   position: relative;
   z-index: 1;
-}
-/* Cột học liệu phải GIỮ được "dính theo cuộn" của khối ≥1360px. Media query
-   KHÔNG thêm specificity nên `position: relative` ở trên (nằm sau trong file)
-   vốn đè mất `sticky` — đo ở 1440px mới thấy: cột học liệu cuộn mất tăm. */
-@media (min-width: 1360px) {
-  .lsn-aside { position: sticky; }
 }
 
 /* ── 2) ĐƯỜNG DẤU CHÂN — tiến trình là một CHUYẾN ĐI, không phải phần trăm ───
