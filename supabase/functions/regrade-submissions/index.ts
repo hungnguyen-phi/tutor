@@ -2,8 +2,17 @@
 //
 // Vì sao có (01/08): hôm nay đổi sang AI chấm hết và ẩn tab "Chấm bài" của giáo
 // viên. Đo trước khi đổi: 69 bản nộp, **0 bản từng được chấm Đạt**, 60 bản nằm
-// chờ. Ẩn tab đi mà không dọn thì 60 em đó thành mồ côi vĩnh viễn — mà [NOPBAI]
-// thường là câu DOK≥3 duy nhất của node, nên lộ trình của các em đứng im.
+// chờ. Ẩn tab đi mà không dọn thì mấy bản đó không còn đường nào ra — mà
+// [NOPBAI] thường là câu DOK≥3 duy nhất của node, nên lộ trình đứng im.
+//
+// ⚠️ SỬA LẠI QUY MÔ (đo 10/08, đừng đọc "60 bản" thành "60 em"): 60 dòng
+// `pending` đó là của **3 tài khoản** (`Nguyễn An` = acc demo hs1@, `Học sinh
+// thử B`, `Học sinh thử C`) trên 14 câu, và chỉ **15 cặp (học sinh, câu)** duy
+// nhất — phần còn lại là nộp lại nhiều lần. Trung vị bài nộp dài **14 ký tự**;
+// 12/15 bản là "ok" / "okk" / "mệt quá" / "oke la oke la". Đây là rác của chính
+// đợt thử nghiệm, KHÔNG phải học sinh thật đang kẹt. Bản ghi 01/08 viết "60 em
+// mồ côi vĩnh viễn" là nói quá. Cứ chạy khi tiện, nhưng đừng xếp nó thành việc
+// gấp và đừng lấy nó làm lý do bỏ qua bước xem trước.
 //
 // Dùng ĐÚNG bộ chấm của lượt nộp mới (`_shared/grade-open.ts`) và ĐÚNG bộ đọc
 // tệp (`_shared/doc-bai-lam.ts`). Không có bản sao thứ hai nào để trôi lệch.
@@ -29,6 +38,10 @@ interface KetQua {
   ketLuan: "dat" | "chua_dat" | "khong_cham_duoc" | "bai_rac";
   thieu?: string;
   masteredMoi?: boolean;
+  /** Chỉ có ở chế độ `dry`: bài làm em nộp, để người đọc tự đối chiếu phán quyết. */
+  baiLam?: string;
+  /** Ghi hỏng ở bước nào (nếu có) — xem `chot()`. */
+  loiGhi?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -43,7 +56,15 @@ Deno.serve(async (req: Request) => {
     const supa = admin();
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "dry");
-    const limit = Math.min(Math.max(Number(body.limit) || 25, 1), 100);
+    // `dry` mặc định 5 chứ không 25: nó CÓ gọi mô hình thật (xem dưới), nên để
+    // 25 là đốt token cho một lượt chỉ nhằm nhìn thử.
+    const macDinh = action === "dry" ? 5 : 25;
+    const limit = Math.min(Math.max(Number(body.limit) || macDinh, 1), 100);
+    // GHI hay KHÔNG — một cái công tắc duy nhất cho cả vòng lặp. `dry` chạy y
+    // hệt `run` (đọc tệp, gọi mô hình, chốt phán quyết) nhưng KHÔNG chạm DB.
+    // Bản đầu chỉ ĐẾM dòng, tức là xem trước mà không thấy được thứ duy nhất
+    // đáng xem: AI sẽ quyết gì. Mà từ 01/08 không còn giáo viên đọc lại.
+    const ghi = action === "run";
 
     // Chỉ bản nộp MỚI NHẤT của mỗi (học sinh, câu). Em nộp lại ba lần thì chấm
     // MỘT bài — chấm cả ba là ba lần tiền token cho cùng một kết quả, và bản cũ
@@ -62,15 +83,7 @@ Deno.serve(async (req: Request) => {
     for (const r of keys ?? []) moiNhat.set(`${r.student_id}|${r.question_id}`, r.id);
     const canCham = [...moiNhat.values()];
 
-    if (action === "dry") {
-      return json({
-        cheDo: "xem truoc — KHONG ghi gi",
-        dongPending: (keys ?? []).length,
-        baiCanCham: canCham.length,
-        ghiChu: "Gọi lại với {\"action\":\"run\"} để chấm thật. Mỗi lượt chấm tối đa `limit` bài (mặc định 25).",
-      }, 200, req);
-    }
-    if (action !== "run") return json({ error: "unknown action" }, 400, req);
+    if (action !== "run" && action !== "dry") return json({ error: "unknown action" }, 400, req);
 
     const lot = canCham.slice(0, limit);
     if (!lot.length) return json({ daCham: 0, conLai: 0, ketQua: [] }, 200, req);
@@ -127,16 +140,25 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      const xemTruoc = ghi ? {} : { baiLam: bai.slice(0, 240) };
+
       const ref = [q.dap_an, q.loi_giai].filter(Boolean).join(" ");
       if (isJunkOpenAnswer(bai, ref)) {
         // Bài rác (chữ "ok" và họ hàng) — ĐÓNG là 'redo' để em thấy bàn chân đỏ
         // và biết đường làm lại, thay vì treo mãi ở hàng đợi không ai xem.
-        await supa.from("submissions").update({
-          status: "redo",
-          feedback: { ai: { dung: false, thieu: "Bài nộp chưa có lời giải." }, chayLai: true },
-          graded_at: new Date().toISOString(),
-        }).eq("id", sub.id);
-        ketQua.push({ id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go", ketLuan: "bai_rac" });
+        let loiGhi: string | undefined;
+        if (ghi) {
+          const { error } = await supa.from("submissions").update({
+            status: "redo",
+            feedback: { ai: { dung: false, thieu: "Bài nộp chưa có lời giải." }, chayLai: true },
+            graded_at: new Date().toISOString(),
+          }).eq("id", sub.id);
+          if (error) loiGhi = `submissions: ${error.message}`;
+        }
+        ketQua.push({
+          id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go", ketLuan: "bai_rac",
+          ...xemTruoc, ...(loiGhi ? { loiGhi } : {}),
+        });
         continue;
       }
 
@@ -150,11 +172,30 @@ Deno.serve(async (req: Request) => {
       const { chamDuoc, dat } = chotPhanQuyet(ai, bai, ref);
       if (!chamDuoc) {
         // Không chấm được → ĐỂ NGUYÊN 'pending'. Lượt chạy sau nhặt lại.
-        ketQua.push({ id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go", ketLuan: "khong_cham_duoc" });
+        ketQua.push({
+          id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go",
+          ketLuan: "khong_cham_duoc", ...xemTruoc,
+        });
         continue;
       }
 
-      await supa.from("submissions").update({
+      // Xem trước: có phán quyết rồi thì DỪNG ở đây, không chạm một dòng DB nào.
+      if (!ghi) {
+        ketQua.push({
+          id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go",
+          ketLuan: dat ? "dat" : "chua_dat",
+          ...(dat ? {} : { thieu: ai!.detail ?? "" }),
+          ...xemTruoc,
+        });
+        continue;
+      }
+
+      // ── TỪ ĐÂY LÀ GHI THẬT ────────────────────────────────────────────────
+      // MỌI lệnh ghi đều phải đọc `error`. Bản đầu bỏ qua hết: ghi hỏng thì hàm
+      // vẫn đi tiếp, vẫn CỘNG XP, vẫn báo "dat" — mà status còn 'pending' nên
+      // lượt chạy sau nhặt lại đúng bản đó và cộng XP LẦN NỮA. Gặp lỗi thì bỏ
+      // qua bản này, để nguyên 'pending', và NÓI RA ở kết quả trả về.
+      const { error: upErr } = await supa.from("submissions").update({
         status: dat ? "passed" : "redo",
         // Lưu lại BẢN CHÉP đã dùng để chấm — không có nó thì sau này không ai
         // dò được vì sao một bài ảnh bị đánh trượt.
@@ -162,6 +203,13 @@ Deno.serve(async (req: Request) => {
         feedback: { ai: { dung: dat, moHinhNoi: ai!.correct, thieu: ai!.detail ?? "" }, chayLai: true },
         graded_at: new Date().toISOString(),
       }).eq("id", sub.id);
+      if (upErr) {
+        ketQua.push({
+          id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go",
+          ketLuan: "khong_cham_duoc", loiGhi: `submissions: ${upErr.message}`,
+        });
+        continue;
+      }
 
       const { data: nodeRow } = await supa
         .from("kg_nodes").select("revision")
@@ -170,7 +218,7 @@ Deno.serve(async (req: Request) => {
 
       await supa.from("mastery_evidence").delete()
         .eq("student_id", sub.student_id).eq("question_id", q.id).neq("session_id", ses.id);
-      await supa.from("mastery_evidence").upsert({
+      const { error: evErr } = await supa.from("mastery_evidence").upsert({
         tenant_id: sub.tenant_id,
         session_id: ses.id,
         student_id: sub.student_id,
@@ -183,6 +231,17 @@ Deno.serve(async (req: Request) => {
         kg_version_id: ses.kg_version_id,
         node_revision: nodeRow?.revision ?? null,
       }, { onConflict: "session_id,question_id" });
+      // Bản nộp đã đóng ở trên rồi, nên KHÔNG cộng XP khi bằng chứng ghi hỏng:
+      // XP mà không có bằng chứng là điểm từ trên trời, và lượt chạy sau cũng
+      // không sửa được vì bản này không còn 'pending'. Báo ra để chạy tay lại.
+      if (evErr) {
+        ketQua.push({
+          id: sub.id, hocSinh, node, nguon: doc?.nguon ?? "go",
+          ketLuan: dat ? "dat" : "chua_dat",
+          loiGhi: `mastery_evidence: ${evErr.message}`,
+        });
+        continue;
+      }
 
       const state = await recomputeNodeState(supa, {
         tenantId: sub.tenant_id, studentId: sub.student_id,
@@ -207,16 +266,24 @@ Deno.serve(async (req: Request) => {
     }
 
     const dem = (k: KetQua["ketLuan"]) => ketQua.filter((r) => r.ketLuan === k).length;
+    const loi = ketQua.filter((r) => r.loiGhi);
     return json({
+      cheDo: ghi ? "chấm THẬT — đã ghi DB" : "xem trước — CÓ gọi mô hình, KHÔNG ghi một dòng nào",
       daCham: ketQua.length,
       conLai: Math.max(0, canCham.length - lot.length),
+      // Số dòng 'pending' KHÔNG nằm trong diện chấm: bản nộp cũ của cùng một
+      // (học sinh, câu) đã có bản mới hơn. Nói ra để đừng ai đọc `conLai: 0` rồi
+      // tưởng bảng submissions sạch — chúng nó ở lại 'pending' vĩnh viễn.
+      dongTrungBoLai: Math.max(0, (keys ?? []).length - canCham.length),
       tomTat: {
         dat: dem("dat"),
         chuaDat: dem("chua_dat"),
         baiRac: dem("bai_rac"),
         khongChamDuoc: dem("khong_cham_duoc"),
         nodeVuaXanh: ketQua.filter((r) => r.masteredMoi).length,
+        ...(loi.length ? { GHI_HONG: loi.length } : {}),
       },
+      ...(ghi ? {} : { ghiChu: `Gọi lại với {"action":"run"} để chấm thật.` }),
       ketQua,
     }, 200, req);
   } catch (e) {

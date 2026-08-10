@@ -6,6 +6,80 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { recomputeMastery, nextReviewISO, type Evidence } from "../_shared/pedagogy.ts";
 import { awardXp } from "../_shared/xp.ts";
+import { anonymize, callLLM } from "../_shared/llm.ts";
+
+/**
+ * GIỌNG ĐIỆU RIÊNG CHO TỪNG EM (chốt 02/08, chủ dự án).
+ *
+ * Không phải học sinh nào cũng học hiệu quả với cùng một giọng — có em cần
+ * nghiêm túc ít đùa, có em cần vui vẻ khích lệ nhiều mới không nản. Thay vì
+ * lưu NGUYÊN VĂN lịch sử hội thoại (tốn, và không cần thiết), ở CUỐI mỗi buổi
+ * học AI tự đúc kết lại thành MỘT ghi chú NGẮN (1-2 câu), ghi đè lên bản cũ
+ * (không phải log cộng dồn) — đọc lại ở chat-turn qua `profiles.tutor_style_note`
+ * để dẫn dắt đúng chất với riêng em đó.
+ *
+ * BEST-EFFORT, không chặn việc đóng phiên: lỗi ở đây tuyệt đối không được làm
+ * hỏng luồng chính (mastery + XP + đóng phiên) — đây là gia vị, không phải
+ * xương sống.
+ */
+async function updateStyleNote(
+  // deno-lint-ignore no-explicit-any
+  supa: any,
+  s: { id: string; tenant_id: string; student_id: string },
+): Promise<void> {
+  try {
+    const [{ data: turns }, { data: profile }] = await Promise.all([
+      supa
+        .from("session_turns")
+        .select("role, content")
+        .eq("session_id", s.id)
+        .order("created_at", { ascending: true })
+        .limit(80),
+      supa.from("profiles").select("full_name, tutor_style_note").eq("id", s.student_id).single(),
+    ]);
+    const rows = (turns ?? []) as Array<{ role: string; content: string }>;
+    // Đủ lời để đúc kết chưa? Buổi chỉ toàn bấm đáp án (không gõ chữ) thì
+    // không có gì để suy giọng điệu — bỏ qua lặng lẽ, không phải lỗi.
+    const spoken = rows.filter((r) => r.role === "student" && String(r.content ?? "").trim().length >= 12);
+    if (spoken.length < 2 || !Deno.env.get("OPENROUTER_API_KEY")) return;
+
+    const names = profile?.full_name ? [String(profile.full_name)] : [];
+    const transcriptRaw = rows
+      .slice(-40)
+      .map((r) => `${r.role === "student" ? "HS" : "TUTOR"}: ${String(r.content ?? "").slice(0, 200)}`)
+      .join("\n");
+    const { text: transcript, map } = anonymize(transcriptRaw, names);
+    void map; // không cần hoàn nguyên — ghi chú lưu lại KHÔNG được chứa tên thật.
+
+    const system = `Bạn đọc một đoạn hội thoại giữa gia sư AI và một học sinh lớp 10, rồi đúc kết
+CÁCH NÓI CHUYỆN phù hợp nhất với RIÊNG em này cho các buổi sau — KHÔNG phải nội
+dung em hay sai (đã có chỗ khác lo việc đó).
+QUY TẮC BẮT BUỘC:
+- Chỉ nói về GIỌNG ĐIỆU/PHONG CÁCH tương tác: cần nghiêm túc hay vui vẻ, cần
+  khích lệ nhiều hay ít, thích ngắn gọn hay thích giải thích kỹ, dễ nản hay
+  kiên trì, thích đùa hay không...
+- ĐÚNG 1-2 CÂU, tiếng Việt, ngắn gọn, không lặp lại nguyên văn lời học sinh.
+- KHÔNG nêu tên riêng, không suy đoán thông tin cá nhân ngoài cách học.
+- Nếu hội thoại quá ngắn/không đủ tín hiệu rõ ràng, trả về CHUỖI RỖNG.
+- Nếu đã có ghi chú cũ, XEM XÉT giữ lại phần vẫn đúng, chỉ cập nhật phần đổi.`;
+    const user = `${profile?.tutor_style_note ? `<ghi_chu_cu>${String(profile.tutor_style_note).slice(0, 200)}</ghi_chu_cu>\n` : ""}<hoi_thoai>\n${transcript}\n</hoi_thoai>`;
+
+    const res = await callLLM({
+      system, user, agent: "style-note", tier: "cheap",
+      maxTokens: 120, temperature: 0.3,
+      studentId: s.student_id, tenantId: s.tenant_id, supa,
+    });
+    // Trần 200 — khớp ĐÚNG trần `clip(giongRieng, 200)` ở buildGuideUser. Lưu
+    // 300 như bản đầu thì 100 ký tự cuối không bao giờ tới được mô hình, mà đọc
+    // trong DB lại tưởng nó đang có tác dụng.
+    const note = res.text.trim().slice(0, 200);
+    if (!note) return;
+    await supa.from("profiles").update({ tutor_style_note: note }).eq("id", s.student_id);
+  } catch {
+    // Gia vị, không phải xương sống — lỗi ở đây không được lộ ra cho học sinh
+    // hay chặn việc đóng phiên.
+  }
+}
 
 Deno.serve(async (req: Request) => {
   const pre = handleOptions(req);
@@ -102,6 +176,11 @@ Deno.serve(async (req: Request) => {
     const xp = await awardXp(supa, s.tenant_id, s.student_id, [
       { kind: "lesson_done", sessionId: s.id },
     ]);
+
+    // Đúc kết giọng điệu riêng cho em này — chạy NỀN, không chặn response đóng
+    // phiên (học sinh không cần chờ một lượt gọi LLM chỉ để thấy màn "đã lưu").
+    (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+      .EdgeRuntime?.waitUntil?.(updateStyleNote(supa, s));
 
     return json({ sessionId: s.id, nodes: summary, ...(xp ? { xp } : {}) });
   } catch (e) {

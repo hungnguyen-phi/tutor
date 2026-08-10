@@ -178,13 +178,31 @@ export interface LlmCallArgs {
   images?: string[];
 }
 
+/**
+ * TIER THẬT SỰ ĐƯỢC DÙNG — có ảnh thì ÉP "vision", không tin lời khai của nơi gọi.
+ *
+ * Vì sao ép thay vì tin: danh sách model xếp `MODELS[tier]` lên ĐẦU. Nơi gọi
+ * quên đặt `tier: "vision"` thì model đứng đầu là model CHỮ, và một model chữ
+ * nhận `image_url` thì hoặc lỗi, hoặc lờ ảnh đi rồi **trả lời trôi chảy về một
+ * bài nó chưa hề thấy**. Từ 01/08 bài tự luận do AI chấm và KHÔNG còn giáo viên
+ * đọc lại, nên phán quyết đó đi thẳng vào mastery của học sinh. Hôm nay chỉ
+ * `doc-bai-lam.ts` truyền ảnh và nó đặt đúng tier — chốt ở đây để nơi gọi thứ
+ * hai (chưa tồn tại) không mở lại lỗ này.
+ */
+export function tierThucSu(a: Pick<LlmCallArgs, "tier" | "images">): Tier {
+  return (a.images?.length ?? 0) > 0 ? "vision" : (a.tier ?? "default");
+}
+
 /** Khoá cache = SHA-256 của (agent | tier | system | user | ẢNH). Băm để khoá
  *  ngắn, không chứa bài làm của học sinh dưới dạng đọc được (PDPL).
  *
  *  ẢNH PHẢI nằm trong khoá: thiếu nó thì hai bài chụp KHÁC NHAU của cùng một đề
  *  băm ra cùng khoá, và em nộp sau nhận nguyên phán quyết của bài em nộp trước. */
 async function cacheKeyOf(a: LlmCallArgs): Promise<string> {
-  const raw = `${a.agent}|${a.tier ?? "default"}|${a.system}|${a.user}|${(a.images ?? []).join("|")}`;
+  // Dùng tier ĐÃ ÉP (xem tierThucSu): có ảnh thì luôn là "vision" dù nơi gọi
+  // khai gì — nếu không, cùng một yêu cầu khai hai tier khác nhau sẽ băm ra hai
+  // khoá, chạy hai lượt và trả hai phán quyết cho CÙNG một bài.
+  const raw = `${a.agent}|${tierThucSu(a)}|${a.system}|${a.user}|${(a.images ?? []).join("|")}`;
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -253,7 +271,8 @@ export async function callLLM(args: LlmCallArgs): Promise<LlmCallResult> {
   // Chưa chạm trần + có sẵn trong cache → trả luôn, KHÔNG tiêu token lượt này.
   if (cached) return cached;
 
-  const tier: Tier = args.tier ?? "default";
+  // ÉP tier theo dữ liệu thật, không theo lời khai (xem tierThucSu).
+  const tier: Tier = tierThucSu(args);
   const primary = MODELS[tier];
   const dedupe = (a: string[]) => a.filter((m, i, arr) => arr.indexOf(m) === i);
   // OpenRouter caps the `models` array at 3 items.

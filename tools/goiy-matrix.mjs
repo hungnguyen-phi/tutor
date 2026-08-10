@@ -31,7 +31,7 @@ fs.writeFileSync(
   path.join(OUT, "pedagogy.mjs"),
   ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText,
 );
-const { chonBacGoiY, evaluateEffortGate } = await import(pathToFileURL(path.join(OUT, "pedagogy.mjs")).href);
+const { chonBacGoiY, evaluateEffortGate, tinhVanNoLuc } = await import(pathToFileURL(path.join(OUT, "pedagogy.mjs")).href);
 
 let dat = 0, truot = 0;
 const tc = (ten, thay, mong) => {
@@ -84,6 +84,31 @@ tc("thang 1 bậc, chưa trao → bậc 1",
   chonBacGoiY({ engaged: 0, bacDaTrao: [], totalRungs: 1, exhausted: false, choPhepDay: true }), 0);
 tc("thang 1 bậc, đã trao → xuống đáy",
   chonBacGoiY({ engaged: 0, bacDaTrao: [0], totalRungs: 1, exhausted: false, choPhepDay: true }), 1);
+
+// ── VAN NỖ LỰC ────────────────────────────────────────────────────────────────
+// `tinhVanNoLuc` quyết định CẢ HAI: bậc thang (cộng vào `engaged`) và cổng nỗ
+// lực (nơi gọi dùng ">0" để nâng thinkingQuality lên đúng ngưỡng 0.5). Bản viết
+// tay đầu tiên nằm lẫn trong thân request handler và lệch ngưỡng — 1 thay vì 2 —
+// nên MỘT câu bất kỳ sau lần thử cuối đã mở luôn vế "diễn đạt lý lẽ". Không bộ
+// kiểm nào với tới vì nó không phải hàm thuần. Nay nó là, và đây là hàng rào.
+const van = (ketThatLienTiep, luotNoiSauLanThuCuoi) =>
+  tinhVanNoLuc({ ketThatLienTiep, luotNoiSauLanThuCuoi });
+
+console.log("\n── Van nỗ lực: NGƯỠNG LÀ 2 LƯỢT NÓI, không phải 1 ──");
+tc("chưa nói lượt nào → đóng", van(0, 0), 0);
+tc("mới nói 1 lượt → VẪN ĐÓNG (đây là chỗ từng sai)", van(0, 1), 0);
+tc("nói 2 lượt → mở", van(0, 2), 1);
+tc("nói 5 lượt → vẫn chỉ mở 1 nấc, không cộng dồn", van(0, 5), 1);
+
+console.log("\n── Van cũ (xin giúp liên tiếp) vẫn nguyên tác dụng ──");
+tc("kẹt thật 1, chưa nói lượt nào → mở theo đường cũ", van(1, 0), 1);
+tc("kẹt thật 3 → lấy đúng số của đường cũ", van(3, 0), 3);
+tc("kẹt thật 3 + nói 2 lượt → lấy đường RỘNG hơn", van(3, 2), 3);
+tc("kẹt thật 0 + nói 2 → đường mới thắng", van(0, 2), 1);
+
+console.log("\n── Đầu vào rác không được đẻ ra nỗ lực âm ──");
+tc("ketThat âm (dữ liệu xấu) → 0", van(-2, 0), 0);
+tc("ketThat âm nhưng đã nói đủ → vẫn mở 1", van(-2, 2), 1);
 
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);

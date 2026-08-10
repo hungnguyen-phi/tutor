@@ -90,5 +90,33 @@ tc("đáp án đoạn văn, bài đủ ý", llm(true),
   "Δ = 0 thì cùng dấu a trừ điểm x = -b/2a. Δ > 0 thì trái dấu a giữa hai nghiệm.",
   DOAN_VAN, "dat");
 
+// ── KHOÁ TIER NHÌN ────────────────────────────────────────────────────────────
+// Bài nộp bằng ẢNH đi qua `callLLM` với ảnh đính kèm. Danh sách model xếp
+// `MODELS[tier]` lên ĐẦU, nên nơi gọi quên `tier:"vision"` là model CHỮ đứng
+// đầu — nó không thấy ảnh mà vẫn trả lời trôi chảy, rồi phán quyết đó đi thẳng
+// vào mastery vì không còn giáo viên đọc lại. `tierThucSu` ép theo DỮ LIỆU
+// (có ảnh hay không), không theo lời khai của nơi gọi.
+const { tierThucSu } = await import(pathToFileURL(path.join(OUT, "llm.mjs")).href);
+function tcTier(ten, args, mong) {
+  const thay = tierThucSu(args);
+  if (thay === mong) { console.log(`  ✓ ${ten}`); dat++; return; }
+  console.log(`  ✗ ${ten}\n      mong: ${mong}  ·  thấy: ${thay}`);
+  truot++;
+}
+const ANH = ["data:image/png;base64,iVBORw0KGgo="];
+
+console.log("\n── Có ảnh ⇒ LUÔN là tier nhìn, bất kể nơi gọi khai gì ──");
+tcTier("khai đúng vision", { tier: "vision", images: ANH }, "vision");
+tcTier("QUÊN khai tier", { images: ANH }, "vision");
+tcTier('khai nhầm "default"', { tier: "default", images: ANH }, "vision");
+tcTier('khai nhầm "cheap"', { tier: "cheap", images: ANH }, "vision");
+tcTier('khai nhầm "strong"', { tier: "strong", images: ANH }, "vision");
+
+console.log("\n── Không ảnh ⇒ giữ NGUYÊN tier nơi gọi chọn (đừng đổi hành vi cũ) ──");
+tcTier("không tier, không ảnh", {}, "default");
+tcTier("cheap giữ nguyên", { tier: "cheap" }, "cheap");
+tcTier("strong giữ nguyên", { tier: "strong" }, "strong");
+tcTier("mảng ảnh RỖNG vẫn là không ảnh", { tier: "cheap", images: [] }, "cheap");
+
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);

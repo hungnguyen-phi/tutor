@@ -155,6 +155,47 @@ export function nextReviewISO(box: number, fromMs: number): string {
 }
 
 /**
+ * Bao nhiêu lượt NÓI (kể từ lần thử cuối) thì mở van — xem `tinhVanNoLuc`.
+ *
+ * = 2, không phải 1. Ở 1 thì MỘT câu bất kỳ sau lần thử cuối đã đủ mở vế "diễn
+ * đạt lý lẽ" của cổng nỗ lực, tức gần như bỏ hẳn vế đó. Ở 2 thì van mở đúng lúc
+ * học sinh sắp phải nghe lại câu y hệt lần thứ ba — chữa đúng triệu chứng mà
+ * không nới bất biến.
+ */
+export const NGUONG_MO_VAN = 2;
+
+/**
+ * VAN NỖ LỰC — cứu em đang nói thật mà bị đứng im tại chỗ.
+ *
+ * Hai đường vào, lấy đường nào rộng hơn:
+ *
+ *  1. `ketThatLienTiep` — em xin giúp nhiều lượt LIÊN TIẾP (van cũ, 29/07).
+ *     `memory.ts` dừng đếm ngay khi gặp một lượt CÓ nội dung thật, nên đường này
+ *     chỉ bắt được em spam "cho tớ gợi ý", không bắt được em trả lời thật.
+ *
+ *  2. `luotNoiSauLanThuCuoi` — van thứ hai (03/08, từ phản hồi thật). Một câu
+ *     trả lời THẬT nhưng NGẮN ("để làm mệnh đề" — 4 từ, dưới ngưỡng 5) bị
+ *     `thinkingContentSignal` chấm thấp y như spam, mà nó lại không phải "xin
+ *     giúp" nên đường 1 không tính. Kết quả: em có thử thật mà bậc thang đứng
+ *     im, sư tử hỏi lại gần như y hệt hai-ba lượt liền.
+ *
+ * Trả về số cộng thêm vào `engaged`. Nơi gọi còn dùng ">0" để nâng chất lượng
+ * suy nghĩ lên đúng ngưỡng cổng — nên đây là hàm quyết định CẢ HAI: bậc thang
+ * lẫn cổng nỗ lực. Tách ra khỏi thân request handler ngày 10/08 chính vì thế:
+ * chỗ nào động tới cổng nỗ lực thì phải có bộ kiểm đứng gác.
+ */
+export function tinhVanNoLuc(i: {
+  /** Số lượt xin giúp LIÊN TIẾP (đã trừ lượt đầu) — đường van cũ. */
+  ketThatLienTiep: number;
+  /** Số lượt em NÓI (kể/xin giúp) kể từ lần THỬ đáp án cuối cùng. */
+  luotNoiSauLanThuCuoi: number;
+}): number {
+  const vanCu = Math.max(0, i.ketThatLienTiep);
+  const vanMoi = i.luotNoiSauLanThuCuoi >= NGUONG_MO_VAN ? 1 : 0;
+  return Math.max(vanCu, vanMoi);
+}
+
+/**
  * CHỌN BẬC GỢI Ý cho lượt này — luật "chỉ tiến, không lùi" (lỗi #27).
  *
  * Người thử 1 đợt 2, khi được hỏi *nếu chỉ được sửa MỘT thứ*: "Sư tử nên có các

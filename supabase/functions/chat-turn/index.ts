@@ -12,7 +12,7 @@ import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer, type CasResult } from "../_shared/cas.ts";
 import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
-import { evaluateEffortGate, chonBacGoiY } from "../_shared/pedagogy.ts";
+import { evaluateEffortGate, chonBacGoiY, tinhVanNoLuc } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
 import { buildGuideSystem, buildGuideUser, buildScoredRubricSystem } from "../_shared/prompts.ts";
@@ -38,6 +38,30 @@ const toDoKho = (v: unknown): string => {
   const s = String(v ?? "").trim();
   return DO_KHO_ENUM[s] ?? DO_KHO_ENUM[s.toLowerCase()] ?? "TB";
 };
+
+// Tỉ lệ AI DIỄN GIẢI LẠI câu gợi mở đã soạn (advance_rung) thay vì đọc nguyên
+// văn — câu càng khó càng cần AI bám sát ĐÚNG NGỮ CẢNH học sinh vừa làm, câu
+// càng dễ thì nguyên văn soạn sẵn đã đủ rõ. AI CHỈ được diễn đạt lại, KHÔNG
+// được đổi Ý của rungQuestion (xem buildGuideSystem: rungQuestion truyền
+// nguyên, model chỉ "diễn đạt lại tự nhiên, KHÔNG lộ đáp án").
+const AI_REPHRASE_CHANCE: Record<string, number> = { de: 0.3, TB: 0.5, kho: 0.7 };
+
+/**
+ * GIỌNG ĐIỆU riêng cho em này (chốt 02/08) — đọc `profiles.tutor_style_note`,
+ * một ghi chú NGẮN do `end-session` tự đúc kết mỗi khi kết thúc buổi học, KHÔNG
+ * phải log/lịch sử. Không có thì bỏ qua lặng lẽ — chưa học buổi nào có hội
+ * thoại thật thì chưa có gì để đúc kết, không phải lỗi.
+ */
+// deno-lint-ignore no-explicit-any
+async function fetchStyleNote(supa: any, studentId: string): Promise<string | undefined> {
+  try {
+    const { data } = await supa
+      .from("profiles").select("tutor_style_note").eq("id", studentId).maybeSingle();
+    return (data?.tutor_style_note as string | null) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 interface Session {
   id: string;
@@ -525,7 +549,7 @@ Deno.serve(async (req: Request) => {
             : thinkingContentSignal(reasoning);
         // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
         // đáng thêm một vòng mạng tuần tự).
-        const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes] = await Promise.all([
+        const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes, styleNote] = await Promise.all([
           supa.from("attempts").select("id, attempt_no, thinking_quality, created_at")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
@@ -547,6 +571,7 @@ Deno.serve(async (req: Request) => {
           supa.from("session_turns").select("created_at, role, meta")
             .eq("session_id", s.id)
             .order("created_at", { ascending: false }).limit(120),
+          fetchStyleNote(supa, s.student_id),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
@@ -592,15 +617,48 @@ Deno.serve(async (req: Request) => {
           if (ladder?.id && mt.thangId && mt.thangId !== ladder.id) continue;
           if (typeof mt.bacTrao === "number") daTraoR.add(mt.bacTrao);
         }
+        // Đếm TỪ LẦN THỬ CUỐI (đặt SỚM hơn trước — cần cho `bestR` bên dưới, và
+        // vẫn tái dùng để đưa `noiChuaThu` vào prompt ở cuối như cũ).
+        const lastAttAt = attRows.length
+          ? String((attRes.data ?? [])[attRows.length - 1]?.created_at ?? "")
+          : "";
+        const noiSauLanThuCuoi = ((chatRes?.data ?? []) as Array<
+          { created_at: string; role: string; meta: { kind?: string; questionId?: string } | null }
+        >).filter((r) =>
+          r.role === "student" &&
+          r.meta?.kind === "reflect" && r.meta?.questionId === q.id &&
+          (!lastAttAt || r.created_at > lastAttAt)
+        ).length;
+        // ── VAN THỨ HAI: TRẢ LỜI THẬT NHƯNG NGẮN CŨNG BỊ ĐỨNG IM (phản hồi thật
+        // 03/08) ─────────────────────────────────────────────────────────────
+        // `ketThat` chỉ tính khi HAI lượt LIÊN TIẾP đều là "xin giúp" (memory.ts
+        // dừng đếm ngay khi gặp một lượt CÓ nội dung thật). Nhưng một câu trả
+        // lời THẬT mà ngắn (vd "để làm mệnh đề" — 4 từ, dưới ngưỡng 5) cũng bị
+        // `thinkingContentSignal` chấm thấp y như spam (xem cap ở dòng ~547) —
+        // và vì nó không phải "xin giúp", `xinGiupLienTiep`/`ketThat` không
+        // tính, nên bậc vẫn đứng im. Kết quả: sư tử hỏi lại gần như y hệt câu cũ
+        // hai-ba lượt liền, dù học sinh có thử thật. Van thứ hai: đã ≥2 lượt
+        // phản hồi (bất kể xin giúp hay trả lời ngắn) kể từ lần thử cuối mà
+        // VẪN ở nguyên bậc này → ép qua cổng — CẢ HAI chỗ (bậc thang lẫn cổng
+        // nỗ lực), không chỉ đổi giọng mà bậc vẫn đứng im.
+        //
+        // Luật + ngưỡng nằm ở `tinhVanNoLuc` (pedagogy.ts), KHÔNG viết tay ở
+        // đây: hàm này quyết định cả bậc thang lẫn cổng nỗ lực, mà bản viết tay
+        // đầu tiên đã lệch ngưỡng (1 thay vì 2) đúng vì nó nằm lẫn trong thân
+        // handler nên không bộ kiểm nào với tới. Nay `goiy-matrix` gác nó.
+        const vanThat = tinhVanNoLuc({
+          ketThatLienTiep: ketThat,
+          luotNoiSauLanThuCuoi: noiSauLanThuCuoi,
+        });
         const currentRungR = chonBacGoiY({
-          engaged: engagedR + ketThat, bacDaTrao: [...daTraoR], totalRungs,
+          engaged: engagedR + vanThat, bacDaTrao: [...daTraoR], totalRungs,
           exhausted: false,
           // Đối thoại KHÔNG bao giờ chạm đáy: chat nhiều không moi được đáp án (B4).
           choPhepDay: false,
         });
-        // Kẹt thật thì cũng phải QUA được cổng, không thì stage kẹt ở
-        // "need_think" và bậc thang vừa mở ra lại không được dùng.
-        const bestR = ketThat > 0 ? Math.max(best, 0.5) : best;
+        // Kẹt thật (hoặc trả lời ngắn lặp) thì cũng phải QUA được cổng, không
+        // thì stage kẹt ở "need_think" và bậc thang vừa mở ra lại không được dùng.
+        const bestR = vanThat > 0 ? Math.max(best, 0.5) : best;
 
         const gate = evaluateEffortGate({
           attempts,
@@ -626,17 +684,7 @@ Deno.serve(async (req: Request) => {
         // của nó — như một người bạn để ý thấy nãy giờ toàn nói chuyện.
         //
         // Đếm TỪ LẦN THỬ CUỐI: em vừa nói vừa làm bài thì nói bao nhiêu cũng
-        // được, đó đúng là thứ mình muốn khuyến khích.
-        const lastAttAt = attRows.length
-          ? String((attRes.data ?? [])[attRows.length - 1]?.created_at ?? "")
-          : "";
-        const noiSauLanThuCuoi = ((chatRes?.data ?? []) as Array<
-          { created_at: string; role: string; meta: { kind?: string; questionId?: string } | null }
-        >).filter((r) =>
-          r.role === "student" &&
-          r.meta?.kind === "reflect" && r.meta?.questionId === q.id &&
-          (!lastAttAt || r.created_at > lastAttAt)
-        ).length;
+        // được, đó đúng là thứ mình muốn khuyến khích. (Đã tính ở trên.)
 
         // ĐƯỜNG LUI TẤT ĐỊNH — dùng khi trường chưa bật khoá AI hoặc LLM hỏng.
         if (stage === "must_try") {
@@ -689,8 +737,10 @@ Deno.serve(async (req: Request) => {
                 hasMemory: !!mem,
                 // Nói nhiều mà chưa thử lại → sư tử tự thấy, tự kéo về việc làm bài.
                 ...(noiSauLanThuCuoi >= 4 ? { noiChuaThu: noiSauLanThuCuoi } : {}),
+                ...(styleNote ? { coGiongRieng: true } : {}),
               }),
               user: buildGuideUser({
+                giongRieng: styleNote,
                 hoSo: mem?.hoSo,
                 soTay: mem?.soTay,
                 lichSu: mem?.lichSu,
@@ -1051,18 +1101,99 @@ Deno.serve(async (req: Request) => {
         // Xoay vòng lời nhắc (lỗi 19 — một câu lặp mãi nghe như máy hỏng), và
         // khi đã bắt được QUAN NIỆM SAI thì nói thẳng vào nó (không lộ đáp án —
         // chỉ gọi tên cách nghĩ chưa chuẩn mà distractor này được soạn để bắt).
+        // Thư viện CỐ Ý lớn + đa giọng điệu (không phải cùng một khuôn "Chưa
+        // đúng — ..." lặp lại): lượt sai ĐẦU TIÊN vẫn tất định 100% (tức thời,
+        // không gọi LLM) nhưng phải đủ đa dạng để không lộ ra là câu soạn sẵn.
         const RETRY_VI = [
-          "Chưa đúng — thử thêm một lần nữa nhé. Bạn dựa vào đâu để chọn như vậy?",
-          "Chưa phải rồi. Đọc lại đề chậm một lượt xem — còn dữ kiện nào bạn chưa dùng?",
-          "Sai là não đang tập mà! Thử một hướng khác xem sao?",
+          "Chưa đúng rồi. Bạn dựa vào đâu để chọn như vậy?",
+          "Chưa phải rồi, đọc lại đề chậm một lượt xem — còn dữ kiện nào bạn chưa dùng?",
+          "Sai là não đang tập mà, thử một hướng khác xem sao?",
+          "Chưa trúng. Bạn thử kể lại từng bước mình vừa làm xem nào?",
+          "Gần đúng hướng thôi, chưa phải đáp án. Bạn soát lại bước đầu tiên thử xem.",
+          "Không phải rồi bạn ơi. Có chỗ nào trong đề mình đọc lướt qua không nhỉ?",
+          "Chưa được. Thử hình dung lại vấn đề theo cách khác xem sao?",
+          "Trật rồi. Bạn tự tin với cách làm vừa rồi không, hay đang đoán?",
+          "Chưa ổn. Mình gợi ý một chút: đọc lại câu hỏi xem nó thực sự cần gì.",
+          "Sai chỗ nào đó rồi. Bạn có muốn thử lại theo hướng khác không?",
+          "Chưa khớp đáp án đâu. Bước tính/lập luận vừa rồi bạn chắc chắn chưa?",
+          "Không đúng. Cứ bình tĩnh, thử lại một lần nữa nhé.",
+          "Chưa ăn khớp với đề rồi. Bạn thử đọc lại câu hỏi một lượt xem sao.",
+          "Hụt rồi bạn ơi. Có bước nào bạn làm tắt không nhỉ?",
+          "Không phải đáp án đó. Bạn thử tính/suy luận lại từ đầu xem.",
+          "Chệch hướng một chút rồi. Bạn định nghĩa lại vấn đề xem có khác không.",
+          "Chưa tới rồi. Mình đoán bạn đang vội — thử chậm lại một nhịp xem.",
+          "Không đúng đâu. Bạn có chắc mình hiểu đúng đề chưa?",
+          "Trớt quớt rồi bạn ơi, thử lại phát nữa xem nào.",
+          "Chưa phải. Có khi nào bạn nhớ nhầm công thức/quy tắc nào đó không?",
+          "Sai bét rồi, nhưng không sao — thử soi lại từng chữ trong đề xem.",
+          "Chưa đúng. Bạn làm theo trực giác hay có tính toán hẳn hoi vậy?",
+          "Lệch rồi. Câu này có cần bước trung gian nào bạn bỏ qua không?",
+          "Không khớp. Bạn thử đổi cách tiếp cận xem, đừng đi lại đúng đường cũ.",
+          "Trật lất rồi. Bạn có muốn đọc lại đề một lần nữa trước khi thử tiếp không?",
+          "Chưa chuẩn. Cứ thoải mái, sai ở đây không mất gì cả, thử lại xem.",
+          "Không ra rồi. Bạn thử hình dung bằng hình vẽ/ví dụ cụ thể xem sao.",
+          "Chưa tới đích. Có phép tính nào bạn làm hơi nhanh không?",
+          "Sai chỗ nào chưa rõ, nhưng chắc chắn chưa đúng — thử cách khác xem.",
+        ];
+        // Lead-in khi bắt được quan niệm sai — cũng xoay vòng, tránh dính cứng
+        // một cụm ("dính một bẫy quen thuộc") lặp ở mọi lượt.
+        const TRAP_LEAD_VI = [
+          "Mình nhận ra cách nghĩ sau lựa chọn đó, nó dính một bẫy quen thuộc:",
+          "Chỗ bạn vừa chọn có một hiểu lầm khá phổ biến:",
+          "Mình đoán được vì sao bạn chọn vậy rồi, có một bẫy nhỏ ở đây:",
+          "Nhiều bạn cũng chọn y như vậy vì vướng đúng chỗ này:",
+          "À, mình biết chỗ này rồi — nhiều bạn hay lẫn đúng điểm này:",
+          "Đây là một nhầm lẫn kinh điển, không riêng gì bạn đâu:",
+          "Mình thấy lỗi rồi, khá tinh vi đấy:",
+          "Có một chỗ dễ lẫn ở ngay đây, mình chỉ cho bạn nhé:",
+          "Đúng kiểu nhầm mà rất nhiều bạn học mắc phải:",
+          "Ồ, đây là một cái bẫy quen mặt trong đề dạng này:",
+          "Mình hiểu vì sao bạn chọn phương án đó — có một điểm dễ gây lầm:",
+          "Chỗ này tinh vi thật, bạn không phải người đầu tiên vướng đâu:",
+        ];
+        const TRAP_LEAD_EN = [
+          "I can see the idea behind that choice, it hides a common trap:",
+          "There's a fairly common mix-up behind that pick:",
+          "I get why you chose that, there's a small trap here:",
+          "That's a classic one, lots of people trip on it:",
+          "There's a subtle trap right there:",
+        ];
+        // ── KHÔNG hỏi lại "vì sao bạn chọn vậy" sau khi đã NÓI THẲNG bẫy —
+        // hỏi lại là mâu thuẫn (vừa giải thích lý do sai, lại quay ra hỏi lý
+        // do). Phát hiện qua phản hồi thật 02/08: lượt sai ĐẦU TIÊN đã bắt
+        // được quan niệm sai, máy vẫn hỏi "bạn dựa vào đâu để chọn như vậy?"
+        // — nghe như hai module ghép lại không ăn khớp. Trường hợp matched
+        // dùng bộ câu chốt RIÊNG: mời thử lại, không đòi giải trình.
+        const RETRY_AFTER_TRAP_VI = [
+          "Giờ bạn thử chọn lại xem.",
+          "Nhìn lại các lựa chọn với bẫy vừa nói, thử lại nhé.",
+          "Bạn xem lại và chọn lại thử xem.",
+          "Giờ tránh đúng bẫy đó, chọn lại xem nào.",
+          "Biết bẫy rồi thì thử lại chắc ăn hơn đó, làm lại xem.",
+          "Vậy giờ bạn thử tránh đúng chỗ đó rồi chọn lại nhé.",
+          "Thử lại đi, lần này chắc chắn né được rồi.",
+          "Vậy giờ chọn lại thử, mình tin bạn né được bẫy đó.",
+          "Giờ nhớ chỗ vừa nói rồi, chọn lại xem sao.",
+          "Bạn thử lại lần nữa, để ý đúng chỗ mình vừa chỉ nhé.",
+        ];
+        const RETRY_AFTER_TRAP_EN = [
+          "Now give it another try.",
+          "Watch out for that trap and pick again.",
+          "Have another look and try once more.",
+          "Now that you know the trap, give it another shot.",
         ];
         const base = en
-          ? "Not quite yet — give it one more try first. What was your reasoning?"
-          : RETRY_VI[(attemptNo - 1) % RETRY_VI.length]!;
+          ? (matched
+              ? RETRY_AFTER_TRAP_EN[(attemptNo - 1) % RETRY_AFTER_TRAP_EN.length]!
+              : "Not quite yet — give it one more try first. What was your reasoning?")
+          : (matched
+              ? RETRY_AFTER_TRAP_VI[(attemptNo - 1) % RETRY_AFTER_TRAP_VI.length]!
+              : RETRY_VI[(attemptNo - 1) % RETRY_VI.length]!);
+        const leadTrap = en
+          ? TRAP_LEAD_EN[(attemptNo - 1) % TRAP_LEAD_EN.length]!
+          : TRAP_LEAD_VI[(attemptNo - 1) % TRAP_LEAD_VI.length]!;
         const msg = matched
-          ? (en
-              ? `I can see the idea behind that choice — it hides a common trap: ${safeMisconception(matched, q.dap_an)} ${base}`
-              : `Mình nhận ra cách nghĩ sau lựa chọn đó — nó dính một bẫy quen thuộc: ${safeMisconception(matched, q.dap_an)} ${base}`)
+          ? `${leadTrap} ${safeMisconception(matched, q.dap_an)}. ${base}`
           : base;
         persist("tutor", msg, "engine", { gate: gate.action, matched, questionId: q.id });
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
@@ -1077,6 +1208,39 @@ Deno.serve(async (req: Request) => {
           'Trước khi mình gợi ý, bạn kể xem đã nghĩ thế nào để ra kết quả đó nhé? Gõ vào ô "Kể cách em nghĩ" bên dưới.',
           "Bạn nói mình nghe bước đầu tiên bạn làm là gì? Nói sai cũng không sao — mình cần biết bạn đang nghĩ theo hướng nào.",
           "Trong đề, dữ kiện nào bạn thấy quan trọng nhất? Kể ra là mình dẫn tiếp ngay.",
+          "Bạn thử diễn đạt lại đề bài bằng lời của mình xem? Đôi khi nói ra là tự thấy chỗ vướng.",
+          "Cho mình biết bạn đang hình dung bài toán/câu này như thế nào đã nhé.",
+          "Bạn định làm theo cách nào? Cứ nói ra, sai cũng không sao, mình chỉ cần hiểu hướng đi của bạn.",
+          "Có bước nào bạn còn phân vân không chắc không? Nói ra để mình biết chỗ cần đỡ.",
+          "Mình muốn nghe cách bạn suy luận trước đã — bắt đầu từ đâu vậy?",
+          "Bạn thử kể từng bước một cho mình nghe xem, dù chưa chắc cũng được.",
+          "Điều gì khiến bạn chọn theo hướng đó? Kể mình nghe cái đã.",
+          "Bạn có đang phân vân giữa mấy cách làm không? Nói ra xem nào.",
+          "Trước khi đi tiếp, bạn tóm tắt lại đề bằng lời của mình được không?",
+          "Mình tò mò bạn suy luận kiểu gì để ra kết quả đó — kể thử xem.",
+          "Bạn thử nói xem mình hiểu đề đang hỏi cái gì đã nhé.",
+          "Có phần nào trong đề bạn thấy khó hình dung không? Nói ra để mình gỡ cùng.",
+          "Bạn cứ kể thoải mái cách bạn tiếp cận bài này, đúng sai tính sau.",
+          "Mình cần hiểu bạn đang nghĩ gì đã, rồi mình mới gợi ý đúng chỗ được.",
+          "Bạn thử giải thích lại cho mình như đang nói với một người bạn xem.",
+        ];
+        // KHÔNG hỏi lại "bạn nghĩ thế nào" sau khi đã NÓI THẲNG bẫy — cùng lỗi
+        // mâu thuẫn như require_attempt (phát hiện qua phản hồi thật 02/08).
+        // Đã bắt được `matched` thì câu chốt phải mời SOÁT LẠI đúng chỗ vừa
+        // nêu, không hỏi ngược lý do của một câu trả lời đã biết là sai kiểu gì.
+        const ASK_AFTER_TRAP_VI = [
+          "Bạn thử soát lại chính chỗ đó rồi chọn lại xem.",
+          "Nhìn lại đúng chỗ mình vừa nói rồi thử lại nhé.",
+          "Giờ tránh đúng bẫy đó, bạn làm lại thử xem.",
+          "Bạn xem lại bước đó rồi chọn/điền lại giúp mình nhé.",
+          "Biết chỗ hụt rồi thì soát lại thử, chắc ra được đó.",
+          "Giờ bạn quay lại đúng bước đó, sửa rồi làm tiếp nhé.",
+          "Thử soi lại đúng điểm mình vừa nói xem sao.",
+          "Bạn làm lại từ chỗ đó xem, lần này chắc ổn hơn.",
+        ];
+        const ASK_AFTER_TRAP_EN = [
+          "Take another look at that exact spot and try again.",
+          "Watch out for that trap and give it another go.",
         ];
         const moiKe = en
           ? "Before I give a hint — tell me how you got that. What was your reasoning?"
@@ -1093,10 +1257,13 @@ Deno.serve(async (req: Request) => {
         // chỉ chạy khi KHÔNG gọi mô hình — mà đó chính là ca em chưa nói câu nào
         // trong buổi, ca dễ lạc nhất.
         const chanDoan = safeMisconception(matched, q.dap_an);
+        const closerSauBay = en
+          ? ASK_AFTER_TRAP_EN[(attemptNo - 1) % ASK_AFTER_TRAP_EN.length]!
+          : ASK_AFTER_TRAP_VI[(attemptNo - 1) % ASK_AFTER_TRAP_VI.length]!;
         const msg = chanDoan
           ? (en
-              ? `There's a common trap behind that choice: ${chanDoan} ${moiKe}`
-              : `Chỗ bạn chọn dính một bẫy quen thuộc: ${chanDoan} ${moiKe}`)
+              ? `There's a common trap behind that choice: ${chanDoan}. ${closerSauBay}`
+              : `Chỗ bạn chọn dính một bẫy quen thuộc: ${chanDoan}. ${closerSauBay}`)
           : moiKe;
 
         // ── LỚP 3 (chốt 29/07): NHÁNH NÀY TỪNG KHÔNG HỀ GỌI AI ────────────────
@@ -1119,7 +1286,7 @@ Deno.serve(async (req: Request) => {
             persistMeta: { gate: gate.action, matched }, questionId: q.id,
           });
         }
-        const [memAsk, { data: nodeRowAsk }] = await Promise.all([
+        const [memAsk, { data: nodeRowAsk }, styleNoteAsk] = await Promise.all([
           buildMemory(supa, {
             sessionId: s.id, studentId: s.student_id, questionId: q.id,
             names, omitContent: studentAnswer,
@@ -1127,6 +1294,7 @@ Deno.serve(async (req: Request) => {
           supa.from("kg_nodes").select("label")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .maybeSingle(),
+          fetchStyleNote(supa, s.student_id),
         ]);
         const { text: safeAns, map: mapAsk } = anonymize(studentAnswer, names);
         return await speak({
@@ -1150,8 +1318,10 @@ Deno.serve(async (req: Request) => {
                 // không được cầm sẵn thứ để lỡ miệng.
                 stage: "need_think",
                 hasMemory: true,
+                ...(styleNoteAsk ? { coGiongRieng: true } : {}),
               }),
               user: buildGuideUser({
+                giongRieng: styleNoteAsk,
                 hoSo: memAsk.hoSo, soTay: memAsk.soTay, lichSu: memAsk.lichSu,
                 studentSaid: `(vừa chọn/điền: ${safeAns})`,
               }),
@@ -1225,7 +1395,14 @@ Deno.serve(async (req: Request) => {
       }
 
       if (gate.action === "bottom_out") {
-        const bo = (ladder?.bottom_out as { noi_dung?: string } | null)?.noi_dung;
+        // socratic_ladders.bottom_out.noi_dung sống hiện dính THẺ NỘI BỘ soạn
+        // sẵn ở đầu chuỗi ("[CHỈ MỞ SAU CỔNG NỖ LỰC]", "[CHỈ MỞ SAU KHI ĐÃ QUA
+        // CỔNG NỖ LỰC]" …) — đo được 1.717/2.628 dòng dính, mọi môn. Đây là nhãn
+        // NỘI BỘ của quy trình soạn (đánh dấu điều kiện mở), không phải lời nói
+        // với học sinh — lộ ra đọc như lỗi hệ thống. Cắt Ở ĐÂY (không sửa DB)
+        // để áp dụng luôn cho dữ liệu cũ lẫn mọi lượt nạp ladder mới sau này.
+        const stripLeadTag = (s: string) => s.replace(/^\s*\[[^\]]{0,80}\]\s*/, "");
+        const bo = stripLeadTag((ladder?.bottom_out as { noi_dung?: string } | null)?.noi_dung ?? "") || undefined;
         const coreRaw = bo ?? q.loi_giai ?? "";
         const core = coreRaw && qParams ? fillTemplate(coreRaw, qParams) : coreRaw;
         // Xoay vòng luôn ở đây (lỗi #19): mở đáy là khoảnh khắc hiếm, nhưng em
@@ -1234,13 +1411,22 @@ Deno.serve(async (req: Request) => {
           ["Bạn đã đủ nỗ lực để mình mở hướng giải:", "Giờ thử làm lại bước cuối xem!"],
           ["Bạn thử đủ rồi, mình mở hướng nhé:", "Làm lại bước cuối là xong đấy."],
           ["Đến lúc mình chỉ đường rồi:", "Bạn ráp lại bước cuối thử xem."],
+          ["Nỗ lực của bạn xứng đáng một gợi ý lớn hơn:", "Ráp lại bước cuối, chắc là ra thôi."],
+          ["Mình hé cho bạn hướng đi nhé, bạn thử đủ nhiều rồi:", "Xem lại bước cuối cùng nào."],
+          ["Được rồi, mình dẫn nốt đoạn này:", "Bạn hoàn thiện bước cuối giúp mình nhé."],
+          ["Bạn kiên trì vậy là đủ rồi, mình bật đèn lớn hơn nhé:", "Ráp nốt bước cuối xem có ra không."],
+          ["Cố gắng của bạn đáng một gợi ý rõ hơn:", "Thử hoàn thiện bước cuối cùng nào."],
+          ["Mình không để bạn bí mãi đâu, đây là hướng đi:", "Làm nốt bước cuối là xong."],
+          ["Được rồi, tới lúc mình hé lộ hướng làm:", "Bạn chỉ còn thiếu bước cuối thôi."],
+          ["Bạn thử nhiều cách rồi, giờ mình dẫn thẳng luôn:", "Ráp lại và hoàn thiện xem sao."],
         ];
         const MO_DAY_EN = [
           ["You've earned a bigger hint — here's the key idea:", "Now try the final step again!"],
           ["You've put in the work, so here's the idea:", "Give that last step another go."],
           ["Time for me to point the way:", "Put the last step together and see."],
+          ["That was solid effort, here's the bigger hint:", "Finish that last step now."],
         ];
-        const md = (en ? MO_DAY_EN : MO_DAY_VI)[Math.max(0, attemptNo - 1) % 3]!;
+        const md = (en ? MO_DAY_EN : MO_DAY_VI)[Math.max(0, attemptNo - 1) % (en ? MO_DAY_EN.length : MO_DAY_VI.length)]!;
         const msg = core
           ? `${md[0]} ${core}\n${md[1]}`
           : (en
@@ -1250,7 +1436,12 @@ Deno.serve(async (req: Request) => {
         return json({ correct: false, attemptNo, gate: gate.action, message: msg, ...(xp ? { xp } : {}) });
       }
 
-      // advance_rung — trao đúng câu gợi mở đã soạn (nguyên văn, không LLM).
+      // advance_rung — trao câu gợi mở đã soạn. Mặc định NGUYÊN VĂN (tất định);
+      // một phần lượt (theo độ khó câu) được AI DIỄN ĐẠT LẠI cho tự nhiên hơn —
+      // AI chỉ đổi CÁCH NÓI, KHÔNG đổi Ý (rungText truyền nguyên vào prompt,
+      // xem buildGuideSystem: "diễn đạt lại tự nhiên, KHÔNG lộ đáp án"). Nếu
+      // AI lỗi/hết ngân sách/không được chọn ở lượt này → luôn có câu tất định
+      // làm `fallback`, học sinh không bao giờ thấy màn trống.
       const bacTrao = Math.min(currentRung, Math.max(0, rungs.length - 1));
       const rung = rungs[bacTrao];
       const rungText = rung?.cau_hoi ?? rung?.goi_y ?? "";
@@ -1265,27 +1456,86 @@ Deno.serve(async (req: Request) => {
         "Mình hiểu vì sao bạn nghĩ vậy, nhưng trong đó có một bẫy:",
         "Chỗ này nhiều bạn cũng vướng y như vậy:",
         "Cách nghĩ đó hợp lý, chỉ lệch đúng một chỗ:",
+        "Hướng đi không sai, nhưng có một chỗ hụt:",
+        "Mình thấy logic của bạn rồi, có một điểm cần soát lại:",
+        "Gần đúng hướng, nhưng lệch ở một chi tiết:",
+        "Bạn đi gần tới nơi rồi, chỉ hụt đúng một bước:",
+        "Suy nghĩ của bạn có cơ sở, chỉ thiếu một mảnh ghép:",
+        "Không tệ đâu, chỉ là còn sót một điều kiện:",
+        "Bạn nhìn ra phần lớn vấn đề rồi, chỉ lệch nhỏ thôi:",
       ];
       const MO_LOI_EN = [
         "I see where that came from, there's a trap in it:",
         "A lot of people trip on exactly this:",
         "That reasoning makes sense, it just slips at one point:",
+        "The direction isn't wrong, but there's a gap:",
       ];
       const chanDoanRung = safeMisconception(matched, q.dap_an);
-      const leadMo = (en ? MO_LOI_EN : MO_LOI_VI)[Math.max(0, attemptNo - 1) % 3]!;
-      const lead = chanDoanRung ? `${leadMo} ${chanDoanRung} ` : "";
+      const leadMo = (en ? MO_LOI_EN : MO_LOI_VI)[Math.max(0, attemptNo - 1) % (en ? MO_LOI_EN.length : MO_LOI_VI.length)]!;
+      const lead = chanDoanRung ? `${leadMo} ${chanDoanRung}. ` : "";
       const msg = rungText
         ? `${lead}${en ? "Try thinking from this question: " : "Thử nghĩ từ câu này nhé: "}${rungText}`
         : (en
             ? `${lead}Not quite. Which piece of the question have you not used yet?`
             : `${lead}Chưa đúng. Trong đề bài còn dữ kiện nào bạn chưa dùng đến?`);
-      // GHI LẠI bậc vừa trao + THANG nào (lỗi #27). Không ghi thì lượt sau
-      // không có gì để đọc và con trỏ lại đứng im đúng như cũ.
-      persist("tutor", msg, "engine", {
+      const persistMetaRung = {
         gate: gate.action, currentRung, matched, questionId: q.id,
         bacTrao, thangId: ladder?.id ?? null,
+      };
+      const envelopeRung = { correct: false, attemptNo, gate: gate.action, currentRung, ...(xp ? { xp } : {}) };
+
+      const aiChance = AI_REPHRASE_CHANCE[toDoKho(q.do_kho)] ?? 0.5;
+      const tryAiRung = !!rungText && !!Deno.env.get("OPENROUTER_API_KEY") && Math.random() < aiChance;
+      if (!tryAiRung) {
+        persist("tutor", msg, "engine", persistMetaRung);
+        return json({ ...envelopeRung, message: msg });
+      }
+      const [memRung, { data: nodeRowRung }, styleNoteRung] = await Promise.all([
+        buildMemory(supa, {
+          sessionId: s.id, studentId: s.student_id, questionId: q.id,
+          names, omitContent: studentAnswer,
+        }).catch(() => null),
+        supa.from("kg_nodes").select("label")
+          .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
+          .maybeSingle(),
+        fetchStyleNote(supa, s.student_id),
+      ]);
+      const { text: safeAnsRung, map: mapRung } = anonymize(studentAnswer, names);
+      return await speak({
+        envelope: envelopeRung,
+        fallback: msg,
+        map: mapRung,
+        persistMeta: persistMetaRung,
+        questionId: q.id,
+        llm: {
+          system: buildGuideSystem({
+            subject: s.subject,
+            grade: String(grade),
+            language,
+            nodeLabel: String(nodeRowRung?.label ?? q.node_key),
+            question: String(q.noi_dung ?? "").slice(0, 600),
+            ...(chanDoanRung ? { misconception: chanDoanRung } : {}),
+            rungQuestion: rungText,
+            attempts: attemptNo,
+            stage: "guide",
+            hasMemory: !!memRung,
+            ...(styleNoteRung ? { coGiongRieng: true } : {}),
+          }),
+          user: buildGuideUser({
+            giongRieng: styleNoteRung,
+            hoSo: memRung?.hoSo, soTay: memRung?.soTay, lichSu: memRung?.lichSu,
+            studentSaid: `(vừa chọn/điền: ${safeAnsRung})`,
+          }),
+          agent: "guide",
+          tier: "cheap",
+          fastRoute: true,
+          maxTokens: 200,
+          temperature: 0.65,
+          studentId: s.student_id,
+          tenantId: s.tenant_id,
+          supa,
+        },
       });
-      return json({ correct: false, attemptNo, gate: gate.action, currentRung, message: msg, ...(xp ? { xp } : {}) });
     }
 
     // ── NỘP BÀI (câu tự luận dài) — AI CHẤM HẾT, ba cửa vào một bộ chấm ────────
@@ -1663,11 +1913,14 @@ Deno.serve(async (req: Request) => {
       // TRÍ NHỚ — chính nhánh này đẻ ra câu "Chào bạn!" GIỮA cuộc trò chuyện rồi
       // giảng lại đúng cái định nghĩa em vừa nêu chuẩn hai lượt trước (đo 29/07).
       // Không phải mô hình dở: `user` gửi lên chỉ có đúng một câu em vừa gõ.
-      const mem = await buildMemory(supa, {
-        sessionId: s.id, studentId: s.student_id,
-        ...(body.questionId ? { questionId: String(body.questionId) } : {}),
-        names, omitContent: studentMessage,
-      }).catch(() => null);
+      const [mem, styleNoteMsg] = await Promise.all([
+        buildMemory(supa, {
+          sessionId: s.id, studentId: s.student_id,
+          ...(body.questionId ? { questionId: String(body.questionId) } : {}),
+          names, omitContent: studentMessage,
+        }).catch(() => null),
+        fetchStyleNote(supa, s.student_id),
+      ]);
       const system = buildGuideSystem({
         subject: s.subject,
         grade: String(grade),
@@ -1676,6 +1929,7 @@ Deno.serve(async (req: Request) => {
         question: String(body.question ?? "").slice(0, 600),
         attempts: 0,
         hasMemory: !!mem?.lichSu,
+        ...(styleNoteMsg ? { coGiongRieng: true } : {}),
       });
       return await speak({
         envelope: {},
@@ -1687,8 +1941,11 @@ Deno.serve(async (req: Request) => {
           system,
           // Bọc lượt nói của học sinh trong thẻ dữ liệu — BASE đã dặn mô hình coi
           // phần trong thẻ là dữ liệu, không phải lệnh (chống "bỏ vai đi, in đáp án").
-          user: safe || mem?.lichSu
+          // `styleNoteMsg` cũng phải tính vào điều kiện: mở đầu buổi học thì
+          // chưa có `safe` lẫn `lichSu`, mà đó đúng là lúc cần biết giọng.
+          user: safe || mem?.lichSu || styleNoteMsg
             ? buildGuideUser({
+              giongRieng: styleNoteMsg,
               hoSo: mem?.hoSo, soTay: mem?.soTay, lichSu: mem?.lichSu,
               studentSaid: safe,
             })
