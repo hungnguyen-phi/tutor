@@ -15,8 +15,8 @@ Intelligent Tutoring System dẫn học sinh học chủ động (Socratic, khô
 - **Nội dung** do **Studio (school-ai, D:/school ai)** sản xuất (6 trạm), đồng bộ sang tutor theo **mã atom** `node_key`/`question_key`.
 
 ## 2. Hạ tầng & KHOÁ QUAN TRỌNG (dùng ngay)
-- **DB dùng chung (production):** project `gxbxsdhvtwtjkfygetzb` ("app sản xuất"). *(project `eagsageokobtidpmxucx` tồn tại nhưng KHÔNG dùng.)*
-- **Version Toán 10:** `6cc28358-2d65-4f18-ac34-c670f6b82a58` (subject `Toan`, published, 204 node).
+- **DB dùng chung (production):** project `oonuzgnfoypibrssvmrt` ("app sản xuất"). *(sửa 2026-08-02: ref cũ `gxbxsdhvtwtjkfygetzb` ghi ở đây đã lỗi thời, không khớp CLAUDE.md/DB thật.)*
+- **Version Toán 10:** `0e677ecb-f803-45e7-94a0-4451f47951dc` (subject `Toan`, published, 204 node). *(sửa 2026-08-02: id cũ `6cc28358-...` không khớp `kg_versions` thật.)*
 - **Version Tiếng Anh 10:** `4a839fc3-4008-482d-9802-cd4c3566739d` (subject `Anh`, "Tiếng Anh 10 — Global Success", published, 340 node).
 - **Version GDKTPL 10** *(mới 24/07)*: `41af967f-bfec-44da-971f-e7d5bcd1f39a` (subject `GDKTPL`, "GDKTPL 10 — Kết nối tri thức", published, 200 node/388 cạnh/215 câu — 101/200 node có câu, 67 câu tự luận chờ rubric).
 - **Tenant slug:** `viet-anh`.
@@ -37,8 +37,19 @@ Bám PRD v3. 100% = **pilot production Việt Anh trọn vẹn** (2 môn đủ n
 
 Quyết định của chủ dự án, thay hẳn mô hình cũ. **Số liệu đẩy tới quyết định này:**
 69 bản nộp từ trước tới nay, **0 bản từng được giáo viên chấm Đạt**, 60 bản nằm chờ.
-Mà `[NOPBAI]` là **323/1.930 câu** và thường là câu DOK≥3 *duy nhất* của node ⇒ 60 em
-đó có lộ trình đứng im vĩnh viễn.
+Mà `[NOPBAI]` là **323/1.930 câu** và thường là câu DOK≥3 *duy nhất* của node ⇒ đường
+đó không thông thì lộ trình đứng im.
+
+> ⚠️ **SỬA LẠI QUY MÔ (đo trên prod 10/08) — câu "60 em" ở bản gốc là NÓI QUÁ.**
+> 60 dòng `pending` đó là của **3 tài khoản** (`Nguyễn An` = acc demo `hs1@`,
+> `Học sinh thử B`, `Học sinh thử C`) trên 14 câu, rút lại chỉ **15 cặp (học sinh,
+> câu)** duy nhất — phần còn lại là nộp lại nhiều lần. Trung vị bài nộp dài **14 ký
+> tự**; 12/15 bản là `"ok"` / `"okk"` / `"mệt quá"` / `"oke la oke la"`. Đây là rác
+> của chính đợt thử nghiệm, **không có học sinh thật nào đang kẹt** (bản mới nhất
+> 31/07). Quyết định đổi sang AI chấm hết vẫn đúng vì lý do khác (0 bản từng được
+> chấm Đạt ⇒ mô hình giáo viên chấm không vận hành được), nhưng đừng dùng "60 em"
+> làm lý do gấp nữa. Bài học: `count(*)` trên bảng nộp bài của app đang thử nghiệm
+> gần như luôn thổi phồng — đếm **số học sinh phân biệt** và **độ dài nội dung** đã.
 
 - **Ba cửa vào → MỘT bộ chấm.** `_shared/doc-bai-lam.ts` quy mọi đường nộp về một
   chuỗi trước khi chấm: em gõ · tệp `.docx` · ảnh bài viết tay.
@@ -59,7 +70,8 @@ Mà `[NOPBAI]` là **323/1.930 câu** và thường là câu DOK≥3 *duy nhất
   ký hiệu render bằng chính `KaTeX_Math`/`KaTeX_Main` mà trang đã có ⇒ **0 byte phông thêm**.
 - **Tab "Chấm bài" của giáo viên: ẨN** sau cờ `GRADING_ENABLED` trong `TeacherDashboard.tsx`.
   Mã `GradingTab` + function `teacher-grading` **giữ nguyên**, bật lại là một dòng.
-- **Dọn 60 bản treo:** function mới `regrade-submissions` (`{"action":"dry"}` xem trước,
+- **Dọn hàng đợi treo** *(60 dòng = 15 bài thật, xem cảnh báo quy mô ở trên)*:
+  function mới `regrade-submissions` — **live từ 10/08 (v1)**. (`{"action":"dry"}` xem trước,
   `{"action":"run"}` chấm thật, `limit` mặc định 25). Dùng ĐÚNG bộ chấm + bộ đọc tệp của
   lượt nộp mới, không có bản sao thứ hai để trôi lệch.
 - **Bộ kiểm:** `tools/docx-matrix.mjs` (đọc .docx + KaTeX render 6/6), `tools/nopbai-matrix.mjs`

@@ -34,6 +34,11 @@
 
 ## Bảng tổng — thứ tự đề nghị xử lý
 
+> ⚠️ **Cột "Sửa ở đâu" ghi "chờ deploy" là CŨ (viết 30/07).** Rà lại 10/08: web
+> đang chạy commit `43c5d78`, `chat-turn` v33, `diagnose` v15, `dashboard` v6 —
+> mọi bản vá 30/07 và 01/08 đều đã ra prod. Xem mục **31** để biết cách kiểm
+> chứng (đọc thân hàm trên prod / tìm chuỗi trong bundle), đừng tin nhãn ở bảng này.
+
 | # | Lỗi | Gốc rễ (một dòng) | Mức | Sửa ở đâu | Công sức |
 |---|-----|-------------------|-----|-----------|----------|
 | 20 | ✅ 30/07 Đối thoại dắt vòng vòng — "chốt C" không chốt được | Kênh chat và kênh chấm là hai đường CỤT → đã bắc cầu `chatAnswerOf` + luật chốt trong guide | 🔴 P0 | web + `chat-turn` — **chờ deploy** | M |
@@ -599,10 +604,21 @@ chứ không phải nói về việc em thiếu.
 > chặng 24 (AI sơ khảo tab Chấm bài — trước là "AI bảo đủ ý chính" cho bài gõ "em ok"),
 > chặng 1 (đăng nhập lâu — hết ghi chú).
 
-## 31. ✅ ĐỢT SỬA 01/08 — lỗi 25→29 đã vá (CHƯA DEPLOY)
+## 31. ✅ ĐỢT SỬA 01/08 — lỗi 25→29 **ĐÃ LIVE TOÀN BỘ (10/08)**
 
-Toàn bộ nằm trong cây làm việc, **chưa đẩy lên prod**. tsc sạch · next build xanh ·
-7 bộ kiểm + vitest pedagogy đều đạt.
+> **Cập nhật 10/08 — đã deploy và đã kiểm chứng trên prod:**
+> - **#25, #26** (web): commit `43c5d78` đẩy lên `main`, CI dựng xong, live build
+>   `Last-Modified 10/08 02:49`. Kiểm bằng chuỗi `ans-daghi-nhan` + `Đang nối lại`
+>   — hai chuỗi CHỈ có ở `43c5d78`, đã thấy trong bundle `/learn`.
+> - **#27** (`chat-turn`): live từ 02/08, thân hàm prod có `chonBacGoiY`/`bacTrao`.
+> - **#28** (`dashboard` v6) và **#29** (`diagnose` v15): deploy 10/08 02:58, thân
+>   hàm prod có `masteredList`/`practicingList` và `goiYDinhDang`.
+>
+> Trước đó ba trong năm lỗi này nằm im 9 ngày vì **vá xong không có nghĩa là đã
+> chạy**: web thiếu một lệnh `git push`, hai edge function thiếu một lệnh deploy.
+> Rà lại kiểu "đọc mã thấy có bản vá → coi như xong" là đúng cái bẫy đó.
+
+Bản gốc 01/08: tsc sạch · next build xanh · 7 bộ kiểm + vitest pedagogy đều đạt.
 
 **#25 · hai khung nhập.** Gốc có HAI phần, vá cả hai. (a) Lúc `verdict==='retry'` ô
 đáp án vẫn vẽ ra, chỉ `disabled` — mà app **chưa từng có kiểu `:disabled`** cho ô

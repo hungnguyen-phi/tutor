@@ -30,8 +30,9 @@ Tài liệu chính (đều trong `docs/`):
   CLI không có cờ `--token`, chỉ đọc biến `SUPABASE_ACCESS_TOKEN`. Người dùng dùng
   **cmd.exe** nên `export` KHÔNG chạy — nạp token bằng:
   `for /f "tokens=1,* delims==" %a in ('findstr /b "SUPABASE_ACCESS_TOKEN=" .env') do @set "SUPABASE_ACCESS_TOKEN=%b"`
-- Version: Toán 10 `6cc28358-2d65-4f18-ac34-c670f6b82a58` · Anh 10
+- Version: Toán 10 `0e677ecb-f803-45e7-94a0-4451f47951dc` · Anh 10
   `4a839fc3-4008-482d-9802-cd4c3566739d`. Acc demo `hs1@vietanh.edu.vn`/`VietAnh@2026`.
+  (Đã sửa 2026-08-02: id cũ `6cc28358-...` là stale, không khớp `kg_versions`/`kg_nodes` thật.)
 - Nhánh git: `feat/kg-ingest-v2.2` — đẩy thẳng vào **`main` của origin**
   (`git push origin HEAD:main`) vì workflow build web bám `main`. Web ĐÃ LIVE:
   **tutor.vietanh.org** (Docker/GHCR → Coolify, ~2,5 phút sau push).
