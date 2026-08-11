@@ -6911,8 +6911,17 @@ html[data-motion="reduce"] .think-dots::after {
    trên nền sáng đó. KHÔNG đi đường nền tối: bản navy-trên-đen đã bị chủ dự án
    bác từ 29/07 vì đọc ra trầm mặc — kho báu phải reo, không được u ám. */
 .kb {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* FLEX chứ KHÔNG grid-template-rows (sửa 11/08, bắt được khi mở app thật).
+     Bản trước là `grid-template-rows: auto auto minmax(0,1fr) auto` — bốn hàng
+     cho bốn con. Nhưng con thứ hai (`kb-khen`, lời khen sau khi mở mức) CHỈ
+     HIỆN CÓ ĐIỀU KIỆN. Vắng nó là mọi thứ tụt một hàng: `kb-body` rơi vào hàng
+     `auto` còn `kb-foot` — một dòng chữ nhỏ — chiếm hàng `1fr` và bị giãn cao
+     270px. Kết quả: sân khấu lùn tịt, 40% màn dưới là mảng trắng chết. Đo trên
+     prod: .kb cao 698px mà .kb-body chỉ 314px.
+     Bài học: đừng đếm hàng theo VỊ TRÍ khi số con thay đổi được. Flex + `flex:1`
+     đặt ĐÍCH DANH lên phần co giãn thì thêm/bớt con bao nhiêu cũng đúng. */
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   min-width: 0;
   position: relative;
@@ -6926,7 +6935,7 @@ html[data-motion="reduce"] .think-dots::after {
   padding-inline: 16px;
 }
 @media (max-width: 899.98px) {
-  .kb { grid-template-rows: auto auto auto auto; padding-bottom: 10px; }
+  .kb { padding-bottom: 10px; }
 }
 @media (min-width: 900px) {
   .kb { flex: 1; min-height: 0; padding: 14px 20px 12px; margin-inline: 0; border-radius: var(--r-lg); }
@@ -6991,7 +7000,8 @@ html[data-motion="reduce"] .think-dots::after {
 .kb-khen img { flex: none; }
 
 /* ── Thân ───────────────────────────────────────────────────────────────── */
-.kb-body { display: grid; gap: 14px; min-height: 0; min-width: 0; }
+/* Phần CO GIÃN của màn — chỉ đích danh, không đếm theo vị trí hàng. */
+.kb-body { display: grid; gap: 14px; flex: 1 1 auto; min-height: 0; min-width: 0; }
 @media (min-width: 1000px) { .kb-body { grid-template-columns: 300px minmax(0, 1fr); } }
 .kb-rail {
   display: flex; flex-direction: column; gap: 14px;
