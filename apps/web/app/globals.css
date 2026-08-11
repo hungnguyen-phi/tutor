@@ -11870,19 +11870,6 @@ textarea {
   padding: 0 14px;
   white-space: nowrap;
 }
-/* Nút mồi dưới KIỂM TRA: chữ nhỏ, không viền — một lối thoát, không phải CTA. */
-.reflect-early {
-  display: block;
-  margin: 8px auto 0;
-  padding: 6px 10px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.reflect-early:hover { color: var(--ink); text-decoration: underline; }
 /* Điện thoại hẹp: hàng nói chuyện xuống dòng, input chiếm trọn hàng đầu. */
 @media (max-width: 480px) {
   .reflect-row { flex-wrap: wrap; }
@@ -12366,11 +12353,91 @@ body:has(.lsn-grid) {
    92% chứ không phải 100%: hé một hơi thở của tranh qua nền, nhưng --muted
    (4,64:1 trên trắng) chỉ tụt ~2% — vẫn qua AA với biên rộng. Không viền,
    bóng rộng đổ xuống tranh → "trang sách đặt trong thế giới". */
-.lsn-main {
+.lsn-main,
+.lsn-chat {
   background: rgb(255 255 255 / 92%);
   border-radius: var(--r-lg);
   padding: 14px 18px 18px;
   box-shadow: 0 30px 70px -34px rgb(10 12 40 / 55%);
+}
+
+/* ── CỘT CHAT (11/08) ────────────────────────────────────────────────────────
+   Vì sao có: khung đối thoại từng nằm LỌT GIỮA dòng chảy của đề bài, còn ô nhập
+   thì CHỈ tồn tại ở footer trạng thái "trả lời sai". Em bấm "Bí quá? Xin sư tử
+   gợi ý" → sư tử đáp → hết đường nói lại, cho tới khi trả lời sai một lần. Đối
+   thoại một chiều đúng như người thử 1 báo từ đợt 1.
+   Nay chat có CHỖ ĐỨNG RIÊNG: 1/3 bên phải trên màn rộng, đề bài giữ 2/3 và vẫn
+   canh giữa trong phần của nó. Hẹp hơn thì xếp dưới đề bài — vẫn là một dòng
+   chảy, và ô nhập vẫn luôn ở đó. */
+.lsn-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.chat-head-ava {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--gold-tint);
+}
+.chat-head-ava img { max-width: none; }
+.chat-head div { display: flex; flex-direction: column; min-width: 0; }
+.chat-head b { font-size: 0.9375rem; font-weight: 800; color: var(--navy); }
+.chat-head span { font-size: 0.78125rem; line-height: 1.4; color: var(--muted); }
+/* Trong cột chat, khung đối thoại là PHẦN CO GIÃN — nó ăn hết chỗ còn lại và tự
+   cuộn, để ô nhập luôn dính đáy chứ không trôi khỏi màn khi nói nhiều. */
+.lsn-chat .thread { margin: 0; }
+.chat-compose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.chat-compose .reflect-input { flex: 1 1 100%; }
+
+@media (min-width: 1200px) {
+  .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1440px); }
+  .lsn-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(310px, 1fr);
+    gap: var(--lsn-gap, 24px);
+    align-items: start;
+  }
+  /* Đề bài canh giữa TRONG phần 2/3 của nó — không dán sát mép trái. */
+  .lsn-main {
+    max-width: var(--content-w);
+    margin-inline: auto;
+    justify-self: center;
+    width: 100%;
+  }
+  .lsn-chat {
+    position: sticky;
+    /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
+    top: 76px;
+    max-height: calc(100dvh - 96px);
+  }
+  .lsn-chat .thread {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .chat-compose .reflect-input { flex: 1 1 100%; }
+}
+/* Màn hẹp: chat xếp dưới đề bài, khung đối thoại cao vừa phải rồi tự cuộn —
+   nói mười lượt cũng không đẩy ô nhập xuống tận đáy trang. */
+@media (max-width: 1199.98px) {
+  .lsn-chat { margin-top: 14px; }
+  .lsn-chat .thread { max-height: 52dvh; overflow-y: auto; }
 }
 
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
@@ -13185,31 +13252,6 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 }
 
 /* Ô TRÒ CHUYỆN: hình dạng chat, không lẫn với ô đáp án. */
-.reflect-nhan {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 2px 0 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-.reflect-nhan svg {
-  width: 15px;
-  height: 15px;
-  flex: none;
-}
-.reflect-avatar {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--sun, #f2b705) 22%, #fff);
-  align-self: center;
-}
-.reflect-avatar img { max-width: none; }
 /* Bo TRÒN hẳn (999px) — ô đáp án bo 10px. Khác dáng ngay từ cái nhìn đầu. */
 .reflect-input {
   border-radius: 999px;

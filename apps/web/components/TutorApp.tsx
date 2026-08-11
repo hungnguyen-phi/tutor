@@ -17,7 +17,6 @@ import {
   Timer,
   LifeBuoy,
   Paperclip,
-  MessageCircle,
   Info,
 } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
@@ -1731,52 +1730,6 @@ export default function TutorApp() {
         </>
       )}
 
-      <div className="thread" aria-live="polite">
-        {msgs.map((m, i) =>
-          m.role === "student" ? (
-            <div key={i} className="bubble student">
-              <div className="who">BẠN</div>
-              <MathText>{m.text}</MathText>
-            </div>
-          ) : m.role === "tutor" ? (
-            <div key={i} className="bubble">
-              <div className="who">TUTOR</div>
-              <MathText>{m.text}</MathText>
-            </div>
-          ) : m.role === "gate" ? (
-            /* Cổng nỗ lực: sư tử xoay lưng dỗi — "mình hỏi, bạn nghĩ".
-               Không phải hình phạt: là nhân vật hoá đúng luật chơi của app. */
-            <div key={i} className="hint-says">
-              <Lion mood="rebel" size={92} decorative />
-              <div className="hint-bubble"><MathText>{m.text}</MathText></div>
-            </div>
-          ) : m.role === "hint" ? (
-            /* Gợi ý Socratic: đầu sư tử ngẫm nghĩ 52px + bong bóng trắng
-               đuôi lệch (16/16/16/4) — anatomy hi-fi. */
-            <div key={i} className="hint-says">
-              <Lion mood="thinking" size={52} />
-              <div className="hint-bubble"><MathText>{m.text}</MathText></div>
-            </div>
-          ) : (
-            <div key={i} className="feedback">
-              <MathText>{m.text}</MathText>
-            </div>
-          ),
-        )}
-        {loading && (
-          /* Chờ chấm/gợi ý: sư tử chống cằm ngẫm nghĩ. Câu do AI chấm (viết/nói/
-             tự luận/gõ đáp án mở) mất vài giây thật → nói thẳng "Đang suy nghĩ…"
-             thay vì im lặng như treo máy. Câu CAS chấm tức thì hiếm khi kịp thấy. */
-          <div className="think-wrap">
-            <Lion mood="think" size={64} decorative />
-            {(q?.kind === "writing" || q?.kind === "speaking" || q?.kind === "nop_bai" ||
-              (q?.kind === "objective" && !q.options && !interactiveShown && !isTrueFalse)) && (
-              <span className="think-label">Đang suy nghĩ<i className="think-dots" aria-hidden /></span>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Lưới đáp án luôn hiển thị (hi-fi): chọn xong tile giữ trạng thái
           selected dưới ribbon; khoá tương tác khi đang nộp / đã có kết quả. */}
       {/* Chốt an toàn: dạng tương tác đã tự dựng đề + ô trả lời → KHÔNG bao giờ
@@ -2008,6 +1961,107 @@ export default function TutorApp() {
           {/* Đệm cho footer cố định — nội dung cuối không bao giờ bị che. */}
           <div className="lesson-pad" aria-hidden />
         </div>
+
+        {/* CỘT CHAT — 1/3 bên phải trên màn rộng (chủ dự án 11/08).
+            Trước đây khung đối thoại nằm LỌT GIỮA dòng chảy của đề bài, còn ô
+            nhập thì CHỈ tồn tại ở footer trạng thái "trả lời sai". Hậu quả đúng
+            như báo: bấm "Bí quá? Xin sư tử gợi ý" thì sư tử đáp, mà em KHÔNG có
+            chỗ nào để nói lại — đối thoại một chiều cho tới khi em trả lời sai
+            một lần. Nay chat là một CỘT RIÊNG, ô nhập sống ở MỌI trạng thái. */}
+        <aside className="lsn-chat">
+          <header className="chat-head">
+            <span className="chat-head-ava" aria-hidden>
+              <Lion mood="idle" size={30} decorative />
+            </span>
+            <div>
+              <b>Nói chuyện với sư tử</b>
+              <span>Chỗ này không chấm đáp án — cứ kể cách bạn nghĩ</span>
+            </div>
+          </header>
+
+        <div className="thread" aria-live="polite">
+          {msgs.map((m, i) =>
+            m.role === "student" ? (
+              <div key={i} className="bubble student">
+                <div className="who">BẠN</div>
+                <MathText>{m.text}</MathText>
+              </div>
+            ) : m.role === "tutor" ? (
+              <div key={i} className="bubble">
+                <div className="who">TUTOR</div>
+                <MathText>{m.text}</MathText>
+              </div>
+            ) : m.role === "gate" ? (
+              /* Cổng nỗ lực: sư tử xoay lưng dỗi — "mình hỏi, bạn nghĩ".
+                 Không phải hình phạt: là nhân vật hoá đúng luật chơi của app. */
+              <div key={i} className="hint-says">
+                <Lion mood="rebel" size={92} decorative />
+                <div className="hint-bubble"><MathText>{m.text}</MathText></div>
+              </div>
+            ) : m.role === "hint" ? (
+              /* Gợi ý Socratic: đầu sư tử ngẫm nghĩ 52px + bong bóng trắng
+                 đuôi lệch (16/16/16/4) — anatomy hi-fi. */
+              <div key={i} className="hint-says">
+                <Lion mood="thinking" size={52} />
+                <div className="hint-bubble"><MathText>{m.text}</MathText></div>
+              </div>
+            ) : (
+              <div key={i} className="feedback">
+                <MathText>{m.text}</MathText>
+              </div>
+            ),
+          )}
+          {loading && (
+            /* Chờ chấm/gợi ý: sư tử chống cằm ngẫm nghĩ. Câu do AI chấm (viết/nói/
+               tự luận/gõ đáp án mở) mất vài giây thật → nói thẳng "Đang suy nghĩ…"
+               thay vì im lặng như treo máy. Câu CAS chấm tức thì hiếm khi kịp thấy. */
+            <div className="think-wrap">
+              <Lion mood="think" size={64} decorative />
+              {(q?.kind === "writing" || q?.kind === "speaking" || q?.kind === "nop_bai" ||
+                (q?.kind === "objective" && !q.options && !interactiveShown && !isTrueFalse)) && (
+                <span className="think-label">Đang suy nghĩ<i className="think-dots" aria-hidden /></span>
+              )}
+            </div>
+          )}
+        </div>
+
+          <div className="chat-compose">
+            <input
+              className="reflect-input"
+              type="text"
+              value={reflectText}
+              disabled={busy}
+              placeholder="Kể cách bạn nghĩ cho sư tử nghe…"
+              onChange={(e) => setReflectText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && reflectText.trim() && !busy) void sendReflect();
+              }}
+              autoComplete="off"
+              autoCapitalize="sentences"
+            />
+            <button
+              type="button"
+              className="btn btn-ghost reflect-send"
+              disabled={busy || !reflectText.trim()}
+              onClick={() => void sendReflect()}
+            >
+              Gửi
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost reflect-hint"
+              disabled={busy}
+              title="Xin sư tử một câu gợi mở — kể cách nghĩ trước thì gợi ý mới sâu dần"
+              /* Chuỗi mồi CỐ Ý không chứa từ lập luận ("bước", "vì", "suy ra"):
+                 server chấm chất lượng suy nghĩ theo nội dung, nên một chuỗi sẵn
+                 mà nghe như đang lập luận sẽ mở cổng nỗ lực bằng một cú bấm.
+                 Server cũng đã tự chặn (isHelpRequest → 0 điểm). */
+              onClick={() => void sendReflect(reflectText.trim() || "Mình chưa biết làm, gợi ý giúp mình với")}
+            >
+              💡 Xin gợi ý
+            </button>
+          </div>
+        </aside>
       </div>
 
       {/* Footer 2 trạng thái (hi-fi): trắng + KIỂM TRA khi đang làm;
@@ -2023,16 +2077,9 @@ export default function TutorApp() {
             >
               KIỂM TRA
             </button>
-            {/* B1: bí ngay từ đầu cũng có cửa xin gợi ý — cổng nỗ lực sẽ trả lời
-                đúng luật (chưa thử thì mời thử trước, không phải im lặng). */}
-            <button
-              type="button"
-              className="reflect-early"
-              disabled={busy}
-              onClick={() => void sendReflect("Mình chưa biết làm, gợi ý giúp mình với")}
-            >
-              💡 Bí quá? Xin sư tử gợi ý
-            </button>
+            {/* Nút "Bí quá? Xin sư tử gợi ý" ĐÃ CHUYỂN sang cột chat (11/08):
+                ở đó nó đứng cạnh ô nhập, nên xin gợi ý xong là NÓI LẠI ĐƯỢC
+                ngay. Để lại đây thì em bấm được một nhát rồi cụt đường. */}
           </div>
         </div>
       )}
@@ -2136,58 +2183,11 @@ export default function TutorApp() {
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             )}
-            {/* B0/B1 (29/07): LƯỢT CỦA EM — kể cách nghĩ / xin gợi ý, tách hẳn
-                khỏi ô đáp án. Sư tử hỏi "em nghĩ sao?" thì đây là chỗ trả lời;
-                cổng nỗ lực đọc từ đây, không còn đếm số lần bấm.
-
-                LỖI #25 — ô này từng dùng CHUNG bộ CSS với ô đáp án nên hai cái
-                giống hệt nhau và em không biết cái nào nhận đáp án. Nay nó mang
-                hình dạng CHAT không lẫn vào đâu được: sư tử ngồi ngay trong ô,
-                bo tròn kiểu bong bóng, kèm một dòng nói thẳng đây KHÔNG phải
-                chỗ nộp đáp án. */}
-            <p className="reflect-nhan">
-              <MessageCircle aria-hidden strokeWidth={2.25} />
-              Nói chuyện với sư tử — chỗ này không chấm đáp án
-            </p>
-            <div className="reflect-row">
-              <span className="reflect-avatar" aria-hidden>
-                <Lion mood="idle" size={28} decorative />
-              </span>
-              <input
-                className="reflect-input"
-                type="text"
-                value={reflectText}
-                disabled={busy}
-                placeholder="Kể cách em nghĩ cho sư tử nghe…"
-                onChange={(e) => setReflectText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && reflectText.trim() && !busy) void sendReflect();
-                }}
-                autoComplete="off"
-                autoCapitalize="sentences"
-              />
-              <button
-                type="button"
-                className="btn btn-ghost reflect-send"
-                disabled={busy || !reflectText.trim()}
-                onClick={() => void sendReflect()}
-              >
-                Gửi
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost reflect-hint"
-                disabled={busy}
-                title="Xin sư tử một câu gợi mở — phải kể cách nghĩ trước thì gợi ý mới sâu dần"
-                /* Chuỗi mồi CỐ Ý không chứa từ lập luận ("bước", "vì", "suy ra"):
-                   server chấm chất lượng suy nghĩ theo nội dung, nên một chuỗi
-                   sẵn mà nghe như đang lập luận sẽ mở cổng nỗ lực bằng một cú
-                   bấm. Server cũng đã tự chặn (isHelpRequest → 0 điểm). */
-                onClick={() => void sendReflect(reflectText.trim() || "Mình chưa biết làm, gợi ý giúp mình với")}
-              >
-                💡 Xin gợi ý
-              </button>
-            </div>
+            {/* Ô "kể cách nghĩ" ĐÃ CHUYỂN sang cột chat (11/08) — xem ghi chú ở
+                đó. Trước đây nó chỉ sống trong đúng trạng thái NÀY, nên trước
+                khi trả lời sai lần đầu thì em không có chỗ nào gõ.
+                Cầu chat→chấm (gõ "chốt C" là nộp thẳng) vẫn giữ nguyên trong
+                `sendReflect`, và vẫn chỉ bật ở verdict="retry". */}
             <button
               className="btn btn-block"
               onClick={() => {
