@@ -730,7 +730,12 @@ Deno.serve(async (req: Request) => {
                 grade: String(grade),
                 language,
                 nodeLabel: nodeLabelForGuide,
-                question: String(q.noi_dung ?? "").slice(0, 600),
+                // KHÔNG đưa đề bài ở cổng "chưa thử lần nào" (vá 11/08). Cổng
+                // tất định đã chặn đúng và `rungQuestion` cũng không truyền,
+                // nhưng mô hình còn nguyên đề kèm bốn phương án nên nó tự dựng
+                // gợi ý từ đó — chủ dự án bắt tại trận. Cùng nguyên tắc với
+                // `bottomOut`: không đưa thì không lộ được.
+                question: stage === "must_try" ? "" : String(q.noi_dung ?? "").slice(0, 600),
                 ...(rungText && stage === "guide" ? { rungQuestion: rungText } : {}),
                 attempts,
                 stage,

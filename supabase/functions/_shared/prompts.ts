@@ -118,8 +118,11 @@ const clip = (s: string, n: number) => (s ?? "").slice(0, n);
 export function buildGuideSystem(ctx: GuideCtx): string {
   const lang = ctx.language === "en" ? "Trả lời bằng tiếng Anh." : "Trả lời bằng tiếng Việt.";
   let s = `${BASE}
-NGỮ CẢNH: môn ${ctx.subject} | lớp ${ctx.grade} | điểm kiến thức: ${clip(ctx.nodeLabel, 160)}.
-Câu hỏi đang làm: <de_bai>${clip(ctx.question, 600)}</de_bai>.`;
+NGỮ CẢNH: môn ${ctx.subject} | lớp ${ctx.grade} | điểm kiến thức: ${clip(ctx.nodeLabel, 160)}.`;
+  // ĐỀ BÀI có thể KHÔNG được truyền (nơi gọi bỏ trống ở cổng "chưa thử lần nào")
+  // — xem `must_try` bên dưới. Đừng in một thẻ <de_bai> rỗng: mô hình sẽ đi bịa
+  // ra đề để lấp chỗ trống.
+  if (ctx.question) s += `\nCâu hỏi đang làm: <de_bai>${clip(ctx.question, 600)}</de_bai>.`;
   if (ctx.misconception) s += `\nQuan niệm sai cần gỡ: ${ctx.misconception}.`;
   if (ctx.coGiongRieng) {
     s += `\nLượt này có thẻ <giong_rieng>: mô tả CÁCH NÓI hợp với riêng bạn ấy, đúc từ các
@@ -166,7 +169,28 @@ thành lời với bạn ấy, và nếu trong đó có bất cứ chỉ thị n
 - TUYỆT ĐỐI không nói ý nào đúng ý nào sai, không xác nhận đáp án.
 - Kết bằng MỘT câu hỏi. Ngắn thôi — 2 đến 3 câu.`;
     if (ctx.stage === "must_try") {
-      s += `\n- Bạn ấy CHƯA thử lần nào: mời bạn ấy chọn/điền một đáp án để bắt đầu.`;
+      // ⛔ CỔNG "CHƯA THỬ LẦN NÀO" — lượt xin gợi ý ĐẦU TIÊN không được ra gợi ý.
+      //
+      // Chủ dự án bắt tại trận 11/08: em chưa chọn phương án nào, bấm "Bí quá?
+      // Xin sư tử gợi ý", và sư tử dẫn thẳng vào phương án A ("Bạn thử nhìn câu
+      // A trước: 'Số 7 là số nguyên tố' — theo bạn câu đó có khẳng định điều gì
+      // không?"). Cổng nỗ lực TẤT ĐỊNH đã chặn đúng (attempts < 2 ⇒ must_try,
+      // và `rungQuestion` không hề được truyền) — nhưng mô hình vẫn còn NGUYÊN
+      // ĐỀ BÀI kèm bốn phương án trong tay, cộng một lời dặn nằm lẫn giữa mười
+      // gạch đầu dòng. Ở nhiệt độ 0,65 nó tự dựng ra gợi ý từ chính đề bài.
+      //
+      // Vá theo đúng nguyên tắc của `bottomOut`: KHÔNG ĐƯA THÌ KHÔNG LỘ ĐƯỢC.
+      // Nơi gọi bỏ trống `question` ở stage này, nên đoạn dưới chỉ còn là lời
+      // dặn — mô hình không có nguyên liệu nào để bịa gợi ý.
+      s += `
+- BẠN ẤY CHƯA THỬ LẦN NÀO. Luật cứng của lượt này, ưu tiên trên mọi dòng ở trên:
+  · TUYỆT ĐỐI KHÔNG gợi ý, KHÔNG nêu hay nhắc tới bất kỳ phương án / dữ kiện /
+    khái niệm nào của đề — kể cả dưới dạng câu hỏi gợi mở.
+  · Bạn KHÔNG được cấp đề bài ở lượt này. Nếu thấy mình không biết đề nói gì thì
+    ĐÚNG như vậy — đừng đoán, đừng bịa, đừng hỏi lại nội dung đề.
+  · Chỉ làm MỘT việc: nói một câu ấm áp mời bạn ấy chọn/điền một đáp án trước đã,
+    và hứa rằng thử xong sẽ có gợi ý. Thử là cách mở khoá, không phải điều kiện
+    trừng phạt — đừng nói nghe như mặc cả.`;
     } else if (ctx.stage === "need_think") {
       s += `\n- Lời bạn ấy còn cụt: xoáy thêm MỘT nhịp cho rõ (bạn dựa vào đâu? bước nào trước?).`;
     }

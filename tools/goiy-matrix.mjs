@@ -33,6 +33,14 @@ fs.writeFileSync(
 );
 const { chonBacGoiY, evaluateEffortGate, tinhVanNoLuc } = await import(pathToFileURL(path.join(OUT, "pedagogy.mjs")).href);
 
+const psrc = fs.readFileSync(path.join(HERE, "../supabase/functions/_shared/prompts.ts"), "utf8")
+  .replace(/from "\.\/(\w[\w-]*)\.ts"/g, 'from "./$1.mjs"');
+fs.writeFileSync(
+  path.join(OUT, "prompts.mjs"),
+  ts.transpileModule(psrc, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText,
+);
+const { buildGuideSystem } = await import(pathToFileURL(path.join(OUT, "prompts.mjs")).href);
+
 let dat = 0, truot = 0;
 const tc = (ten, thay, mong) => {
   if (thay === mong) { console.log(`  ✓ ${ten}`); dat++; return; }
@@ -109,6 +117,37 @@ tc("kẹt thật 0 + nói 2 → đường mới thắng", van(0, 2), 1);
 console.log("\n── Đầu vào rác không được đẻ ra nỗ lực âm ──");
 tc("ketThat âm (dữ liệu xấu) → 0", van(-2, 0), 0);
 tc("ketThat âm nhưng đã nói đủ → vẫn mở 1", van(-2, 2), 1);
+
+// ── CỔNG "CHƯA THỬ LẦN NÀO" KHÔNG ĐƯỢC LỘ ĐỀ ─────────────────────────────────
+// Chủ dự án bắt tại trận 11/08: em chưa chọn phương án nào, bấm xin gợi ý, và
+// sư tử dẫn thẳng vào phương án A của đề. Cổng tất định đã chặn đúng — chỗ rò
+// là SYSTEM PROMPT: mô hình vẫn cầm nguyên đề bài kèm bốn phương án. Luật nay
+// là "không đưa thì không lộ được", và đây là hàng rào giữ nó.
+const DE_BAI = "Câu nào sau đây là một mệnh đề? A. Số 7 là số nguyên tố. "
+  + "B. Bạn có khoẻ không? C. Hãy đóng cửa lại! D. x+3=5.";
+const nen = (stage) => buildGuideSystem({
+  subject: "Toan", grade: "10", language: "vi",
+  nodeLabel: "Khái niệm mệnh đề logic", question: stage === "must_try" ? "" : DE_BAI,
+  attempts: stage === "must_try" ? 0 : 2, stage,
+});
+
+console.log("\n── must_try: mô hình KHÔNG được cầm đề bài ──");
+const sMust = nen("must_try");
+// Bắt thẻ ĐÓNG: tên `<de_bai>` còn xuất hiện trong luật chống tiêm lệnh của
+// BASE (liệt kê các thẻ là DỮ LIỆU), nên tìm thẻ mở là dương tính giả.
+tc("không có khối <de_bai>…</de_bai>", sMust.includes("</de_bai>"), false);
+tc("không lộ phương án A", sMust.includes("Số 7 là số nguyên tố"), false);
+tc("không lộ phương án D", sMust.includes("x+3=5"), false);
+tc("có luật cứng 'CHƯA THỬ LẦN NÀO'", sMust.includes("CHƯA THỬ LẦN NÀO"), true);
+tc("có dặn không bịa đề", sMust.includes("đừng bịa"), true);
+
+console.log("\n── các bậc sau vẫn được cầm đề (không siết nhầm) ──");
+for (const st of ["need_think", "guide"]) {
+  const s2 = nen(st);
+  tc(`${st}: có khối <de_bai>…</de_bai>`, s2.includes("</de_bai>"), true);
+  tc(`${st}: có nội dung đề`, s2.includes("Số 7 là số nguyên tố"), true);
+  tc(`${st}: KHÔNG dính luật must_try`, s2.includes("CHƯA THỬ LẦN NÀO"), false);
+}
 
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);
