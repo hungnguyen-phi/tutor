@@ -310,6 +310,11 @@ export function HocLieuStage({
         </a>
       </div>
 
+      {/* VÙNG NỘI DUNG — `container-type: size` ở CSS biến nó thành thước đo:
+          nhờ đó khung phim ép được ĐÚNG 16:9 (rộng = min(100%, cao × 16/9))
+          thay vì bị kéo dài thành hộp cao nghêu có hai vệt đen. Không có lớp
+          bọc này thì không có gì để đo. */}
+      <div className="lsv-body">
       {kind === "audio" ? (
         /* NGHE không phải là XEM: không nhét vào khung hình rồi để trống 500px.
            Một bàn nghe đúng tầm — dấu tai nghe lớn, tên bài, thanh phát rộng. */
@@ -375,6 +380,8 @@ export function HocLieuStage({
           title={label}
         />
       )}
+
+      </div>
 
       {r.ly_do_chon_format && <p className="lsv-why muted">{r.ly_do_chon_format}</p>}
     </div>

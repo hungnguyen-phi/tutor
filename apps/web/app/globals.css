@@ -4154,28 +4154,100 @@ html[data-motion="reduce"] .spin {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 10px 14px 12px;
+  padding: 0;
 }
-.lsv-stage[data-bien-the="san"] .lsv-frame,
-.lsv-stage[data-bien-the="san"] .lsv-img-wrap,
-.lsv-stage[data-bien-the="san"] .lsv-audio-wrap,
-.lsv-stage[data-bien-the="san"] .lsv-file-wrap {
+/* Thanh công cụ thu thành một dải mảnh, KHÔNG ăn vào chỗ của nội dung. */
+.lsv-stage[data-bien-the="san"] .lsv-stage-bar {
+  margin: 0;
+  padding: 8px 14px;
+  background: var(--navy);
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+.lsv-stage[data-bien-the="san"] .lsv-stage-title { color: #fff; }
+.lsv-stage[data-bien-the="san"] .lsv-stage-act { color: var(--gold); }
+
+/* VÙNG NỘI DUNG là một THƯỚC ĐO (`container-type: size`) — nhờ nó khung phim
+   ép được đúng 16:9 bên dưới. Nền than nhạt để phim/PDF/ảnh nổi lên; đây là
+   chỗ DUY NHẤT trong màn dùng nền tối, và nó là cái nền của rạp chiếu chứ
+   không phải "giao diện tối". */
+.lsv-stage[data-bien-the="san"] .lsv-body {
   flex: 1 1 auto;
   min-height: 0;
-  height: auto;
-  max-height: none;
+  display: flex;
+  container-type: size;
+  background: #1b1d33;
 }
-/* Ảnh: giữ tỉ lệ, canh giữa trên nền tối — sơ đồ tư duy khổ ngang và
-   infographic khổ dọc phải cùng vừa khung mà không méo, không cắt. */
+/* TÀI LIỆU TRÀN KÍN — PDF và trang HTML tự chứa ăn trọn khung, không viền không
+   đệm. Bản trước để chúng ngồi trong một khung bo góc có đệm, nên một trang A4
+   vốn đã chật lại mất thêm mấy chục pixel mỗi bên. */
+.lsv-stage[data-bien-the="san"][data-kind="pdf"] .lsv-frame,
+.lsv-stage[data-bien-the="san"][data-kind="html"] .lsv-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+/* PHIM ĐÚNG 16:9 — bề rộng = min(100% bề rộng khung, chiều cao khung × 16/9).
+   `cqh` đọc chiều cao của .lsv-body, nên hộp luôn là hình chữ nhật 16:9 LỚN
+   NHẤT vừa khung, canh giữa. Trước đây iframe bị kéo dài theo khung nên
+   YouTube tự viền hai vệt đen trên dưới — đúng chỗ chủ dự án chỉ ra. */
+.lsv-stage[data-bien-the="san"][data-kind="embed"] .lsv-frame,
+.lsv-stage[data-bien-the="san"][data-kind="video"] .lsv-frame {
+  flex: none;
+  width: 100%;
+  width: min(100%, calc(100cqh * 16 / 9));
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 100%;
+  margin: auto;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+}
+/* Ảnh: giữ tỉ lệ, canh giữa — sơ đồ tư duy khổ ngang và infographic khổ dọc
+   phải cùng vừa khung mà không méo, không cắt. */
 .lsv-stage[data-bien-the="san"] .lsv-img-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px;
 }
 .lsv-stage[data-bien-the="san"] .lsv-img {
   width: 100%;
   height: 100%;
   max-height: none;
   object-fit: contain;
+}
+/* Bàn nghe và thẻ tải tệp là NỘI DUNG SÁNG trên nền rạp — cho chúng mặt trắng
+   riêng, canh giữa, không dán vào nền than. */
+.lsv-stage[data-bien-the="san"] .lsv-audio-wrap,
+.lsv-stage[data-bien-the="san"] .lsv-file-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: auto;
+  width: min(100%, 34rem);
+  border: 0;
+  background: transparent;
+}
+.lsv-stage[data-bien-the="san"] .lsv-audio-title { color: #fff; }
+.lsv-stage[data-bien-the="san"] .lsv-file-why { color: rgb(255 255 255 / 76%); }
+.lsv-stage[data-bien-the="san"] .lsv-file {
+  background: rgb(255 255 255 / 8%);
+  border-color: rgb(255 255 255 / 28%);
+  color: #fff;
+}
+.lsv-stage[data-bien-the="san"] .lsv-file small { color: rgb(255 255 255 / 72%); }
+.lsv-stage[data-bien-the="san"] .lsv-why {
+  margin: 0;
+  padding: 8px 14px;
+  color: var(--ink-2);
 }
 /* Khung xem học liệu — cao theo MÀN HÌNH, không phải con số cứng (lỗi 1).
    440px cố định trên laptop 1080p là ~1/3 trang A4 → PDF sinh cuộn-trong-cuộn,
@@ -6827,292 +6899,211 @@ html[data-motion="reduce"] .think-dots::after {
 /* Màn KHO BÁU (mở từ lộ trình). Cột Học trên desktop rộng gần 1.500px — thả
    nội dung chạy hết chiều ngang là chữ dài hết cỡ, khung xem méo, nút to như
    cái biển. Kẹp lại đúng bề ngang đọc được rồi căn giữa. */
-/* ═══ KHO BÁU — BÀN LÀM VIỆC HAI PHẦN ══════════════════════════════════════
-   Viết lại 10/08. Bản cũ kẹp `max-width: 760px` nên màn 27 inch vẫn xem PDF
-   trong một cột hẹp, và mọi định dạng đổ chung vào một dải ô giống hệt nhau
-   với một khung TRỐNG bên dưới. Nay: rãnh trái gom theo nhóm việc · sân khấu
-   phải chiếm hết phần còn lại · cao đúng bằng màn hình. */
+/* ═══ KHO BÁU — "RƯƠNG MỞ RA" ═══════════════════════════════════════════════
+   Viết lại lần hai (11/08). Bản một bị chê đúng: "rất xấu · màu nhợt nhạt ·
+   code quá sơ sài". Chê trúng — DESIGN.md ghi chiến lược màu là COMMITTED (màu
+   phủ 30–60% bề mặt) mà tôi dựng thẻ trắng trên nền trắng với vài mảng tint
+   nhạt. Đó là Restrained, đúng thứ tài liệu đã bỏ. Một cái KHO BÁU mà trông
+   như trình duyệt tệp thì hỏng từ ý niệm, không phải hỏng ở chi tiết.
+
+   Ý niệm mới: RƯƠNG VỪA MỞ, ÁNH SÁNG TRÀN RA. Nền là bình minh vàng→trời,
+   quầng nắng toả từ đỉnh màn (chỗ nắp rương bật lên). Học liệu là báu vật bày
+   trên nền sáng đó. KHÔNG đi đường nền tối: bản navy-trên-đen đã bị chủ dự án
+   bác từ 29/07 vì đọc ra trầm mặc — kho báu phải reo, không được u ám. */
 .kb {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 12px;
   min-width: 0;
+  position: relative;
+  isolation: isolate;
+  /* NỀN MANG MÀU — đây là phần "committed". Vàng ở trên (ánh từ rương), chuyển
+     xuống trời xanh nhạt: cùng bảng "sân trường buổi sáng", chỉ là nhìn lên. */
+  background:
+    radial-gradient(120% 62% at 50% -12%, rgb(249 221 14 / 46%) 0%, rgb(249 221 14 / 0%) 62%),
+    linear-gradient(180deg, #fdf6c7 0%, #eaf2fc 46%, #e3eefb 100%);
+  margin-inline: -16px;
+  padding-inline: 16px;
 }
-/* Màn hẹp: xếp chồng, sân khấu vẫn phải đủ cao để đọc được một trang A4. */
 @media (max-width: 899.98px) {
-  .kb {
-    grid-template-rows: auto auto auto auto;
-    padding-bottom: 8px;
-  }
+  .kb { grid-template-rows: auto auto auto auto; padding-bottom: 10px; }
 }
-/* ≥900px `.learn-main` đã là flex column cao 100% → kho báu ăn trọn chiều cao
-   còn lại. `min-height: 0` là bắt buộc, thiếu nó thì con 1fr tràn khỏi màn. */
 @media (min-width: 900px) {
-  .kb {
-    flex: 1;
-    min-height: 0;
-    padding: 14px 20px 12px;
-  }
+  .kb { flex: 1; min-height: 0; padding: 14px 20px 12px; margin-inline: 0; border-radius: var(--r-lg); }
 }
 
-/* ── Thanh trên: về lộ trình · tên bài · bậc mức · nút chính ─────────────── */
-.kb-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-}
+/* ── Thanh trên ─────────────────────────────────────────────────────────── */
+.kb-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .kb-ve { flex: none; }
-.kb-bar-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1 1 12rem;
-}
+.kb-bar-title { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1 1 12rem; }
+/* Hộp quà ngồi trong ĐĨA VÀNG — mốc thị giác của màn, không phải một icon xám
+   lẻ loi. Gold làm NỀN với icon navy: đúng luật gold của DESIGN.md. */
 .kb-bar-title > svg {
   flex: none;
-  width: 26px;
-  height: 26px;
-  color: var(--gold-icon);
+  box-sizing: content-box;
+  width: 22px; height: 22px;
+  padding: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--navy);
+  box-shadow: 0 3px 0 var(--gold-press), 0 6px 14px rgb(201 169 0 / 34%);
 }
 .kb-bar-title div { display: flex; flex-direction: column; min-width: 0; }
-.kb-bar-title b {
-  font-size: 0.9375rem;
-  font-weight: 800;
-  color: var(--navy);
-  line-height: 1.25;
-}
+.kb-bar-title b { font-size: 1.0625rem; font-weight: 800; color: var(--navy); line-height: 1.2; }
 .kb-bar-title span {
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.8125rem; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* Bậc mức thu thành CHUỖI HẠT, không còn dải chạy hết chiều ngang: nó là chỉ
-   báo trạng thái, không phải nội dung chính của màn. */
 .kb-pips { display: flex; gap: 6px; flex: none; }
 .kb-pip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-flex; align-items: center; gap: 4px;
   padding: 5px 11px;
   border-radius: var(--r-pill);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--line);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
+  background: rgb(255 255 255 / 72%);
+  box-shadow: inset 0 0 0 1.5px rgb(38 39 93 / 14%);
+  font-size: 0.75rem; font-weight: 700; color: var(--ink-2);
   white-space: nowrap;
 }
 .kb-pip svg { width: 13px; height: 13px; }
 .kb-pip[data-state="done"] {
-  background: var(--ok-tint);
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--ok) 35%, transparent);
-  color: var(--ok);
+  background: var(--ok); box-shadow: none; color: #fff;
 }
-/* Mức đang mở = nền gold + chữ navy (luật gold: không bao giờ gold làm màu chữ). */
 .kb-pip[data-state="now"] {
-  background: var(--gold-tint);
-  box-shadow: inset 0 0 0 1.5px var(--gold-press);
-  color: var(--navy);
+  background: var(--gold); box-shadow: 0 2px 0 var(--gold-press); color: var(--navy);
 }
-.kb-done { flex: none; min-width: 200px; }
+/* Nút chính của màn PHẦN THƯỞNG mặc áo vàng — DESIGN.md: btn-gold dành cho
+   phần thưởng. Nút navy ở đây đọc như một hành động hành chính. */
+.kb-done {
+  flex: none; min-width: 200px;
+  background: var(--gold); color: var(--navy);
+  box-shadow: 0 4px 0 var(--gold-press);
+}
+.kb-done:active { box-shadow: 0 2px 0 var(--gold-press); }
 
-/* ── Lời khen sau khi mở thêm mức ────────────────────────────────────────── */
 .kb-khen {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px;
   border-radius: var(--r);
-  background: var(--gold-tint);
-  color: var(--navy);
-  font-size: 0.875rem;
+  background: var(--gold); color: var(--navy);
+  font-size: 0.875rem; font-weight: 700;
+  box-shadow: 0 3px 0 var(--gold-press);
 }
 .kb-khen img { flex: none; }
 
-/* ── Thân: rãnh trái + sân khấu ──────────────────────────────────────────── */
-.kb-body {
-  display: grid;
-  gap: 14px;
-  min-height: 0;
-  min-width: 0;
-}
-@media (min-width: 1000px) {
-  .kb-body { grid-template-columns: 296px minmax(0, 1fr); }
-}
+/* ── Thân ───────────────────────────────────────────────────────────────── */
+.kb-body { display: grid; gap: 14px; min-height: 0; min-width: 0; }
+@media (min-width: 1000px) { .kb-body { grid-template-columns: 300px minmax(0, 1fr); } }
 .kb-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  display: flex; flex-direction: column; gap: 14px;
+  min-height: 0; overflow-y: auto; scrollbar-width: thin;
 }
-/* Dưới 1000px rãnh nằm NGANG: mỗi nhóm một cột hẹp, vuốt ngang để đi qua các
-   nhóm. Giữ nguyên cách gom nhóm thay vì đổ phẳng thành một hàng ô — mất nhóm
-   là mất đúng thứ vừa thêm vào. */
 @media (max-width: 999.98px) {
   .kb-rail {
-    flex-direction: row;
-    gap: 14px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 4px;
-    scroll-snap-type: x proximity;
+    flex-direction: row; gap: 12px;
+    overflow-x: auto; overflow-y: hidden;
+    padding-bottom: 4px; scroll-snap-type: x proximity;
   }
-  .kb-group {
-    flex: none;
-    width: min(74vw, 260px);
-    scroll-snap-align: start;
-  }
-}
-.kb-group { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.kb-group-head {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 0 2px;
-  margin: 0;
-}
-.kb-group-head b {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  color: var(--navy);
-  letter-spacing: 0.01em;
-}
-.kb-group-head span {
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: var(--muted);
-}
-.kb-items {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  .kb-group { flex: none; width: min(74vw, 262px); scroll-snap-align: start; }
 }
 
-/* Họ màu theo nhóm — lấy từ bảng icon có sẵn, không đẻ màu mới. Nhóm "Nhìn"
-   dùng nền gold-tint với icon NAVY (luật gold trong DESIGN.md). */
+/* MỘT NHÓM = MỘT VẬT THỂ: dải màu của họ ở trên, các món nằm trong khay trắng
+   dính liền bên dưới. Không phải nhãn xám treo lơ lửng trên mấy ô rời. */
+.kb-group {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  border-radius: var(--r);
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 10px 24px -16px rgb(10 12 40 / 45%);
+  overflow: hidden;
+}
+.kb-group-head {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 0;
+  padding: 9px 12px;
+  background: var(--fam-ink);
+  color: #fff;
+}
+.kb-group-head b { font-size: 0.84375rem; font-weight: 800; letter-spacing: 0.01em; }
+.kb-group-head span { font-size: 0.71875rem; line-height: 1.35; color: rgb(255 255 255 / 82%); }
+.kb-items { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 6px; gap: 4px; }
+
+/* Họ màu. Nhóm "Nhìn" dùng GOLD nên đảo chữ sang navy — gold không bao giờ là
+   nền cho chữ trắng (luật cứng DESIGN.md). */
 .kb-group[data-nhom="xem"] { --fam-ink: var(--sky); --fam-tint: var(--sky-tint); }
 .kb-group[data-nhom="nghe"] { --fam-ink: var(--mane-ink); --fam-tint: var(--mane-tint); }
-.kb-group[data-nhom="nhin"] { --fam-ink: var(--navy); --fam-tint: var(--gold-tint); }
+.kb-group[data-nhom="nhin"] { --fam-ink: var(--gold-press); --fam-tint: var(--gold-tint); }
 .kb-group[data-nhom="doc"] { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
 .kb-group[data-nhom="lam"] { --fam-ink: var(--ok); --fam-tint: var(--ok-tint); }
 .kb-group-nop { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
+.kb-group[data-nhom="nhin"] .kb-group-head { color: var(--navy); }
+.kb-group[data-nhom="nhin"] .kb-group-head span { color: rgb(38 39 93 / 78%); }
 
-/* HÀNG, không phải thẻ: thẻ ở đây chỉ đẻ ra một lưới ô giống hệt nhau — đúng
-   thứ bản cũ mắc phải. Hàng cho phép tên dài thở và icon dẫn mắt xuống dọc. */
 .kb-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 12px 8px 8px;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--line);
-  cursor: pointer;
-  text-align: left;
-  transition: box-shadow var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 52px;
+  padding: 7px 11px 7px 7px;
+  border: 0; border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer; text-align: left;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.kb-item:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
-.kb-item[aria-current] {
-  background: var(--fam-tint);
-  box-shadow: inset 0 0 0 2px var(--fam-ink);
-}
+.kb-item:hover { background: var(--fam-tint); }
+/* ĐANG MỞ = tô ĐẶC màu của họ, chữ trắng. Bản trước chỉ tint nhạt + viền, nhìn
+   qua không biết món nào đang mở — mà đó là thông tin quan trọng nhất của rãnh. */
+.kb-item[aria-current] { background: var(--fam-ink); }
+.kb-item[aria-current] .kb-item-text b { color: #fff; }
+.kb-item[aria-current] .kb-item-text small { color: rgb(255 255 255 / 78%); }
+.kb-group[data-nhom="nhin"] .kb-item[aria-current] .kb-item-text b { color: var(--navy); }
+.kb-group[data-nhom="nhin"] .kb-item[aria-current] .kb-item-text small { color: rgb(38 39 93 / 78%); }
 .kb-item-ico {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+  flex: none; display: grid; place-items: center;
+  width: 36px; height: 36px;
   border-radius: 9px;
-  background: var(--fam-tint);
-  color: var(--fam-ink);
+  background: var(--fam-tint); color: var(--fam-ink);
 }
-.kb-item[aria-current] .kb-item-ico { background: var(--surface); }
+.kb-item[aria-current] .kb-item-ico { background: #fff; }
 .kb-item-ico svg { width: 19px; height: 19px; }
 .kb-item-text { display: flex; flex-direction: column; min-width: 0; }
 .kb-item-text b {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.875rem; font-weight: 700; color: var(--ink); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* Mẩu chữ nói TRƯỚC sẽ mở ra cái gì ("PDF", "Tệp Word — tải về"). --muted đạt
-   4,64:1; KHÔNG dùng --ink-faint ở đây, nó mang nghĩa chứ không trang trí. */
 .kb-item-text small {
-  font-size: 0.75rem;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.75rem; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.kb-item-nop { box-shadow: inset 0 0 0 1.5px var(--navy); }
-/* Chuyển động ở đây vốn đã là crossfade màu (không dịch chuyển gì), nhưng vẫn
-   tắt hẳn theo ý người dùng — luật chung của app. */
 @media (prefers-reduced-motion: reduce) {
   .kb-item { transition: none; }
   .kb-rail { scroll-snap-type: none; }
 }
 
-/* ── Sân khấu ────────────────────────────────────────────────────────────── */
+/* ── Sân khấu ───────────────────────────────────────────────────────────── */
+/* Viền vàng mảnh + bóng sâu: báu vật đặt trong khung, không phải một ô trống. */
 .kb-stage {
-  display: flex;
-  min-height: 0;
-  min-width: 0;
+  display: flex; min-height: 0; min-width: 0;
   border-radius: var(--r);
   background: var(--surface);
-  box-shadow: var(--shadow-row);
+  box-shadow: 0 0 0 2px rgb(249 221 14 / 55%), 0 22px 48px -26px rgb(10 12 40 / 60%);
   overflow: hidden;
 }
 .kb-stage > * { flex: 1; min-width: 0; min-height: 0; }
-@media (max-width: 899.98px) {
-  .kb-stage { min-height: 62dvh; }
-}
-.kb-nop-wrap {
-  overflow-y: auto;
-  padding: 14px 16px;
-}
+@media (max-width: 899.98px) { .kb-stage { min-height: 62dvh; } }
+.kb-nop-wrap { overflow-y: auto; padding: 14px 16px; }
 
-/* ── Chân màn + các trạng thái rỗng ──────────────────────────────────────── */
+/* ── Chân màn + trạng thái rỗng ─────────────────────────────────────────── */
 .kb-foot {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin: 0;
-  font-size: 0.78125rem;
-  line-height: 1.5;
-  color: var(--muted);
+  display: flex; align-items: flex-start; gap: 7px;
+  margin: 0; font-size: 0.78125rem; line-height: 1.5; color: var(--ink-2);
 }
-.kb-foot svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--gold-icon); }
+.kb-foot svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--gold-press); }
 .kb-khong-nop { margin: 0; font-size: 0.8125rem; }
 .kb-thong-bao {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: flex-start;
+  display: flex; flex-direction: column; gap: 14px; align-items: flex-start;
   padding: 14px 20px;
 }
 .kb-trong {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 40px 20px 48px;
-  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 100%; padding: 40px 20px 48px; text-align: center;
 }
 .kb-trong b { font-size: 1.0625rem; font-weight: 800; color: var(--navy); }
 .kb-trong p { margin: 0; max-width: 34ch; }
