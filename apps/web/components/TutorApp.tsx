@@ -2038,7 +2038,7 @@ export default function TutorApp() {
               nguyên tắc "mở ra là học được" — đừng mời gọi rồi từ chối. */}
           {attempts === 0 ? (
             <div className="chat-locked">
-              <Lion mood="point" size={40} decorative />
+              <Lion mood="point" size={72} decorative />
               <p>
                 Bạn đọc đề và <b>chọn một đáp án</b> trước nhé. Thử xong mình mở
                 chỗ này ra, rồi cùng gỡ.

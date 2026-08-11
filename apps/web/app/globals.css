@@ -12407,19 +12407,29 @@ body:has(.lsn-grid) {
 /* CỔNG NỖ LỰC nhìn thấy được: chưa thử lần nào thì thay ô nhập bằng lời mời.
    KHÔNG vẽ một ô input xám mờ — ô mờ đọc ra là "hỏng", còn đây là luật chơi và
    nó phải đọc ra như một lời rủ. */
+/* Lúc khoá, khung đối thoại chưa có tin nhắn nào. Bản đầu dồn lời mời xuống
+   ĐÁY panel (nó là anh em của .thread), nên giữa khung là một mảng trống lớn —
+   đọc ra "trống", không đọc ra "đang chờ bạn". Nhìn thấy trên app thật 11/08.
+   Nay lời mời đứng GIỮA khung như một trạng thái rỗng có chủ đích: khung đối
+   thoại thôi giành chỗ, sư tử to lên và chữ canh giữa dưới chân nó. */
+.lsn-chat:has(.chat-locked) .thread { flex: 0 1 auto; }
 .chat-locked {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  margin-block: auto;
+  padding: 18px 16px;
   border-radius: var(--r);
   background: var(--sky-tint-2);
+  text-align: center;
 }
 .chat-locked img { flex: none; }
 .chat-locked p {
   margin: 0;
-  font-size: 0.84375rem;
-  line-height: 1.5;
+  max-width: 28ch;
+  font-size: 0.875rem;
+  line-height: 1.55;
   color: var(--ink-2);
   text-wrap: pretty;
 }
