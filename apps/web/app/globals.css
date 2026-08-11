@@ -12403,6 +12403,26 @@ body:has(.lsn-grid) {
   align-items: center;
 }
 .chat-compose .reflect-input { flex: 1 1 100%; }
+/* CỔNG NỖ LỰC nhìn thấy được: chưa thử lần nào thì thay ô nhập bằng lời mời.
+   KHÔNG vẽ một ô input xám mờ — ô mờ đọc ra là "hỏng", còn đây là luật chơi và
+   nó phải đọc ra như một lời rủ. */
+.chat-locked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: var(--sky-tint-2);
+}
+.chat-locked img { flex: none; }
+.chat-locked p {
+  margin: 0;
+  font-size: 0.84375rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.chat-locked b { color: var(--navy); }
 
 @media (min-width: 1200px) {
   .shell-main:has(.lsn-grid) { max-width: var(--lsn-w, 1440px); }
@@ -12410,7 +12430,11 @@ body:has(.lsn-grid) {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(310px, 1fr);
     gap: var(--lsn-gap, 24px);
-    align-items: start;
+    /* `stretch` chứ KHÔNG `start` (đổi 11/08): khung chat phải CAO CỐ ĐỊNH bằng
+       cột bài học, không phình ra co vào theo số tin nhắn. Ô nhập nhảy lên nhảy
+       xuống mỗi lượt nói là thứ khiến màn hình đọc như đang giật. Chiều cao nay
+       do CỘT BÀI HỌC quyết; khung đối thoại tự cuộn bên trong. */
+    align-items: stretch;
   }
   /* Đề bài canh giữa TRONG phần 2/3 của nó — không dán sát mép trái. */
   .lsn-main {
@@ -12423,6 +12447,11 @@ body:has(.lsn-grid) {
     position: sticky;
     /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
     top: 76px;
+    /* Cao bằng cột bài học (align-items: stretch ở trên), nhưng KHÔNG bao giờ
+       vượt màn — bài dài mấy trang thì ô nhập vẫn phải nằm trong tầm mắt.
+       `min-height` để câu hỏi một dòng không đẻ ra một khung chat tí hon. */
+    align-self: stretch;
+    min-height: min(58dvh, 460px);
     max-height: calc(100dvh - 96px);
   }
   .lsn-chat .thread {

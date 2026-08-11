@@ -1975,7 +1975,11 @@ export default function TutorApp() {
             </span>
             <div>
               <b>Nói chuyện với sư tử</b>
-              <span>Chỗ này không chấm đáp án — cứ kể cách bạn nghĩ</span>
+              <span>
+                {attempts === 0
+                  ? "Mở sau khi bạn thử một lần"
+                  : "Chỗ này không chấm đáp án — cứ kể cách bạn nghĩ"}
+              </span>
             </div>
           </header>
 
@@ -2025,6 +2029,22 @@ export default function TutorApp() {
           )}
         </div>
 
+          {/* CỔNG NỖ LỰC Ở NGAY TRÊN MẶT (chủ dự án chốt 11/08): chưa thử lần
+              nào thì KHOÁ hẳn ô chat, thay bằng lời mời chọn đáp án.
+              Trước đây ô vẫn gõ được, chỉ có server từ chối gợi ý — em gõ xong,
+              chờ, rồi nhận một câu "thử trước đã". Ba nhịp để nói một điều mà
+              nhìn là biết. Khoá ở đây KHÔNG thay thế cổng server (nó vẫn là
+              chốt thật, client sửa được); đây là nói thật trạng thái, đúng
+              nguyên tắc "mở ra là học được" — đừng mời gọi rồi từ chối. */}
+          {attempts === 0 ? (
+            <div className="chat-locked">
+              <Lion mood="point" size={40} decorative />
+              <p>
+                Bạn đọc đề và <b>chọn một đáp án</b> trước nhé. Thử xong mình mở
+                chỗ này ra, rồi cùng gỡ.
+              </p>
+            </div>
+          ) : (
           <div className="chat-compose">
             <input
               className="reflect-input"
@@ -2061,6 +2081,7 @@ export default function TutorApp() {
               💡 Xin gợi ý
             </button>
           </div>
+          )}
         </aside>
       </div>
 
