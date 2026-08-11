@@ -221,9 +221,26 @@ function autoSpans(text: string): Seg[] {
  * toàn tuyệt đối. KHÔNG chạy cả toLatexInner lên nội dung $: luật bọc {…}→\{\}
  * của nó sẽ phá nhóm ngoặc của LaTeX thật.
  */
+/** Chữ cái + DẤU NGANG KẾT HỢP (U+0304/U+0305) — kí hiệu phủ định mệnh đề.
+ *
+ *  Nội dung Studio giao viết phủ định bằng cách ghép dấu: `P` + U+0304 → "P̄".
+ *  Đó là Unicode hợp lệ, KHÔNG phải ký tự hỏng — nhưng phông chữ của app
+ *  (Be Vietnam Pro) không có glyph ghép sẵn cho nó, nên trình duyệt tự chồng
+ *  vạch ngang lên chữ và đặt lệch: học sinh đọc ra một chữ P bị gạch sai chỗ.
+ *  Chủ dự án báo 11/08 ("câu này sai kí tự rồi"). Đo trên ngân hàng sống:
+ *  24/1.930 câu dính, nên đây là KHUÔN NỘI DUNG chứ không phải một ca lẻ.
+ *
+ *  Vá ở tầng mã chứ không sửa DB — cùng lý do với `stripLeadTag` bên chat-turn:
+ *  một chỗ sửa phủ luôn dữ liệu cũ lẫn mọi lượt nạp nội dung sau này. KaTeX vẽ
+ *  `\overline{P}` bằng đúng một nét ngang canh chuẩn trên chữ. */
+const MACRON = /([A-Za-z])[̄̅]/g;
+export const coMacron = (s: string): boolean => /[̄̅]/.test(s);
+
 export function normalizeTex(tex: string): string {
-  if (!tex.includes("√")) return tex;
-  return tex
+  let t = tex;
+  if (coMacron(t)) t = t.replace(MACRON, "\\overline{$1}");
+  if (!t.includes("√")) return t;
+  return t
     .replace(/√\s*\(([^()]*)\)/g, "\\sqrt{$1}")
     .replace(/√\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g, "\\sqrt{$1}")
     .replace(/√\s*([A-Za-z0-9]+)/g, "\\sqrt{$1}")
@@ -237,7 +254,22 @@ export function segmentMath(input: string | null | undefined): Seg[] {
   const out: Seg[] = [];
   const re = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$|\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]/g;
   let last = 0, m: RegExpExecArray | null;
-  const pushText = (txt: string) => { if (txt) out.push(...autoSpans(txt)); };
+  /** Đoạn NGOÀI `$…$`. Dấu ngang kết hợp ở đây phải được nâng thành đoạn TOÁN
+   *  riêng — `autoSpans` không nhận ra nó (nó dò công thức theo hình dạng chuỗi,
+   *  mà "P̄" trông y hệt một chữ cái thường). Cắt tại chỗ, nhả ra một segment
+   *  math `\overline{P}`, phần chữ hai bên vẫn đi đường cũ. */
+  const pushText = (txt: string) => {
+    if (!txt) return;
+    if (!coMacron(txt)) { out.push(...autoSpans(txt)); return; }
+    let i = 0, mm: RegExpExecArray | null;
+    MACRON.lastIndex = 0;
+    while ((mm = MACRON.exec(txt))) {
+      if (mm.index > i) out.push(...autoSpans(txt.slice(i, mm.index)));
+      out.push({ t: "math", v: `\\overline{${mm[1]}}` });
+      i = MACRON.lastIndex;
+    }
+    if (i < txt.length) out.push(...autoSpans(txt.slice(i)));
+  };
   while ((m = re.exec(s))) {
     pushText(s.slice(last, m.index));
     out.push({ t: "math", v: (m[1] ?? m[2] ?? m[3] ?? m[4] ?? "").trim() });
