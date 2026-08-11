@@ -1658,18 +1658,24 @@ ul {
   padding: 0 16px;
   border: 0;
   border-radius: var(--r-pill);
-  background: var(--navy);
-  box-shadow: 0 4px 0 var(--navy-press, #1a1b45), 0 6px 16px rgb(38 39 93 / 28%);
-  color: #fff;
+  /* VÀNG (đổi 11/08). Nút navy chìm vào cảnh — trời chiều và đồi tối đều ngả
+     xanh-navy, nên nó đọc như một mảng nữa của tranh. Vàng là màu duy nhất
+     trong bảng không có mặt trong khung cảnh, nên nổi ở mọi thế giới trong 9
+     bức. Chữ NAVY trên nền vàng: luật gold cứng của DESIGN.md — gold không bao
+     giờ là nền cho chữ trắng. Đo cặp này: 11,7:1. */
+  background: var(--gold);
+  box-shadow: 0 4px 0 var(--gold-press), 0 6px 16px rgb(201 169 0 / 34%);
+  color: var(--navy);
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
   animation: path-back-in 180ms var(--ease) both;
 }
-.path-back svg { width: 17px; height: 17px; color: var(--gold); }
-.path-back:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--navy-press, #1a1b45); }
-/* Vòng focus GOLD trên nền navy (DESIGN.md §Focus — món nợ "navy trên navy"). */
-.path-back:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.path-back svg { width: 17px; height: 17px; color: var(--navy); }
+.path-back:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--gold-press); }
+/* Nền đã vàng nên vòng focus phải đổi sang NAVY — vàng-trên-vàng thì vô hình,
+   đúng món nợ "navy trên navy" mà DESIGN.md §Focus đã nêu, chỉ đảo chiều. */
+.path-back:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
 @media (min-width: 900px) {
   /* Desktop không có nav đáy. */
   .path-back { bottom: 20px; right: 24px; }
@@ -12231,6 +12237,16 @@ body:has(.lsn-grid) {
 }
 .aside-tip-body {
   min-width: 0;
+}
+/* CA DAO XUỐNG DÒNG THẬT (11/08). Trước đây hai câu lục bát bị nhồi vào một
+   dòng ngăn bằng dấu "/" — đó là cách viết tắt khi thiếu chỗ, không phải cách
+   ĐỌC thơ. Dữ liệu nay mang `\n` thật (lib/nudges.ts) và chỗ này tôn trọng nó.
+   `pre-line` chứ không `pre`: vẫn gộp khoảng trắng thừa và vẫn tự xuống dòng
+   khi câu dài hơn khung — chỉ thêm việc giữ dấu xuống dòng có sẵn. Tục ngữ và
+   ngụ ngôn không có `\n` nên không đổi gì. */
+.aside-tip-body p {
+  white-space: pre-line;
+  text-wrap: pretty;
 }
 /* Nhãn nguồn MANG NGHĨA (em biết mình vừa đọc ca dao hay ngụ ngôn) nên KHÔNG
    được dùng --ink-faint: trên nền sky-tint-2 nó chỉ còn 2,67:1. --sky đạt

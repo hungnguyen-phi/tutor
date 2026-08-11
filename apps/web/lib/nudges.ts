@@ -54,14 +54,14 @@ export const TIPS: Nudge[] = [
   { kind: "tucngu", text: "Dao sắc không gọt được chuôi. Bí chỗ nào thì hỏi, đừng ngồi im." },
   { kind: "tucngu", text: "Muốn biết phải hỏi, muốn giỏi phải học." },
   { kind: "tucngu", text: "Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao." },
-  { kind: "cadao", text: "Ai ơi giữ chí cho bền / Dù ai xoay hướng đổi nền mặc ai." },
+  { kind: "cadao", text: "Ai ơi giữ chí cho bền\nDù ai xoay hướng đổi nền mặc ai." },
   {
     kind: "cadao",
-    text: "Non cao cũng có đường trèo / Đường dù hiểm nghèo cũng có lối đi.",
+    text: "Non cao cũng có đường trèo\nĐường dù hiểm nghèo cũng có lối đi.",
   },
   {
     kind: "cadao",
-    text: "Dốc lòng học tập trước sau / Ngày nay ta khó, ngày sau ta nhàn.",
+    text: "Dốc lòng học tập trước sau\nNgày nay ta khó, ngày sau ta nhàn.",
   },
   { kind: "dongdao", text: "Chi chi chành chành — tay đếm miệng đọc. Bài khó cũng chia nhỏ ra mà đi." },
   {
