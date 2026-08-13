@@ -102,8 +102,29 @@ export default function BaiLamEditor({
   const suaKhoi = (id: number, noiDung: string) =>
     capNhat(khoi.map((k) => (k.id === id ? { ...k, noiDung } : k)));
 
+  /** GỘP HAI Ô CHỮ DÍNH NHAU (vá 13/08).
+   *  Chèn công thức thì `chotCongThuc` CẮT ô chữ làm đôi (mở sẵn một ô mới sau
+   *  công thức để em viết tiếp). Nhưng lúc xoá công thức đi, bản cũ chỉ lọc bỏ
+   *  đúng khối công thức — hai ô chữ nằm cạnh nhau ở lại NGUYÊN, nên bài em vỡ
+   *  thành hai đoạn vĩnh viễn dù công thức đã biến mất. Chủ dự án bắt tại trận:
+   *  "thêm công thức, nó ngắt ra, xong tôi xoá công thức, nó vẫn tách đoạn".
+   *  Nối lại bằng xuống dòng — giữ đúng chỗ ngắt em đã tự gõ, không dán dính
+   *  hai câu vào nhau. Ô rỗng thì bỏ hẳn, không đẻ ra dòng trắng. */
+  const gopChu = (ds: Khoi[]): Khoi[] =>
+    ds.reduce<Khoi[]>((ra, k) => {
+      const truoc = ra[ra.length - 1];
+      if (k.loai === "chu" && truoc?.loai === "chu") {
+        const a = truoc.noiDung.replace(/\s+$/, "");
+        const b = k.noiDung.replace(/^\s+/, "");
+        ra[ra.length - 1] = { ...truoc, noiDung: a && b ? `${a}\n${b}` : a || b };
+        return ra;
+      }
+      ra.push(k);
+      return ra;
+    }, []);
+
   const xoaKhoi = (id: number) => {
-    const con = khoi.filter((k) => k.id !== id);
+    const con = gopChu(khoi.filter((k) => k.id !== id));
     capNhat(con.length ? con : [moiKhoi("chu")]);
   };
 
