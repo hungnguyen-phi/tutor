@@ -574,7 +574,7 @@ ul {
   gap: 3px;
   min-height: 44px;
   color: var(--muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
   text-decoration: none;
@@ -2061,7 +2061,7 @@ ul {
   border-radius: var(--r-pill);
   background: var(--gold);
   color: var(--on-gold);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   line-height: 1.35;
@@ -4688,7 +4688,7 @@ html[data-motion="reduce"] .spin {
   white-space: nowrap;
 }
 .tdb .btn-sm {
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 14px;
   border-radius: 9px;
   font-size: 0.75rem;
@@ -12712,6 +12712,32 @@ body:has(.lfoot-says) { --lfoot-h: 216px; }
 /* Nut "XEM XONG MUC" cua Kho bau nam tren header VANG -> nut vang chim vao nen.
    Doi sang navy: cung mot nut hanh dong chinh nhu khap app, va bat len hen. */
 .kb-done { --btn-bg: var(--navy); --btn-edge: var(--navy-press); --btn-fg: var(--on-brand); }
+
+
+/* BANG-RON AN MUNG TREN MAN THAP (13/08). Khoi "Chinh xac!" cao 216px vi co su
+   tu reo - va su tu reo la phan thuong tinh than chinh cua app, khong bo. Nhung
+   tren cua so ~700px no an mat mot phan tu man, cat cut ca the de lan khung
+   chat (do tan mat tren production). Man cao thi giu nguyen; man THAP thi thu
+   nho su tu va bot dem - van reo, chi la reo vua khung hinh. */
+@media (max-height: 800px) {
+  .lfoot-says img { width: 40px; height: auto; }
+  .lfoot-says { gap: 2px; }
+  .lfoot { padding-top: 10px; }
+  body:has(.lfoot-says) { --lfoot-h: 168px; }
+}
+
+
+/* Vach mo giu cho ten chua biet - de tieu de khong nhay mot nhip khi ten ve. */
+.ws-title-skel { display: inline-block; width: 5.5ch; height: 0.7em; margin-left: 8px; border-radius: 6px; vertical-align: baseline; opacity: 0.5; }
+/* SKIP LINK - an cho toi khi duoc focus bang ban phim. */
+.skip-link {
+  position: absolute; left: 12px; top: -100px; z-index: var(--z-modal);
+  padding: 10px 16px; border-radius: var(--r-btn);
+  background: var(--navy); color: var(--on-brand);
+  font-weight: 700; text-decoration: none;
+  transition: top var(--t-fast) var(--ease);
+}
+.skip-link:focus-visible { top: 12px; }
 
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
    Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,

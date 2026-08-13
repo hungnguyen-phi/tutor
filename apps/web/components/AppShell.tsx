@@ -84,7 +84,10 @@ export default function AppShell({
               còn giao diện sáng. */}
         </nav>
       )}
-      <main className="shell-main">{children}</main>
+      {/* SKIP LINK: nguoi dung ban phim khoi phai Tab qua ca thanh dieu huong
+          moi toi duoc noi dung. An hoan toan toi khi duoc focus. */}
+      <a className="skip-link" href="#noi-dung">Bỏ qua điều hướng</a>
+      <main className="shell-main" id="noi-dung" tabIndex={-1}>{children}</main>
     </div>
   );
 }

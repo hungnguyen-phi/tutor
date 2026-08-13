@@ -216,7 +216,14 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
             <Trophy aria-hidden strokeWidth={2.5} />
             Xếp theo nỗ lực · không theo điểm số
           </span>
-          <h1 className="ws-title">Bảng tuần{firstName ? ` của ${firstName}` : ""}</h1>
+          {/* THOI NHAY TIEU DE (va 13/08). Truoc: "Bang tuan" -> nua giay sau
+              thanh "Bang tuan cua An". Khong ve sai ten, nhung ve THIEU mot ve
+              roi chen vao la mat van nhay mot nhip. Chua biet ten thi giu cho
+              bang mot vach mo, dung do lai chu. */}
+          <h1 className="ws-title">
+            Bảng tuần{firstName ? ` của ${firstName}` : ""}
+            {!firstName && <i className="skel ws-title-skel" aria-hidden />}
+          </h1>
           <p className="ws-lead">
             Mỗi buổi học là XP — thứ ai cũng tăng được bằng cách quay lại đều đặn. Thêm một buổi hôm
             nay là bạn tiến thêm một bậc.
