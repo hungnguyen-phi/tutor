@@ -51,7 +51,7 @@ const TONES: { key: Prefs.AvatarTone; label: string }[] = [
 ];
 
 export default function SettingsView({ onBack }: { onBack?: () => void }) {
-  const { session, profile } = useAuth();
+  const { session, profile, ready } = useAuth();
   const uid = session?.user.id;
 
   // Tuỳ chọn hiện hành — đọc một lần lúc mount (prefs là nguồn sự thật)
@@ -101,9 +101,12 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
     };
   }, [uid]);
 
-  const officialName = profile?.full_name ?? "Học sinh Việt Anh";
+  // Cung benh voi man Toi (va 13/08): `profile` ve cham nua giay, nen ten
+  // roi ve "Hoc sinh Viet Anh" roi nhay sang ten that ngay truoc mat em.
+  // Chua biet thi cho — dung ve mot cai ten khong phai cua em roi trao lai.
+  const officialName = ready ? (profile?.full_name ?? "Học sinh Việt Anh") : "";
   const shownName = Prefs.displayNameOf(officialName) ?? officialName;
-  const initial = shownName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "V";
+  const initial = shownName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "";
 
   const pickFont = (s: Prefs.FontScale) => {
     Prefs.setFont(s);

@@ -40,7 +40,7 @@ export default function ProfileView({
   /** Mở Cài đặt tại chỗ (SPA) — không truyền thì bánh răng thành link deep. */
   onOpenSettings?: () => void;
 }) {
-  const { session, profile } = useAuth();
+  const { session, profile, ready } = useAuth();
   const [progress, setProgress] = useState<G.Progress | null>(null);
   const [masteredCount, setMasteredCount] = useState(0);
   const [sb, setSb] = useState<Scoreboard | null>(null);
@@ -88,7 +88,13 @@ export default function ProfileView({
     };
   }, [uid]);
 
-  if (!progress) {
+  // GIU SKELETON TOI KHI BIET TEN THAT (va 13/08). Truoc day khi `profile`
+  // chua ve, ten roi ve chuoi thay the "Hoc sinh Viet Anh", nua giay sau moi
+  // nhay sang ten that -> chu du an bat duoc: man Toi hien "Hoc sinh Viet Anh"
+  // roi doi thanh "An". Bay ten gia mot nhip roi trao lai la kieu loi doc ra
+  // nhu app hong. Cung nguyen tac Scoreboard da chot (loi 4): KHONG doan ten
+  // roi thay - chua biet thi cho, dung ve mot cai ten khong phai cua em.
+  if (!progress || !ready) {
     return (
       <div className="ws">
         <div className="skel ws-skel-hero" />
