@@ -7022,6 +7022,32 @@ html[data-motion="reduce"] .think-dots::after {
   .kb-group { flex: none; width: min(74vw, 262px); scroll-snap-align: start; }
 }
 
+
+/* ═══ KHO BAU: CAC NHOM GOP THANH MOT VAT THE (13/08) ══════════════════════
+   Chu du an: "trang kho bau rat xau". Nhin tren production: cot trai la BA THE
+   TRANG roi nhau, moi the co bong+bo goc rieng, cach nhau 14px, moi the chua
+   dung MOT muc - roi trong hoac 250px xuong day. Ba mieng noi lo lung tren nen.
+   Dung luat thiet ke cua chinh du an: nhieu mon roi thi roi, gop thanh MOT vat
+   the luon thang. Nay ca cot la MOT khay trang, cac nhom la muc ben trong,
+   ngan nhau bang mot soi hairline (da dat o .kb-group-head).
+   Man hep giu nguyen kieu bang ngang cuon - o do the roi moi dung. */
+@media (min-width: 1000px) {
+  .kb-rail {
+    gap: 0;
+    align-self: start;          /* khay cao bang noi dung, khong keo xuong day */
+    max-height: 100%;
+    border-radius: var(--r);
+    background: rgb(255 255 255 / 92%);
+    box-shadow: 0 18px 44px -26px rgb(10 12 40 / 48%);
+    padding-bottom: 6px;
+  }
+  .kb-rail > .kb-group {
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
 /* MỘT NHÓM = MỘT VẬT THỂ: dải màu của họ ở trên, các món nằm trong khay trắng
    dính liền bên dưới. Không phải nhãn xám treo lơ lửng trên mấy ô rời. */
 .kb-group {
