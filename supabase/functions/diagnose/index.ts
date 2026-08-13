@@ -109,6 +109,27 @@ Deno.serve(async (req: Request) => {
       .filter((q) => !isHidden(overrides.get(q.id)))
       .map((q) => applyQuestionEdit(q, overrides.get(q.id)));
 
+    // ── CÂU QUYẾT ĐỊNH KHÔNG ĐƯỢC NẰM CUỐI HÀNG (vá 13/08) ──────────────────
+    // Đo trên prod: toàn bộ học sinh từ trước tới nay gặp 82 lượt câu DOK-1,
+    // 24 lượt DOK-2, và ĐÚNG 5 lượt DOK-3 (1 lần làm đúng). Hệ quả: 0 điểm
+    // thành thạo, lộ trình đứng ở 0% dù đã học thật.
+    //
+    // Kho câu KHÔNG thiếu: 390 câu DOK-3 đang active, 201/204 node có sẵn.
+    // Thủ phạm là thứ tự: query xếp `tier ASC, dok ASC` nên câu khó luôn nằm
+    // CUỐI, mà node xanh lại đòi đúng một câu DOK≥3 làm đúng. Buổi học 8 câu,
+    // em nào không đi hết 8 câu thì không bao giờ chạm tới câu quyết định —
+    // và gần như không ai đi hết.
+    //
+    // Nay: sau hai câu khởi động, ĐƯA câu DOK≥3 đầu tiên lên vị trí thứ 3.
+    // Vẫn TẤT ĐỊNH (không xáo ngẫu nhiên) nên em thoát ra vào lại vẫn đúng
+    // chỗ đang dở — lý do cả khối này xếp cố định, xem ghi chú `question_key`.
+    // Hai câu dễ trước vẫn còn: chúng là chỗ em lấy đà, không phải chỗ bỏ đi.
+    const iKho = served.findIndex((q) => Number(q.dok) >= 3);
+    if (iKho > 2) {
+      const kho = served[iKho]!;
+      served = [...served.slice(0, 2), kho, ...served.slice(2, iKho), ...served.slice(iKho + 1)];
+    }
+
     // LÀM LẠI ĐÚNG CÂU BỊ TRẢ: câu được yêu cầu nhảy lên đầu danh sách phục vụ.
     // Chỉ nhận id có thật trong danh sách vừa lọc (đã qua kiểm version + overlay
     // GV) — id lạ/tenant khác thì lặng lẽ bỏ qua, phiên chạy như thường.
