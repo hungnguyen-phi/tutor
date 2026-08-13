@@ -7032,15 +7032,25 @@ html[data-motion="reduce"] .think-dots::after {
   box-shadow: 0 10px 24px -16px rgb(10 12 40 / 45%);
   overflow: hidden;
 }
+/* NHOM HOC LIEU: NHAN, KHONG PHAI BANG MAU (ra giao dien 13/08).
+   Cu: moi nhom mot dai mau DAC chay het be ngang (`background: var(--fam-ink)`
+   + chu trang) - xanh duong, cam, vang, navy, xanh la xep chong trong mot cot
+   300px. Khong mau nao thuoc cap navy/vang cua app, nen nam dai ay doc ra nhu
+   nam mieng nhan dan cua nam san pham khac nhau. Day dung cho chu du an goi
+   "kho bau rat xau", va no pham mot luat thiet ke cua chinh du an: nhieu mon
+   roi thi roi, gop thanh MOT vat the luon thang.
+   Nay tieu de nhom la CHU tren nen the. Mau ho van con, nhung o cho no mang
+   nghia: chip icon cua tung muc (`--fam-tint`) va trang thai dang mo. */
 .kb-group-head {
   display: flex; flex-direction: column; gap: 1px;
   margin: 0;
-  padding: 9px 12px;
-  background: var(--fam-ink);
-  color: #fff;
+  padding: 14px 12px 6px;
+  background: none;
+  color: var(--ink);
 }
-.kb-group-head b { font-size: 0.84375rem; font-weight: 800; letter-spacing: 0.01em; }
-.kb-group-head span { font-size: 0.71875rem; line-height: 1.35; color: rgb(255 255 255 / 82%); }
+.kb-group + .kb-group .kb-group-head { border-top: 1px solid var(--hairline); margin-top: 4px; }
+.kb-group-head b { font-size: 0.84375rem; font-weight: 800; letter-spacing: 0.01em; color: var(--navy); }
+.kb-group-head span { font-size: 0.71875rem; line-height: 1.35; color: var(--muted); }
 .kb-items { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 6px; gap: 4px; }
 
 /* Họ màu. Nhóm "Nhìn" dùng GOLD nên đảo chữ sang navy — gold không bao giờ là
@@ -7051,8 +7061,8 @@ html[data-motion="reduce"] .think-dots::after {
 .kb-group[data-nhom="doc"] { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
 .kb-group[data-nhom="lam"] { --fam-ink: var(--ok); --fam-tint: var(--ok-tint); }
 .kb-group-nop { --fam-ink: var(--navy); --fam-tint: var(--navy-tint); }
-.kb-group[data-nhom="nhin"] .kb-group-head { color: var(--navy); }
-.kb-group[data-nhom="nhin"] .kb-group-head span { color: rgb(38 39 93 / 78%); }
+/* (Dao chu sang navy cho nhom "Nhin" da het ly do: tieu de nhom khong con
+   nam tren nen mau dac nao nua.) */
 
 .kb-item {
   display: flex; align-items: center; gap: 10px;
@@ -7266,10 +7276,16 @@ html[data-motion="reduce"] .think-dots::after {
   font-weight: 700;
   font-size: 0.875rem;
 }
+/* Tay cầm kéo thả: SVG (GripVertical) thay hai dấu "⋮⋮" gõ bằng chữ — glyph
+   chữ phụ thuộc phông, máy nào thiếu là hiện ra ô vuông. */
 .iq-grip {
+  display: grid;
+  place-items: center;
   color: var(--ink-faint);
-  font-size: 0.9rem;
-  letter-spacing: -2px;
+}
+.iq-grip svg {
+  width: 16px;
+  height: 16px;
 }
 .iq-text {
   flex: 1;
@@ -7279,20 +7295,26 @@ html[data-motion="reduce"] .think-dots::after {
 .iq-moves {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px; /* ≥ khoảng cách tối thiểu giữa hai vùng chạm cạnh nhau */
 }
+/* VÙNG CHẠM (rà UI/UX 13/08): cũ là 30x22px — nhỏ hơn nửa ngưỡng 44px, mà đây
+   là dạng câu XẾP THỨ TỰ, em toàn làm bằng ngón tay trên điện thoại. Hai nút
+   xếp chồng dọc nên không thể mỗi nút 44px cao (một dòng sẽ cao gần 100px);
+   nới sang 40x34 + giãn cách 6px, và chính thẻ <li> vẫn kéo thả được. */
 .iq-move {
-  width: 30px;
-  height: 22px;
+  width: 40px;
+  height: 34px;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink-2);
-  font-size: 0.7rem;
   cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
+.iq-move svg { width: 18px; height: 18px; }
+.iq-move:hover:not(:disabled) { background: var(--surface-2); border-color: var(--pick-line); }
 .iq-move:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -7547,7 +7569,17 @@ html[data-motion="reduce"] .think-dots::after {
 }
 .rc-note { color: var(--muted); font-size: 0.875rem; line-height: 1.45; }
 .rc-overall { margin-top: 12px; color: var(--ink-2); line-height: 1.5; }
-.rc-coach { margin-top: 8px; color: var(--ink); font-weight: 600; line-height: 1.5; }
+/* Dòng "làm sao tốt hơn": mũi tên SVG thay emoji 👉 (luật no-emoji-icons). */
+.rc-coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.rc-coach svg { flex: none; width: 18px; height: 18px; margin-top: 3px; color: var(--sky); }
 /* 12px: chữ nhỏ nhất màn, càng phải đủ tương phản. */
 .rc-foot { margin-top: 10px; color: var(--muted); font-size: 0.75rem; }
 
@@ -7566,18 +7598,10 @@ html[data-motion="reduce"] .think-dots::after {
 }
 .listen-btn svg { width: 18px; height: 18px; }
 .listen-btn[aria-pressed="true"] { background: var(--navy); color: #fff; }
-/* Gợi ý Socratic + cổng nỗ lực: sư tử + bong bóng trắng đuôi lệch trái
-   (radius 16/16/16/4 — anatomy hi-fi) */
-.hint-says {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-.hint-says .lion {
-  flex: 0 0 auto;
-}
+/* Gợi ý Socratic + cổng nỗ lực: bong bóng trắng đuôi lệch trái (radius
+   16/16/16/4 — anatomy hi-fi). Khối `.hint-says` (sư tử đứng cạnh bong bóng)
+   đã GỠ 13/08 — mascot ra khỏi khung chat, xem ghi chú ở §CỘT CHAT. */
 .hint-bubble {
-  flex: 1;
   min-width: 0;
   padding: 12px 14px;
   background: var(--surface);
@@ -10627,6 +10651,15 @@ html[data-motion="reduce"] :is(.hud-subject, .lesson-x, .aside-link, .st-back, .
   select {
     font-size: max(1rem, 16px);
   }
+  /* LỖ HỔNG CỦA CHÍNH LUẬT TRÊN (rà UI/UX 13/08): `:where()` có độ đặc hiệu 0,
+     nên BẤT KỲ rule nào đặt font-size qua tên lớp cũng thắng nó. Quét cả file
+     thì đúng một ô nhập lọt lưới: `.reflect-input` (14px) — mà đó lại là ô
+     "kể cách em nghĩ", chỗ em gõ nhiều nhất màn học. Hậu quả trên iPhone: mỗi
+     lần chạm vào ô là Safari tự phóng to trang, đẩy lệch cả bố cục.
+     Thêm ô nhập mới thì nhớ kiểm lại đây — sàn này không tự bắt được. */
+  .reflect-input {
+    font-size: max(1rem, 16px);
+  }
   /* Bàn phím mở → autoscroll thoát header sticky + footer .lfoot cố định */
   :where(input:not([type="checkbox"], [type="radio"])),
   textarea {
@@ -11855,10 +11888,14 @@ textarea {
   align-items: center;
   margin: 10px 0 12px;
 }
+/* 44px chứ không 40px (rà UI/UX 13/08): đây là vùng chạm TỐI THIỂU cho ngón
+   tay, và bộ ba ô nhập + Gửi + Xin gợi ý là chỗ em bấm nhiều nhất màn học.
+   `.btn` toàn app đã 48px từ lâu; ba món này là ngoại lệ duy nhất lọt xuống
+   dưới ngưỡng vì lúc dựng chỉ nghĩ tới chuột. */
 .reflect-input {
   flex: 1 1 auto;
   min-width: 0;
-  height: 40px;
+  height: 44px;
   padding: 0 14px;
   border-radius: 999px;
   border: 1.5px solid var(--line);
@@ -11873,7 +11910,7 @@ textarea {
 .reflect-send,
 .reflect-hint {
   flex: 0 0 auto;
-  height: 40px;
+  height: 44px;
   padding: 0 14px;
   white-space: nowrap;
 }
@@ -12412,7 +12449,37 @@ body:has(.lsn-grid) {
 .chat-head span { font-size: 0.78125rem; line-height: 1.4; color: var(--muted); }
 /* Trong cột chat, khung đối thoại là PHẦN CO GIÃN — nó ăn hết chỗ còn lại và tự
    cuộn, để ô nhập luôn dính đáy chứ không trôi khỏi màn khi nói nhiều. */
-.lsn-chat .thread { margin: 0; }
+.lsn-chat .thread { margin: 0; gap: 8px; }
+
+/* ── KHUNG CHAT GỌN LẠI (chủ dự án 13/08) ────────────────────────────────────
+   "bỏ cái mascot sư tử ra khỏi chat, để lại icon tròn sư tử nhỏ là được · cho
+   đoạn chat chữ nhỏ lại xíu để hiện nhiều thông tin hơn".
+   Mascot 52–92px cạnh MỖI lời sư tử ăn gần nửa bề ngang một cột hẹp và đẩy
+   khung dài mãi ra; nhận diện nhân vật đã nằm ở icon tròn trên đầu khung.
+   Chữ 13px + đệm mỏng ⇒ cùng chiều cao ấy chứa được gấp rưỡi số lượt. */
+.lsn-chat .bubble,
+.lsn-chat .hint-bubble {
+  flex: none; /* con trực tiếp của cột `.thread` — đừng để nó giãn cao lấp khung */
+  max-width: 92%;
+  padding: 9px 11px;
+  line-height: 1.5;
+}
+.lsn-chat .hint-bubble {
+  align-self: flex-start;
+  border-radius: var(--r) var(--r) var(--r) 4px;
+}
+/* Cổng nỗ lực: trước đây nhận ra nhờ con sư tử xoay lưng dỗi. Không còn sư tử
+   thì phải nhận ra bằng MÀU — hổ phách, cùng ngôn ngữ với băng-rôn "chưa đúng"
+   (không đỏ, không phải hình phạt), để em đọc ra "đây là luật chơi", không
+   nhầm thành một gợi ý. */
+.lsn-chat .hint-bubble[data-gate] {
+  background: var(--warn-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--warn) 28%, transparent);
+}
+.lsn-chat .bubble .who { font-size: 0.625rem; margin-bottom: 2px; }
+.lsn-chat .think-wrap { padding: 2px 0 4px; }
+.lsn-chat .think-label { font-size: 0.8125rem; }
+
 .chat-compose {
   display: flex;
   flex-wrap: wrap;
@@ -12457,11 +12524,14 @@ body:has(.lsn-grid) {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(310px, 1fr);
     gap: var(--lsn-gap, 24px);
-    /* `stretch` chứ KHÔNG `start` (đổi 11/08): khung chat phải CAO CỐ ĐỊNH bằng
-       cột bài học, không phình ra co vào theo số tin nhắn. Ô nhập nhảy lên nhảy
-       xuống mỗi lượt nói là thứ khiến màn hình đọc như đang giật. Chiều cao nay
-       do CỘT BÀI HỌC quyết; khung đối thoại tự cuộn bên trong. */
-    align-items: stretch;
+    /* `start` (13/08). Lịch sử ngắn gọn: 11/08 đổi sang `stretch` để khung chat
+       thôi phình ra co vào theo số tin nhắn — đúng vấn đề, sai thuốc: nó buộc
+       CẢ HAI thẻ cao bằng nhau, nên câu hỏi ba dòng vẫn đẻ ra một thẻ trắng cao
+       cả màn với một mảng trống bên dưới (chủ dự án 13/08: "bài tập có mấy dòng
+       nên bên dưới thừa nhiều"). Nay mỗi thẻ tự cao theo nội dung, còn việc
+       "khung chat không nhảy" giải bằng CHIỀU CAO CỐ ĐỊNH cho riêng nó (dưới),
+       chứ không bắt cột kia gánh. */
+    align-items: start;
   }
   /* Đề bài canh giữa TRONG phần 2/3 của nó — không dán sát mép trái. */
   .lsn-main {
@@ -12470,31 +12540,152 @@ body:has(.lsn-grid) {
     justify-self: center;
     width: 100%;
   }
-  .lsn-chat {
-    position: sticky;
-    /* Dưới thanh tiến độ (lesson-top) để không bị nó che khi cuộn. */
-    top: 76px;
-    /* Cao bằng cột bài học (align-items: stretch ở trên), nhưng KHÔNG bao giờ
-       vượt màn — bài dài mấy trang thì ô nhập vẫn phải nằm trong tầm mắt.
-       `min-height` để câu hỏi một dòng không đẻ ra một khung chat tí hon. */
-    align-self: stretch;
-    min-height: min(58dvh, 460px);
-    max-height: calc(100dvh - 96px);
+  /* MÀN LÀM BÀI ĐỨNG YÊN, CHỈ KHUNG CHAT CUỘN (chủ dự án chốt 13/08) ─────────
+     Trước đây cả trang cuộn theo khung chat: cột bài học chừa sẵn 128–216px đệm
+     cuối, cột chat thì `position: sticky` + `max-height` — nên trang cao hơn màn
+     hình, và mỗi lần nói một lượt là cả đề bài trôi lên trôi xuống sau lưng
+     khung chat. Nay màn làm bài là một KHUNG CAO ĐÚNG MỘT MÀN: đề bài đứng im
+     (tự cuộn bên trong nếu bài dài), khung tin nhắn tự cuộn bên trong nó, và
+     phần đáy được chừa sẵn đúng chiều cao băng-rôn kết quả — nên băng-rôn
+     "Chưa đúng — thử lại nhé" KHÔNG BAO GIỜ đè lên ô nhập với hai nút Gửi /
+     Xin gợi ý nữa (lỗi 3: em bấm không được, kẹt luôn không làm tiếp được). */
+  .shell-main:has(.lsn-grid) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    /* `clip` chứ không `hidden` khi trình duyệt hiểu: bóng đổ rộng dưới chân
+       thẻ trắng (0 30px 70px) vẫn được tràn ra, chỉ chặn đúng việc cuộn. */
+    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: 40px;
+    /* Chỗ cho băng-rôn cố định ở đáy màn — xem --lfoot-h ở cuối khối này. */
+    padding-bottom: calc(var(--lfoot-h, 0px) + 16px);
   }
-  .lsn-chat .thread {
+  .shell-main:has(.lsn-grid) .lsn-grid {
     flex: 1 1 auto;
     min-height: 0;
+  }
+  /* Thanh tiến độ và các băng-rôn giữ nguyên chiều cao thật — chỉ có phần thân
+     được co. Không ghim thì flexbox bóp cả dấu chân lẫn dòng "vá nền" khi bài dài. */
+  .shell-main:has(.lsn-grid) > :is(.lesson-top, .mend-banner) {
+    flex: none;
+  }
+  /* Thẻ bài học CAO ĐÚNG BẰNG NỘI DUNG. Dài hơn một màn thì cuộn TRONG thẻ,
+     không kéo cả trang đi (`overscroll-behavior` chặn lây sang khung ngoài).
+     `100%` ăn theo chiều cao hàng lưới — hàng này có chiều cao xác định vì
+     `.lsn-grid` là flex item `flex:1` trong khung cao đúng 100dvh. */
+  .lsn-main {
+    max-height: 100%;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
   }
+  /* KHUNG CHAT: MỘT chiều cao duy nhất từ đầu buổi tới cuối buổi (chủ dự án
+     13/08: "giữ nguyên từ đầu đến cuối, kể cả chat dài hơn cũng không dài hơn").
+     Không ăn theo số tin nhắn, không ăn theo cột bài học, và — quan trọng —
+     KHÔNG ăn theo hàng lưới: hàng lưới co lại mỗi khi băng-rôn đáy đổi trạng
+     thái (128px ↔ 216px), nên đo theo `100%` là khung chat lại giật một nhịp
+     đúng lúc em vừa trả lời xong. Đo thẳng theo `100dvh` — thứ chỉ đổi khi
+     người dùng đổi cỡ cửa sổ. Trần đó chỉ chạm trên màn rất thấp. */
+  .lsn-chat {
+    height: min(var(--chat-h, 26rem), calc(100dvh - 180px));
+    min-height: 0;
+  }
+  /* Chữ 13px CHỈ ở cột hẹp bên phải màn rộng. Dưới ngưỡng này khung chat trải
+     ngang cả màn điện thoại, mà 13px thì dưới sàn đọc được của thân bài — em
+     lớp 10 cầm điện thoại đọc không nổi. (Bản đầu tôi đặt 13px cho MỌI bề
+     ngang; đây là sửa lại chính chỗ đó.) */
+  .lsn-chat .bubble,
+  .lsn-chat .hint-bubble {
+    font-size: 0.8125rem;
+  }
+  /* Khung đã tự chừa chỗ cho băng-rôn → đệm cuối trang thành thừa, để lại thì
+     nó đẻ ra một khoảng trắng 128px ngay giữa thẻ bài học. */
+  .lesson-pad { display: none; }
   .chat-compose .reflect-input { flex: 1 1 100%; }
 }
 /* Màn hẹp: chat xếp dưới đề bài, khung đối thoại cao vừa phải rồi tự cuộn —
    nói mười lượt cũng không đẩy ô nhập xuống tận đáy trang. */
 @media (max-width: 1199.98px) {
-  .lsn-chat { margin-top: 14px; }
-  .lsn-chat .thread { max-height: 52dvh; overflow-y: auto; }
+  /* CÙNG MỘT LUẬT với màn rộng: chiều cao đặt trên CHÍNH khung chat và không
+     đổi suốt buổi — khoá hay mở, một lượt hay ba mươi lượt cũng đúng ngần ấy.
+     (Đặt trên khung chứ không trên `.thread`: đặt ở `.thread` thì lúc khoá,
+     lúc hiện ô nhập, lúc hiện lời mời… tổng chiều cao vẫn nhảy theo phần dưới.) */
+  .lsn-chat {
+    margin-top: 14px;
+    height: min(var(--chat-h, 26rem), 60dvh);
+  }
 }
+/* Khung tin nhắn TỰ CUỘN ở mọi bề ngang, và cuộn hết thì DỪNG — không đẩy tiếp
+   sang khung ngoài (scroll-chaining). Đây là vế thứ hai của lỗi "cả trang cuộn
+   theo khung chat": ở màn hẹp trang vẫn cuộn được (đúng), nhưng lăn chuột trong
+   khung đối thoại thì chỉ được cuộn ĐÚNG khung đó. */
+.lsn-chat .thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* CHIỀU CAO BĂNG-RÔN ĐÁY — một nguồn duy nhất cho cả đệm cuối trang lẫn phần
+   chừa của khung làm bài. Số đo thật: khối một nút ~128px, khối có sư tử ~216px
+   (xem ghi chú ở .lfoot-says). Không có băng-rôn thì không chừa gì cả. */
+body:has(.lfoot) { --lfoot-h: 128px; }
+body:has(.lfoot-says) { --lfoot-h: 216px; }
+@media (max-width: 899.98px) {
+  body:has(.lfoot) { --lfoot-h: calc(156px + env(safe-area-inset-bottom)); }
+  body:has(.lfoot-says) { --lfoot-h: calc(244px + env(safe-area-inset-bottom)); }
+}
+
+
+/* ═══ BON TAB NGOAI "HOC" THOI GIONG BANG QUAN TRI (13/08) ══════════════════
+   Chu du an: "trang nay thiet ke rat chan", "toi cu nghi trang nay ko hoat dong
+   gi ngoai cho /learn". Di het app tren production moi thay dung goc:
+   man HOC la mot the gioi (canh savanna tran man, su tu, duong dau chan), buoc
+   sang Hang/Muc tieu/Toi la roi thang vao the trang tren nen trang. Khong phai
+   bang mau sai - ma la ROI KHOI HOC LA ROI KHOI THE GIOI.
+   Ba viec o day, khong dung toi bo cuc:
+    1. Tra lai bau troi lam nen cho cac man .ws (cung --sky-grad voi man Hoc).
+    2. The trang thanh "vung sang" noi tren nen do - cung ngon ngu .lsn-main.
+    3. Cot phai chi co DUNG MOT the (man Toi) thi bo luoi 2 cot, cho the trai
+       tran het be ngang. Truoc day cot phai het noi dung o nua man, de lai mot
+       dai trang cao 350px - do la thu doc ra "trang chua lam xong".        */
+.viewport:has(.ws) {
+  background-color: var(--canvas-deep);
+  background-image:
+    linear-gradient(180deg, rgb(38 39 93 / 7%) 0%, rgb(38 39 93 / 0%) 34%),
+    var(--sky-grad);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+.viewport:has(.ws) .ws-panel {
+  background: rgb(255 255 255 / 92%);
+  border-color: transparent;
+  box-shadow: 0 22px 54px -30px rgb(10 12 40 / 46%), 0 1px 0 rgb(255 255 255 / 70%) inset;
+}
+@media (min-width: 960px) {
+  /* `:only-child` = cot phai chi co mot the -> khong du suc giu mot cot rieng. */
+  .ws-grid:has(.ws-side > :only-child) { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* HOP RONG 525px O COT CHAT (13/08). Moi cau MOI la chat bi khoa, va khung
+   doi thoai chua co tin nhan nao -> mot hop trang cao nua man chiem 1/3 be
+   ngang, chi de noi "chon mot dap an truoc nhe". Do la khoang chet lon nhat
+   cua man lam bai. Luc khoa thi khung chat chi cao bang loi moi, khong giu
+   san cho cho mot cuoc tro chuyen chua bat dau. */
+@media (min-width: 1200px) {
+  .lsn-chat:has(.chat-locked) { height: auto; }
+  .lsn-chat:has(.chat-locked) .thread { flex: 0 0 auto; }
+}
+@media (max-width: 1199.98px) {
+  .lsn-chat:has(.chat-locked) { height: auto; }
+}
+/* Nut "XEM XONG MUC" cua Kho bau nam tren header VANG -> nut vang chim vao nen.
+   Doi sang navy: cung mot nut hanh dong chinh nhu khap app, va bat len hen. */
+.kb-done { --btn-bg: var(--navy); --btn-edge: var(--navy-press); --btn-fg: var(--on-brand); }
 
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
    Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,

@@ -325,6 +325,16 @@ export function capitalizeLead(s: string): string {
   const head = /^[\s*"'“([]*\S+/.exec(s)?.[0];
   if (!head) return s;
   const tok = head.replace(/^[\s*"'“([]*/, "");
+  // ── LỆNH LaTeX THÌ ĐỪNG ĐỤNG (vá 13/08) ──────────────────────────────────
+  // Bắt tại trận trên production, câu 3/8 bài "Kí hiệu mệnh đề": ô đáp án in ra
+  // nguyên mã `\Overline{P} (hoặc ¬P)`. Dữ liệu KHÔNG sai — trong DB là
+  // `\overline{P}`, và chính chuỗi ấy render đúng thành P̄ ở bong bóng chat.
+  // Thủ phạm là hàm này: nó tìm "chữ cái đầu tiên" của chuỗi, gặp ngay chữ `o`
+  // NẰM TRONG tên lệnh, viết hoa lên thành `\Overline` — một lệnh KaTeX không
+  // hề biết — nên KaTeX bỏ cuộc và nhả mã thô ra màn hình.
+  // Chat thoát nạn chỉ vì nó gọi <MathText> không kèm `cap`.
+  // Chữ sau dấu `\` là TÊN LỆNH, không phải chữ trong câu văn.
+  if (tok.startsWith("\\")) return s;
   if (classify(tok) !== "text" || !/\p{L}\p{L}/u.test(tok)) return s;
   const i = head.search(/\p{L}/u); // chữ cái ĐẦU TIÊN, không phải chữ thường đầu tiên
   const ch = i < 0 ? "" : s[i]!;

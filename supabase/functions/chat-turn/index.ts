@@ -15,6 +15,7 @@ import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_
 import { evaluateEffortGate, chonBacGoiY, tinhVanNoLuc } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
+import { boGachNgang } from "../_shared/text.ts";
 import { buildGuideSystem, buildGuideUser, buildScoredRubricSystem } from "../_shared/prompts.ts";
 import { buildMemory } from "../_shared/memory.ts";
 import { openSse } from "../_shared/sse.ts";
@@ -426,7 +427,7 @@ Deno.serve(async (req: Request) => {
           try {
             const res = await callLLM(o.llm);
             const t = rehydrate(res.text, o.map).trim();
-            if (t) msg = t;
+            if (t) msg = t;   // `json()` dọn nốt gạch ngang ở đường ra
           } catch (e) {
             if (isBudget(e)) msg = HET_HAN_MUC; // hết lượt hôm nay → nói thẳng
             /* mô hình hỏng → giữ câu tất định */
@@ -437,13 +438,17 @@ Deno.serve(async (req: Request) => {
       }
 
       // ĐƯỜNG PHÁT DẦN.
+      // Luồng SSE KHÔNG đi qua `json()` nên không hưởng lưới chặn gạch ngang ở
+      // đó (xem cors.ts). Câu do mô hình viết đã sạch từ `rehydrate`, nhưng câu
+      // LUI là chuỗi soạn tay — dọn ngay tại đây trước khi phát đi.
+      const luiSach = boGachNgang(o.fallback);
       const { response, writer } = openSse(req);
       const bg = (async () => {
         writer.meta(o.envelope);
         if (!o.llm) {
-          writer.delta(o.fallback);
-          persist("tutor", o.fallback, who, meta);
-          writer.done(o.fallback);
+          writer.delta(luiSach);
+          persist("tutor", luiSach, who, meta);
+          writer.done(luiSach);
           return;
         }
         // Tên thật được thay bằng [NAME_0] trước khi gửi đi; mẩu chữ về có thể
@@ -471,15 +476,17 @@ Deno.serve(async (req: Request) => {
         } catch (e) {
           hetHanMuc = isBudget(e); // hết lượt hôm nay → nói thẳng, đừng nói bâng quơ
         }
-        const lui = hetHanMuc ? HET_HAN_MUC : o.fallback;
-        const msg = full.trim() || lui;
+        const lui = boGachNgang(hetHanMuc ? HET_HAN_MUC : o.fallback);
+        // Câu CHỐT đi qua bản ĐẦY ĐỦ: tới đây chuỗi đã hoàn chỉnh nên luật gạch
+        // nối + vùng $…$ mới áp được an toàn (mẩu rời giữa luồng thì không).
+        const msg = boGachNgang(full.trim()) || lui;
         // Mô hình câm hẳn → phát câu lui để em không nhìn màn trống.
         if (!full.trim()) writer.delta(lui);
         persist("tutor", msg, who, meta);
         writer.done(msg);
       })().catch((e) => {
         console.error("speak stream error:", e instanceof Error ? e.message : e);
-        writer.fail(o.fallback);
+        writer.fail(luiSach);
       });
       (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
         .EdgeRuntime?.waitUntil?.(bg);
@@ -535,6 +542,15 @@ Deno.serve(async (req: Request) => {
       // được LƯU vào lần thử gần nhất để cổng nỗ lực đọc ở các lượt sau — thay
       // cho vế "cộng theo số lần bấm" đã bỏ (cổng không còn là cái đếm click).
       const reasoning = String(body.reasoning ?? "").trim().slice(0, 2000);
+      // ĐÁP ÁN EM ĐANG CHỌN — NGỮ CẢNH THÔI (13/08). Client gửi kèm ở mọi lượt
+      // đối thoại. TUYỆT ĐỐI không chấm, không sinh attempt, không đụng cổng nỗ
+      // lực: nó chỉ để sư tử hỏi đúng vào chỗ em đang vướng thay vì đọc một câu
+      // rập khuôn "chọn một đáp án trước nhé" ngay sau khi em vừa chọn xong.
+      // `daChon` là chuỗi MÁY CHẤM (MCQ chữ cái → "B") để đối chiếu distractor;
+      // `daChonNhan` là dạng đọc được ("B. Số 9 là số nguyên tố") để đưa cho mô
+      // hình. Thiếu nhãn thì dùng luôn chuỗi máy chấm.
+      const daChon = String(body.daChon ?? "").trim().slice(0, 300);
+      const daChonNhan = String(body.daChonNhan ?? "").trim().slice(0, 300) || daChon;
       if (!studentAnswer.trim() && reasoning) {
         persist("student", reasoning, undefined, { questionId: q.id, kind: "reflect" });
         // Lời XIN GỢI Ý không phải là "đã thể hiện suy nghĩ" — nếu tính thì bấm
@@ -549,13 +565,19 @@ Deno.serve(async (req: Request) => {
             : thinkingContentSignal(reasoning);
         // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
         // đáng thêm một vòng mạng tuần tự).
-        const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes, styleNote] = await Promise.all([
+        const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes, styleNote, matchedR] = await Promise.all([
           supa.from("attempts").select("id, attempt_no, thinking_quality, created_at")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
-          supa.from("socratic_ladders").select("id, rungs, bottom_out, cong_no_luc")
+          // LẤY CẢ CHÙM THANG của node, KHÔNG `limit(1)` nữa (vá 13/08).
+          // Đây là gốc thứ hai của "gợi ý cứ mông lung": một node có nhiều thang,
+          // mỗi thang gỡ MỘT quan niệm sai, mà đường đối thoại xưa nay luôn lấy
+          // thang ĐẦU TIÊN — tức là hỏi em theo hướng gỡ một cái bẫy mà em không
+          // hề dính. Nhánh chấm đã chọn thang theo `misconception` từ lâu; đây
+          // chỉ là kéo đường đối thoại về cùng một chuẩn.
+          supa.from("socratic_ladders").select("id, rungs, bottom_out, cong_no_luc, misconception")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
-            .eq("status", "active").limit(1),
+            .eq("status", "active"),
           supa.from("kg_nodes").select("label")
             .eq("kg_version_id", s.kg_version_id).eq("node_key", q.node_key)
             .maybeSingle(),
@@ -572,6 +594,23 @@ Deno.serve(async (req: Request) => {
             .eq("session_id", s.id)
             .order("created_at", { ascending: false }).limit(120),
           fetchStyleNote(supa, s.student_id),
+          // ── EM ĐANG DÍNH BẪY NÀO? (vá 13/08) ──────────────────────────────
+          // Đường đối thoại trước nay KHÔNG hề chẩn đoán: mô hình chỉ có đề bài
+          // + một câu gợi mở chung, nên nói gì cũng ra một câu chung chung
+          // ("đề còn dữ kiện nào bạn chưa dùng?"). Nhánh chấm thì đối chiếu đáp
+          // án với `distractors` để lấy `quan_niem_sai` từ lâu rồi. Nay có
+          // `daChon`, làm được ĐÚNG việc đó ở đây — cùng thước, cùng dữ liệu.
+          // Đi chung chuyến Promise.all nên không thêm vòng chờ nào cho em.
+          (async () => {
+            if (!daChon) return null;
+            const ds = (Array.isArray(q.distractors) ? q.distractors : []) as Array<
+              { phuong_an: string; quan_niem_sai: string }
+            >;
+            if (!ds.length) return null;
+            const hits = await Promise.all(ds.map((d) => checkAnswer(daChon, d.phuong_an, qParams)));
+            const idx = hits.findIndex((r) => r.correct);
+            return idx >= 0 ? (ds[idx]!.quan_niem_sai ?? null) : null;
+          })().catch(() => null),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
         const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
@@ -581,7 +620,11 @@ Deno.serve(async (req: Request) => {
         if (lastAtt && best > Number(lastAtt.thinking_quality ?? 0)) {
           await supa.from("attempts").update({ thinking_quality: best }).eq("id", lastAtt.id);
         }
-        const ladder = (ladders ?? [])[0] ?? null;
+        // Thang KHỚP đúng bẫy em đang dính; không khớp thì thang đầu của node
+        // (giống hệt cách nhánh chấm chọn — xem chỗ `matched` ở dưới).
+        const ladder =
+          (matchedR && (ladders ?? []).find((l) => l.misconception === matchedR)) ||
+          (ladders ?? [])[0] || null;
         const rungs = (ladder?.rungs ?? []) as Array<{ cau_hoi?: string; goi_y?: string }>;
         const totalRungs = rungs.length > 0 ? rungs.length : 4;
         const minAtt =
@@ -677,6 +720,13 @@ Deno.serve(async (req: Request) => {
           : gate.action === "require_thinking" ? "need_think"
           : "guide";
 
+        // Lời chẩn đoán đưa cho mô hình (`safeMisconception` đã cắt phần lỡ chứa
+        // đáp án). CHỈ từ bậc `need_think` trở đi: ở cổng "phải thử đã" mà cầm
+        // sẵn chẩn đoán thì mô hình rất dễ buột ra thành gợi ý, mà lượt đó chưa
+        // được phép gợi ý — cùng nguyên tắc "không đưa thì không lộ được" đã áp
+        // cho đề bài ở stage này.
+        const chanDoanChon = stage === "must_try" ? "" : safeMisconception(matchedR, q.dap_an);
+
         // ── EM ĐANG ĐÙA HAY ĐANG HỌC? (chủ dự án chốt 29/07) ─────────────────
         // KHÔNG cắm trần cứng rồi chặn em lại — đó là tư duy bán dịch vụ, và nó
         // phạt oan đúng em kẹt thật (em kẹt cũng nói nhiều lượt liền). Thay vào
@@ -688,9 +738,24 @@ Deno.serve(async (req: Request) => {
 
         // ĐƯỜNG LUI TẤT ĐỊNH — dùng khi trường chưa bật khoá AI hoặc LLM hỏng.
         if (stage === "must_try") {
-          msg = en
-            ? "Thanks for sharing your thinking! Now pick or type an answer first — trying is how we learn. I'm right here."
-            : "Cảm ơn bạn đã kể! Giờ bạn chọn hoặc điền một đáp án trước nhé — thử mới biết mình vướng ở đâu, mình ở ngay đây.";
+          // HAI ca khác hẳn nhau, trước 13/08 dùng CHUNG một câu:
+          //  · attempts === 0 → em thật sự chưa chạm vào gì: mời thử một lần.
+          //  · attempts ≥ 1  → em ĐÃ thử (và có thể đang chọn sẵn một phương án)
+          //    nhưng chưa đủ số lần của cổng nỗ lực. Bảo em "chọn một đáp án
+          //    trước nhé" ở đây là NÓI SAI SỰ THẬT — chủ dự án bắt đúng lỗi này:
+          //    chọn xong, bấm 💡, sư tử đáp như thể màn hình trống trơn. Cổng
+          //    KHÔNG đổi (vẫn chưa ra gợi ý), chỉ lời nói phải khớp việc em vừa làm.
+          msg = attempts === 0
+            ? (en
+              ? "Thanks for sharing your thinking! Now pick or type an answer first — trying is how we learn. I'm right here."
+              : "Cảm ơn bạn đã kể! Giờ bạn chọn hoặc điền một đáp án trước nhé — thử mới biết mình vướng ở đâu, mình ở ngay đây.")
+            : daChonNhan
+            ? (en
+              ? `You're going with "${daChonNhan}". What made you pick that one? Tell me and we'll take the next step together.`
+              : `Bạn đang chọn "${daChonNhan}". Bạn dựa vào chỗ nào của đề để chọn như vậy? Kể mình nghe rồi mình gỡ tiếp cùng bạn.`)
+            : (en
+              ? "You've had a go already — tell me what you were thinking when you answered, then we'll take the next step."
+              : "Bạn thử một lần rồi đó. Lúc trả lời bạn nghĩ theo hướng nào? Kể mình nghe rồi mình gỡ tiếp cùng bạn.");
         } else if (stage === "need_think") {
           msg = en
             ? "Tell me a bit more — which step did you take first, and why?"
@@ -709,7 +774,14 @@ Deno.serve(async (req: Request) => {
         // một câu ba lần. Cổng nỗ lực vẫn do SERVER quyết (stage ở trên); AI
         // chỉ được DIỄN ĐẠT đúng quyết định đó bằng lời bám vào ý của em.
         // `bottomOut` cố tình KHÔNG truyền ⇒ mô hình không có gì để lộ.
-        const { text: safe, map } = anonymize(reasoning, names);
+        // Ẩn danh CẢ HAI mẩu trong MỘT lượt: hai lần gọi `anonymize` sinh hai
+        // bảng tra đều bắt đầu từ [NAME_0], trộn lại là hoàn nguyên nhầm tên.
+        const SEP = "\n<<<DA_CHON>>>\n"; // mốc cắt: chữ thuần, anonymize không đụng tới
+        const { text: safeAll, map } = anonymize(
+          daChonNhan ? `${reasoning}${SEP}${daChonNhan}` : reasoning,
+          names,
+        );
+        const [safe, safeDaChon = ""] = safeAll.split(SEP);
         return await speak({
           envelope: { correct: false, gate: "reflect", graded: false },
           fallback: msg,
@@ -736,9 +808,19 @@ Deno.serve(async (req: Request) => {
                 // gợi ý từ đó — chủ dự án bắt tại trận. Cùng nguyên tắc với
                 // `bottomOut`: không đưa thì không lộ được.
                 question: stage === "must_try" ? "" : String(q.noi_dung ?? "").slice(0, 600),
+                // BẪY em đang dính — thứ biến một câu hỏi chung chung thành câu
+                // hỏi trúng chỗ. Nhánh chấm đưa từ lâu; đường đối thoại tới
+                // 13/08 mới có, và đó là lý do gợi ý ở đây nghe cứ mông lung.
+                ...(chanDoanChon ? { misconception: chanDoanChon } : {}),
                 ...(rungText && stage === "guide" ? { rungQuestion: rungText } : {}),
                 attempts,
                 stage,
+                // Có đáp án em đang chọn → bật lời dặn "bám vào đúng lựa chọn
+                // đó". Ở cổng must_try em CHƯA thử lần nào thì KHÔNG bật: lúc ấy
+                // trên màn chưa có lựa chọn nào, mà nhắc tới phương án là lộ đề.
+                ...(safeDaChon && !(stage === "must_try" && attempts === 0)
+                  ? { dangChon: true }
+                  : {}),
                 hasMemory: !!mem,
                 // Nói nhiều mà chưa thử lại → sư tử tự thấy, tự kéo về việc làm bài.
                 ...(noiSauLanThuCuoi >= 4 ? { noiChuaThu: noiSauLanThuCuoi } : {}),
@@ -750,12 +832,15 @@ Deno.serve(async (req: Request) => {
                 soTay: mem?.soTay,
                 lichSu: mem?.lichSu,
                 studentSaid: safe,
+                ...(safeDaChon && !(stage === "must_try" && attempts === 0)
+                  ? { dangChon: safeDaChon }
+                  : {}),
               }),
               agent: "guide",
               tier: "cheap", // đối thoại = việc nhẹ, deepseek-flash: nhanh + rẻ
               // Chỗ em ngồi chờ chữ hiện ra → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
-              maxTokens: 200,
+              maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
               // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
               // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
               // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
@@ -1334,7 +1419,7 @@ Deno.serve(async (req: Request) => {
               tier: "cheap",
               // Đối thoại = chỗ em ngồi chờ chữ → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
-              maxTokens: 200,
+              maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
               // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
               // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
               // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
@@ -1534,7 +1619,7 @@ Deno.serve(async (req: Request) => {
           agent: "guide",
           tier: "cheap",
           fastRoute: true,
-          maxTokens: 200,
+          maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
           temperature: 0.65,
           studentId: s.student_id,
           tenantId: s.tenant_id,

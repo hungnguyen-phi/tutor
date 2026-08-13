@@ -39,7 +39,7 @@ fs.writeFileSync(
   path.join(OUT, "prompts.mjs"),
   ts.transpileModule(psrc, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText,
 );
-const { buildGuideSystem } = await import(pathToFileURL(path.join(OUT, "prompts.mjs")).href);
+const { buildGuideSystem, buildGuideUser } = await import(pathToFileURL(path.join(OUT, "prompts.mjs")).href);
 
 let dat = 0, truot = 0;
 const tc = (ten, thay, mong) => {
@@ -148,6 +148,69 @@ for (const st of ["need_think", "guide"]) {
   tc(`${st}: có nội dung đề`, s2.includes("Số 7 là số nguyên tố"), true);
   tc(`${st}: KHÔNG dính luật must_try`, s2.includes("CHƯA THỬ LẦN NÀO"), false);
 }
+
+// ── ĐÁP ÁN EM ĐANG CHỌN PHẢI TỚI ĐƯỢC SƯ TỬ (13/08) ──────────────────────────
+// Lỗi chủ dự án báo: chọn xong một phương án rồi bấm "Xin gợi ý", sư tử đáp một
+// câu rập khuôn "chọn một đáp án trước nhé" — như thể màn hình còn trống. Hai
+// gốc: (a) lượt đối thoại không mang theo lựa chọn, (b) `must_try` dùng chung
+// một lời dặn cho cả ca ĐÃ THỬ RỒI. Cổng nỗ lực KHÔNG đổi, chỉ lời nói phải khớp.
+const nen2 = (o) => buildGuideSystem({
+  subject: "Toan", grade: "10", language: "vi",
+  nodeLabel: "Khái niệm mệnh đề logic",
+  question: o.stage === "must_try" ? "" : DE_BAI,
+  ...o,
+});
+
+console.log("\n── must_try khi em ĐÃ THỬ: không được bảo 'chọn đáp án trước' ──");
+const sDaThu = nen2({ stage: "must_try", attempts: 1, dangChon: true });
+tc("KHÔNG dính luật 'CHƯA THỬ LẦN NÀO'", sDaThu.includes("CHƯA THỬ LẦN NÀO"), false);
+tc("có luật ca đã thử", sDaThu.includes("ĐÃ THỬ 1 lần"), true);
+tc("có dặn bám vào <dang_chon>", sDaThu.includes("<dang_chon>"), true);
+tc("vẫn KHÔNG cầm đề bài", sDaThu.includes("</de_bai>"), false);
+tc("vẫn cấm gợi ý", sDaThu.includes("KHÔNG gợi ý"), true);
+
+console.log("\n── must_try khi em CHƯA thử: cờ dang_chon cũng bị bỏ ──");
+const sChuaThu = nen2({ stage: "must_try", attempts: 0, dangChon: true });
+tc("giữ luật cứng 'CHƯA THỬ LẦN NÀO'", sChuaThu.includes("CHƯA THỬ LẦN NÀO"), true);
+tc("KHÔNG nhắc <dang_chon>", sChuaThu.includes("<dang_chon>"), false);
+
+console.log("\n── các bậc sau: có lựa chọn thì phải bám vào nó ──");
+for (const st of ["need_think", "guide"]) {
+  const s3 = nen2({ stage: st, attempts: 2, dangChon: true });
+  tc(`${st}: có dặn bám <dang_chon>`, s3.includes("<dang_chon>"), true);
+  tc(`${st}: vẫn cấm nói đúng/sai`, s3.includes("không được nói lựa chọn đó đúng hay sai"), true);
+  const s4 = nen2({ stage: st, attempts: 2 });
+  tc(`${st}: không có lựa chọn → không in thẻ rỗng`, s4.includes("<dang_chon>"), false);
+}
+
+// ── GỢI Ý PHẢI TRÚNG CHỖ, KHÔNG ĐƯỢC MÔNG LUNG (13/08) ───────────────────────
+// Chủ dự án: "AI gợi ý vẫn cứ là mông lung". Gốc: đường đối thoại không hề biết
+// em dính bẫy nào (không đối chiếu distractor, lại luôn lấy thang ĐẦU của node),
+// nên mô hình chỉ hỏi được câu chung chung. Nay có chẩn đoán thì phải kèm lời
+// dặn LÀM GÌ với nó — nêu suông thì mô hình vẫn trả về câu vô thưởng vô phạt.
+const BAY = "Nhầm mệnh đề với câu hỏi vì thấy có dấu chấm hỏi";
+console.log("\n── có chẩn đoán bẫy: bắt hỏi CỤ THỂ, cấm hỏi chung chung ──");
+for (const st of ["need_think", "guide"]) {
+  const sb = nen2({ stage: st, attempts: 2, misconception: BAY, dangChon: true });
+  tc(`${st}: có chẩn đoán trong prompt`, sb.includes(BAY), true);
+  tc(`${st}: bắt bám dữ kiện cụ thể`, sb.includes("BÁM VÀO MỘT THỨ CỤ THỂ"), true);
+  tc(`${st}: cấm câu hỏi chung chung`, sb.includes("CẤM câu hỏi chung chung"), true);
+  tc(`${st}: vẫn cấm đọc tên bẫy ra`, sb.includes("không đọc tên cái bẫy ra"), true);
+}
+const sbMust = nen2({ stage: "must_try", attempts: 1, misconception: BAY });
+tc("must_try: KHÔNG kèm lời dặn nhắm bẫy (chưa được gợi ý)",
+  sbMust.includes("BÁM VÀO MỘT THỨ CỤ THỂ"), false);
+
+console.log("\n── luật độ dài: 2 câu, dưới 40 từ ──");
+tc("có luật độ dài cứng", nen2({ stage: "guide", attempts: 2 }).includes("DƯỚI 40 TỪ"), true);
+tc("luật độ dài có cả ở lượt không phải đối thoại",
+  nen2({ attempts: 0 }).includes("DƯỚI 40 TỪ"), true);
+
+console.log("\n── lượt user: lựa chọn đi đường DỮ LIỆU, không vào system ──");
+const u = buildGuideUser({ studentSaid: "mình chưa biết làm", dangChon: "B. Số 9 là số nguyên tố" });
+tc("có thẻ <dang_chon>", u.includes("<dang_chon>B. Số 9 là số nguyên tố</dang_chon>"), true);
+tc("thẻ <dang_chon> đứng TRƯỚC <hoc_sinh>", u.indexOf("<dang_chon>") < u.indexOf("<hoc_sinh>"), true);
+tc("không truyền thì không có thẻ", buildGuideUser({ studentSaid: "x" }).includes("dang_chon"), false);
 
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);

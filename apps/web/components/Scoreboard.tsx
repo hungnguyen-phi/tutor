@@ -10,7 +10,9 @@
  *   • Tổng XP tích luỹ + chuỗi: từ `xp` (student_xp) — KHÔNG đọc localStorage.
  *   • Bảng nào server không đủ người thật → null: UI degrade trung thực (ẩn tab,
  *     hoặc hiện lời mời cold-start), tuyệt đối không bịa bạn học.
- * Các khối 4DX (WIG, lead measures, coach/buddy, cam kết, đồng bộ) nằm cột phải.
+ * Cột phải KHÔNG còn khối 4DX (WIG, lead measures) — gỡ 13/08 vì trên máy học
+ * sinh chúng luôn rỗng, biến màn này thành hai dòng "Chưa có…". 4DX vẫn nguyên
+ * ở màn giáo viên/phụ huynh (RoleViews), nơi nó thật sự là ngôn ngữ làm việc.
  *
  * `ScoreboardBody` = THÂN bảng, dùng làm tab Hạng trong trang MỘT TRANG /learn
  * (TutorApp đã gác đăng nhập). Default export = trang đứng riêng /scoreboard.
@@ -135,61 +137,28 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
   const displayRows =
     myRow && !topRows.some((r) => r.me) ? [...topRows, myRow] : topRows;
 
-  // Cột phải 4DX — dữ liệu thật từ server (dùng cho cả cold-start).
+  // ── CỘT PHẢI (viết lại 13/08) ───────────────────────────────────────────────
+  // Trước đây cột này là hai khối 4DX: "Mục tiêu lớn (WIG)" và "Lead measures".
+  // Trên máy học sinh cả hai gần như LUÔN rỗng — chưa trường nào nhập WIG cho
+  // từng em — nên màn Hạng mở ra là hai dòng "Chưa thiết lập WIG" / "Chưa có
+  // lead measure" nằm cạnh một bảng chưa có ai. Chủ dự án đọc đúng ra điều đó:
+  // "thiết kế rất chán, vì nó chẳng có gì ở đó", và "tôi cứ nghĩ trang này không
+  // hoạt động gì ngoài chỗ /learn".
+  //
+  // WIG/lead measures là ngôn ngữ QUẢN TRỊ 4DX của nhà trường, không phải thứ
+  // một em lớp 10 cần đọc. Gỡ khỏi app học sinh (vẫn còn nguyên ở màn giáo
+  // viên/phụ huynh — xem RoleViews). Thay bằng hai khối LUÔN có nội dung thật:
+  // tiến độ từng môn, và thang hạng nỗ lực có đánh dấu "bạn ở đây".
+  const leagueNow = G.leagueOf(myTotalXp);
+  const leagueIdx = G.LEAGUES.findIndex((l) => l.name === leagueNow.name);
   const sideContent = (
     <>
-      <section className="ws-panel">
-        <h2 className="ws-panel-title">
-          <Trophy aria-hidden strokeWidth={2.25} />
-          Mục tiêu lớn của {you}
-        </h2>
-        {sb && sb.wigs.length === 0 && <p className="muted">Chưa thiết lập WIG.</p>}
-        {sb?.wigs.map((w) => (
-          <div className="wig" key={w.area}>
-            <div className="wig-head">
-              <b>
-                {w.areaLabel}: {w.title}
-              </b>
-              <span className="num">{w.progressPct}%</span>
-            </div>
-            {w.targetDesc && (
-              <p className="muted">
-                {w.targetDesc}
-                {w.source === "tutor" ? " · do Tutor theo dõi" : ""}
-              </p>
-            )}
-            <div className="meter" role="progressbar" aria-valuenow={w.progressPct} aria-valuemin={0} aria-valuemax={100} aria-label={w.title}>
-              <i style={{ "--p": `${w.progressPct}%` } as React.CSSProperties} />
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section className="ws-panel">
-        <h2 className="ws-panel-title">
-          <Check aria-hidden strokeWidth={2.25} />
-          Lead measures tuần này
-        </h2>
-        {sb && sb.leadMeasures.length === 0 && <p className="muted">Chưa có lead measure cho tuần này.</p>}
-        {sb?.leadMeasures.map((l, i) => (
-          <div className="lead-row" key={i}>
-            <span className="tl" data-status={l.status} aria-hidden />
-            <span className="lead-label">
-              {l.label}
-              {l.targetText && <span className="muted"> · mục tiêu {l.targetText}</span>}
-            </span>
-            <span className="num">{l.valueText}</span>
-          </div>
-        ))}
-      </section>
-
       {sb && sb.subjectProgress.length > 0 && (
         <section className="ws-panel">
           <h2 className="ws-panel-title">
             <Zap aria-hidden strokeWidth={2.25} />
             Tiến độ theo môn
           </h2>
-          <p className="muted">Do Tutor theo dõi tự động.</p>
           {sb.subjectProgress.map((s) => (
             <div className="wig" key={s.subject}>
               <div className="wig-head">
@@ -203,6 +172,38 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
           ))}
         </section>
       )}
+
+      {/* Thang hạng: khối DUY NHẤT ở màn này không bao giờ rỗng, kể cả buổi đầu
+          tiên — nó vẽ ra cả con đường phía trước chứ không chỉ chỗ đang đứng. */}
+      <section className="ws-panel">
+        <h2 className="ws-panel-title">
+          <Trophy aria-hidden strokeWidth={2.25} />
+          Thang hạng nỗ lực
+        </h2>
+        <ul className="gl-ladder">
+          {G.LEAGUES.map((l, i) => {
+            const state = i < leagueIdx ? "past" : i === leagueIdx ? "current" : "future";
+            return (
+              <li className="gl-rung" key={l.name} data-state={state}>
+                <span className="gl-rung-ico" data-rank={i} aria-hidden>
+                  <Medal strokeWidth={2.25} />
+                </span>
+                <b className="gl-rung-name">{l.name}</b>
+                <span className="gl-rung-min num">
+                  {l.min === 0 ? "khởi đầu" : `${l.min.toLocaleString("vi-VN")} XP`}
+                </span>
+                {state === "current" && <span className="gl-rung-you">bạn ở đây</span>}
+              </li>
+            );
+          })}
+        </ul>
+        {leagueNow.next !== null && (
+          <p className="muted gl-ladder-foot">
+            Còn <b>{(leagueNow.next - myTotalXp).toLocaleString("vi-VN")} XP</b> nữa tới hạng kế
+            tiếp. Hạng đo nỗ lực, không đo điểm.
+          </p>
+        )}
+      </section>
     </>
   );
 

@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   Paperclip,
   Info,
+  Lightbulb,
 } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -207,6 +208,18 @@ export default function TutorApp() {
   /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
   const [dangNoiLai, datDangNoiLai] = useState(false);
 
+  /** Khung tin nhắn — để LĂN XUỐNG ĐÁY khi có lời mới. Từ 13/08 khung chat có
+   *  chiều cao cố định và tự cuộn BÊN TRONG (xem `.lsn-chat .thread`), nên lời
+   *  mới rơi xuống dưới mép khung: trước đây cả trang cuộn theo nên còn thấy,
+   *  giờ không cuộn trang nữa thì phải tự lăn khung này. Chỉ đụng `scrollTop`
+   *  của CHÍNH khung — không dùng `scrollIntoView` (nó kéo cả trang đi). */
+  const threadRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [msgs, loading]);
+
   const [progress, setProgress] = useState<G.Progress>(G.load);
   const [bump, setBump] = useState(false);
   const [mastered, setMastered] = useState<string[]>([]);
@@ -245,7 +258,10 @@ export default function TutorApp() {
       const h = window.location.hash.slice(1);
       if (h === "review" || h === "scoreboard" || h === "quests" || h === "profile" || h === "settings")
         setView(h);
-      else if (h === "") setView("learn");
+      // "learn" nhận luôn: tab Học vốn không mang hash, nhưng người ta VẪN gõ
+      // /learn/#learn (chủ dự án gõ đúng dạng đó khi gửi link). Không nhận thì
+      // URL đổi mà màn hình đứng im — đọc ra như app hỏng.
+      else if (h === "" || h === "learn") setView("learn");
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -900,7 +916,13 @@ export default function TutorApp() {
       // em nhìn màn trống suốt quãng mô hình viết cả câu; giờ chữ chạy ra ngay
       // từ tiếng đầu tiên. Không tốn thêm một đồng nào — vẫn ngần ấy token.
       let opened = false;
-      const res = await answerReflect(ses.sessionId, q.id, msg, (chunk) => {
+      // ĐÁP ÁN EM ĐANG CHỌN đi kèm mọi lượt nói (13/08). Trước đây lượt này chỉ
+      // mang mỗi chuỗi em gõ, nên khi em bấm 💡 sau lúc đã chọn/đã nộp một
+      // phương án thì server KHÔNG hề biết em chọn gì — sư tử đáp một câu rập
+      // khuôn "chọn một đáp án trước nhé", đúng như thể em chưa chạm vào gì.
+      // Trường này CHỈ là ngữ cảnh: server không chấm nó, không ghi lần thử,
+      // không đụng vào cổng nỗ lực (xem nhánh reflect ở chat-turn).
+      const res = await answerReflect(ses.sessionId, q.id, msg, luaChonHienTai(), (chunk) => {
         setMsgs((m) => {
           if (!opened) {
             opened = true;
@@ -1019,6 +1041,14 @@ export default function TutorApp() {
     advancePlanRef.current = null;
     detourRepsRef.current = 0;
     resetQuestion();
+    // NẠP LẠI LỘ TRÌNH KHI THOÁT GIỮA CHỪNG (vá 13/08). Trước đây `pathVersion`
+    // chỉ tăng lúc học HẾT buổi, nên em làm đúng vài câu rồi bấm X là màn lộ
+    // trình giữ nguyên số cũ: thẻ bài vẫn "2/8 câu", thẻ Bảng tuần vẫn XP cũ,
+    // trong khi HUD trên cùng đã nhảy — hai con số XP khác nhau trên cùng một
+    // màn hình. Đo tận tay trên production: tải lại trang là 2/8 → 3/8 và
+    // 905 → 925, tức server ghi đúng từ đầu, chỉ giao diện không hỏi lại.
+    // Đây là gốc của cảm giác "làm xong mà chẳng có gì đổi".
+    setPathVersion((v) => v + 1);
   }
 
   // ── Cổng đăng nhập ────────────────────────────────────────────────────
@@ -1479,14 +1509,18 @@ export default function TutorApp() {
         : stepParsed
           ? stepsDone
           : text.trim().length > 0);
-  const check = () => {
-    if (!q || q.kind !== "objective") return;
+  /** Đáp án em ĐANG chọn/gõ, ráp đúng như lúc bấm KIỂM TRA. Tách ra khỏi
+   *  `check` (13/08) vì lượt XIN GỢI Ý cũng cần đọc chính chuỗi này: trước đây
+   *  nút 💡 gửi đi một câu mồi cố định, không kèm gì về lựa chọn của em, nên sư
+   *  tử đáp như thể em chưa chọn gì. */
+  const soanDapAnHienTai = (): string | null => {
+    if (!q || q.kind !== "objective") return null;
     let ans = interactiveShown ? interactiveAns : isTrueFalse || q.options ? picked : text.trim();
     if (!interactiveShown && stepParsed && stepInteractive) {
       const lastIdx = stepParsed.steps.length - 1;
       ans = stepParsed.steps
         .map((st, i) => {
-          if (st.yesNo) return `${st.label}: ${stepAns[i]}`;
+          if (st.yesNo) return stepAns[i] ? `${st.label}: ${stepAns[i]}` : null;
           // Bước gõ: lấy bài làm CỦA CHÍNH bước đó (lỗi #11). Ô `text` chung chỉ
           // còn là đường lui cho bước cuối, giữ cho câu cũ không vỡ.
           const rieng = (stepText[i] ?? "").trim();
@@ -1497,8 +1531,27 @@ export default function TutorApp() {
         .filter(Boolean)
         .join("; ");
     }
+    return ans ? String(ans) : null;
+  };
+
+  /** Lựa chọn hiện tại dưới HAI dạng, vì server cần cả hai và chúng khác nhau:
+   *   · `raw`  — đúng chuỗi mà nút KIỂM TRA gửi đi (MCQ chữ cái là "B"). Server
+   *     đem đối chiếu với `distractors[].phuong_an` để biết em đang dính BẪY
+   *     nào; sai một ký tự là không khớp bẫy nào cả.
+   *   · `nhan` — dạng đọc được cho sư tử ("B. Số 9 là số nguyên tố"). Một chữ
+   *     "B" trơ trọi thì mô hình không bám vào đâu để hỏi cho trúng.
+   *  Chưa chọn gì ở câu hiện tại → lấy đáp án em vừa nộp (màn "thử lại"). */
+  const luaChonHienTai = (): { raw: string; nhan: string } => {
+    const raw = soanDapAnHienTai() ?? daTraLoi;
+    if (!raw) return { raw: "", nhan: "" };
+    const hit = letterMCQ?.opts.find((o) => o.letter === raw);
+    return { raw, nhan: hit ? `${hit.letter}. ${hit.text}` : raw };
+  };
+
+  const check = () => {
+    const ans = soanDapAnHienTai();
     if (!ans) return;
-    setDaTraLoi(String(ans));
+    setDaTraLoi(ans);
     void submitObjective(ans);
   };
 
@@ -1945,7 +1998,12 @@ export default function TutorApp() {
             ))}
           </ul>
           {rubricResult.nhan_xet_chung && <p className="rc-overall">{rubricResult.nhan_xet_chung}</p>}
-          {rubricResult.cau_hoi_sua && <p className="rc-coach">👉 {rubricResult.cau_hoi_sua}</p>}
+          {rubricResult.cau_hoi_sua && (
+            <p className="rc-coach">
+              <ArrowRight aria-hidden strokeWidth={2.5} />
+              <span>{rubricResult.cau_hoi_sua}</span>
+            </p>
+          )}
           <p className="rc-foot">Góp ý để bạn tự tiến bộ — không phải điểm chính thức.</p>
         </div>
       )}
@@ -1958,8 +2016,6 @@ export default function TutorApp() {
         </div>
       )}
 
-          {/* Đệm cho footer cố định — nội dung cuối không bao giờ bị che. */}
-          <div className="lesson-pad" aria-hidden />
         </div>
 
         {/* CỘT CHAT — 1/3 bên phải trên màn rộng (chủ dự án 11/08).
@@ -1978,12 +2034,12 @@ export default function TutorApp() {
               <span>
                 {attempts === 0
                   ? "Mở sau khi bạn thử một lần"
-                  : "Chỗ này không chấm đáp án — cứ kể cách bạn nghĩ"}
+                  : "Chỗ này không chấm đáp án, cứ kể cách bạn nghĩ"}
               </span>
             </div>
           </header>
 
-        <div className="thread" aria-live="polite">
+        <div className="thread" ref={threadRef} aria-live="polite">
           {msgs.map((m, i) =>
             m.role === "student" ? (
               <div key={i} className="bubble student">
@@ -1995,19 +2051,15 @@ export default function TutorApp() {
                 <div className="who">TUTOR</div>
                 <MathText>{m.text}</MathText>
               </div>
-            ) : m.role === "gate" ? (
-              /* Cổng nỗ lực: sư tử xoay lưng dỗi — "mình hỏi, bạn nghĩ".
-                 Không phải hình phạt: là nhân vật hoá đúng luật chơi của app. */
-              <div key={i} className="hint-says">
-                <Lion mood="rebel" size={92} decorative />
-                <div className="hint-bubble"><MathText>{m.text}</MathText></div>
-              </div>
-            ) : m.role === "hint" ? (
-              /* Gợi ý Socratic: đầu sư tử ngẫm nghĩ 52px + bong bóng trắng
-                 đuôi lệch (16/16/16/4) — anatomy hi-fi. */
-              <div key={i} className="hint-says">
-                <Lion mood="thinking" size={52} />
-                <div className="hint-bubble"><MathText>{m.text}</MathText></div>
+            ) : m.role === "gate" || m.role === "hint" ? (
+              /* MASCOT ĐÃ RA KHỎI KHUNG CHAT (chủ dự án 13/08): trước đây mỗi
+                 lời sư tử kéo theo một con sư tử 52–92px đứng cạnh, ăn gần nửa
+                 bề ngang một cột hẹp và đẩy khung dài ra. Nhận diện nhân vật đã
+                 nằm ở icon tròn trên đầu khung rồi — trong luồng chỉ cần bong
+                 bóng. Cổng nỗ lực (`gate`) vẫn khác màu để đọc ra được là luật
+                 chơi chứ không phải gợi ý. */
+              <div key={i} className="hint-bubble" data-gate={m.role === "gate" || undefined}>
+                <MathText>{m.text}</MathText>
               </div>
             ) : (
               <div key={i} className="feedback">
@@ -2016,15 +2068,11 @@ export default function TutorApp() {
             ),
           )}
           {loading && (
-            /* Chờ chấm/gợi ý: sư tử chống cằm ngẫm nghĩ. Câu do AI chấm (viết/nói/
-               tự luận/gõ đáp án mở) mất vài giây thật → nói thẳng "Đang suy nghĩ…"
-               thay vì im lặng như treo máy. Câu CAS chấm tức thì hiếm khi kịp thấy. */
+            /* Chờ chấm/gợi ý. Sư tử 64px đã gỡ (13/08) — trong khung chat hẹp nó
+               là thứ to nhất màn hình chỉ để nói "đợi tí". Còn lại ba chấm gõ
+               phím, đúng ngôn ngữ của một khung tin nhắn. */
             <div className="think-wrap">
-              <Lion mood="think" size={64} decorative />
-              {(q?.kind === "writing" || q?.kind === "speaking" || q?.kind === "nop_bai" ||
-                (q?.kind === "objective" && !q.options && !interactiveShown && !isTrueFalse)) && (
-                <span className="think-label">Đang suy nghĩ<i className="think-dots" aria-hidden /></span>
-              )}
+              <span className="think-label">Đang nghĩ<i className="think-dots" aria-hidden /></span>
             </div>
           )}
         </div>
@@ -2038,7 +2086,6 @@ export default function TutorApp() {
               nguyên tắc "mở ra là học được" — đừng mời gọi rồi từ chối. */}
           {attempts === 0 ? (
             <div className="chat-locked">
-              <Lion mood="point" size={72} decorative />
               <p>
                 Bạn đọc đề và <b>chọn một đáp án</b> trước nhé. Thử xong mình mở
                 chỗ này ra, rồi cùng gỡ.
@@ -2078,11 +2125,20 @@ export default function TutorApp() {
                  Server cũng đã tự chặn (isHelpRequest → 0 điểm). */
               onClick={() => void sendReflect(reflectText.trim() || "Mình chưa biết làm, gợi ý giúp mình với")}
             >
-              💡 Xin gợi ý
+              <Lightbulb aria-hidden strokeWidth={2.25} />
+              Xin gợi ý
             </button>
           </div>
           )}
         </aside>
+
+        {/* Đệm cho footer cố định — nội dung cuối không bao giờ bị che.
+            ĐỨNG SAU CỘT CHAT (13/08). Trước đây nó nằm cuối cột bài học, tức là
+            TRƯỚC khung chat trong dòng chảy màn hẹp — nên băng-rôn "Chưa đúng —
+            thử lại nhé" đè thẳng lên ô nhập cùng hai nút Gửi / Xin gợi ý, cuộn
+            hết trang cũng không moi ra được. Ở màn rộng khung bài học đã đứng
+            yên và tự chừa chỗ cho băng-rôn, nên đệm này ẩn đi (xem globals.css). */}
+        <div className="lesson-pad" aria-hidden />
       </div>
 
       {/* Footer 2 trạng thái (hi-fi): trắng + KIỂM TRA khi đang làm;
@@ -2113,8 +2169,12 @@ export default function TutorApp() {
         <div className="lfoot">
           <div className="lfoot-inner">
             {verdict === "retry" && (
-              <div className="lfoot-says">
-                <Lion mood="thinking" size={48} decorative />
+              /* Sư tử "suy nghĩ" (head-think) ĐÃ VỨT HẲN (chủ dự án 13/08) —
+                 khối cũ cao 216px, hơn một phần tư màn hình chỉ để nói một câu
+                 nhắc. Một dòng icon + chữ là đủ, và khớp luôn với băng-rôn
+                 "Chưa đúng — thử lại nhé" ngay bên dưới. */
+              <div className="lfoot-row">
+                <RefreshCw aria-hidden strokeWidth={2.5} />
                 <b className="lfoot-title">Bổ sung thêm ý rồi nộp lại nhé!</b>
               </div>
             )}
@@ -2176,7 +2236,7 @@ export default function TutorApp() {
           <div className="lfoot-inner">
             <div className="lfoot-row">
               <CheckCircle2 aria-hidden strokeWidth={2.25} />
-              <b className="lfoot-title">Đã gửi — xem nhận xét ở trên</b>
+              <b className="lfoot-title">Đã gửi, xem nhận xét ở trên</b>
             </div>
             <button className="btn btn-block" data-loading={busy || undefined} onClick={advance}>
               {last ? "HOÀN THÀNH" : "TIẾP TỤC"}
@@ -2188,19 +2248,20 @@ export default function TutorApp() {
       {verdict === "retry" && q?.kind !== "nop_bai" && (
         <div className="lfoot" data-verdict="retry" role="status">
           <div className="lfoot-inner">
-            {/* Dạng thao tác không có bong bóng đối thoại → sư tử đứng ngay đây,
-                trên câu nhắc. Lời nhắc CỐ Ý không chỉ ra ý nào sai (không cho
-                đáp án), chỉ đẩy học sinh soát lại. */}
+            {/* Dạng thao tác không có bong bóng đối thoại → sư tử có mặt ngay
+                đây, nhưng là AVATAR TRÒN trên cùng dòng chữ (13/08) chứ không
+                còn đứng riêng một khối cao 216px. Lời nhắc CỐ Ý không chỉ ra ý
+                nào sai (không cho đáp án), chỉ đẩy học sinh soát lại. */}
             {isWidgetAnswer(q) ? (
-              <div className="lfoot-says">
-                <Lion mood="thinking" size={48} decorative />
-                <b className="lfoot-title">Chưa đúng rồi — soát lại từng ý xem sao nhé!</b>
+              <div className="lfoot-row">
+                <RefreshCw aria-hidden strokeWidth={2.5} />
+                <b className="lfoot-title">Chưa đúng rồi, soát lại từng ý xem sao nhé!</b>
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             ) : (
               <div className="lfoot-row">
                 <RefreshCw aria-hidden strokeWidth={2.5} />
-                <b className="lfoot-title">Chưa đúng — thử lại nhé</b>
+                <b className="lfoot-title">Chưa đúng, thử lại nhé</b>
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             )}

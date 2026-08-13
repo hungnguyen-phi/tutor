@@ -7,6 +7,7 @@
 // TutorApp rơi về nút chọn / ô nhập thường (không vỡ gì).
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { MathText } from "../lib/mathrender";
 
 // Cấu trúc do SERVER bóc sẵn (parseInteractive) — client chỉ hiển thị + thu answer.
@@ -68,16 +69,16 @@ export function OrderQuestion({
             onDrop={(e) => { e.preventDefault(); if (dragFrom.current != null) move(dragFrom.current, idx); dragFrom.current = null; }}
           >
             <span className="iq-rank num">{idx + 1}</span>
-            <span className="iq-grip" aria-hidden>⋮⋮</span>
+            <span className="iq-grip" aria-hidden><GripVertical strokeWidth={2} /></span>
             <span className="iq-text"><MathText>{byKey.get(k) ?? k}</MathText></span>
             <span className="iq-moves">
-              <button type="button" className="iq-move" disabled={disabled || idx === 0} onClick={() => move(idx, idx - 1)} aria-label="Đưa lên">▲</button>
-              <button type="button" className="iq-move" disabled={disabled || idx === order.length - 1} onClick={() => move(idx, idx + 1)} aria-label="Đưa xuống">▼</button>
+              <button type="button" className="iq-move" disabled={disabled || idx === 0} onClick={() => move(idx, idx - 1)} aria-label="Đưa lên"><ChevronUp aria-hidden strokeWidth={2.5} /></button>
+              <button type="button" className="iq-move" disabled={disabled || idx === order.length - 1} onClick={() => move(idx, idx + 1)} aria-label="Đưa xuống"><ChevronDown aria-hidden strokeWidth={2.5} /></button>
             </span>
           </li>
         ))}
       </ol>
-      <p className="iq-help">Kéo–thả hoặc dùng ▲▼ để xếp đúng thứ tự.</p>
+      <p className="iq-help">Kéo thả, hoặc dùng hai nút mũi tên để xếp đúng thứ tự.</p>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { boGachNgang } from "./text.ts";
 // CORS dùng chung. MẶC ĐỊNH AN TOÀN-KHÔNG-VỠ: khi CHƯA set ALLOWED_ORIGINS thì
 // PHẢN CHIẾU origin của request (hành vi mở như '*' cũ) → deploy không làm vỡ web
 // prod dù chưa cấu hình secret. Khi ĐÃ set ALLOWED_ORIGINS (secret, các origin
@@ -50,10 +51,30 @@ export function handleOptions(req: Request): Response | null {
   return null;
 }
 
+// ── CẤM GẠCH NGANG, CHẶN Ở ĐƯỜNG RA (chủ dự án 13/08) ───────────────────────
+// "con AI lúc nào cũng trả lời có gạch ngang, cấm hẳn luôn cho tôi."
+// Prompt đã cấm từ 30/07 mà mô hình vẫn viết; hơn 50 câu SOẠN TAY trong
+// `chat-turn` cũng viết theo lối "… nhé — thử mới biết…". Sửa tay từng câu thì
+// câu viết thêm ngày mai lại dính, nên chặn ở đúng CỬA RA của mọi lời nói:
+// hai trường `message` và `feedback` — đó là toàn bộ chữ mà học sinh đọc như
+// lời của sư tử. KHÔNG đụng gì khác: đề bài, phương án, lời giải, dữ liệu bảng
+// đều đi bằng trường khác và có thể chứa dấu trừ thật.
+// (Luồng SSE không qua đây — nó được chặn ở `rehydrate` trong llm.ts.)
+function sachLoiNoi(body: unknown): unknown {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const o = body as Record<string, unknown>;
+  if (typeof o.message !== "string" && typeof o.feedback !== "string") return body;
+  return {
+    ...o,
+    ...(typeof o.message === "string" ? { message: boGachNgang(o.message) } : {}),
+    ...(typeof o.feedback === "string" ? { feedback: boGachNgang(o.feedback) } : {}),
+  };
+}
+
 // `req` là tham số TÙY CHỌN (thêm mới, tương thích ngược với json(body, status)):
 // truyền vào để phản chiếu đúng origin cho request; không truyền → dùng origin app.
 export function json(body: unknown, status = 200, req?: Request): Response {
-  return new Response(JSON.stringify(body), {
+  return new Response(JSON.stringify(sachLoiNoi(body)), {
     status,
     headers: { ...corsHeadersFor(req), "Content-Type": "application/json" },
   });

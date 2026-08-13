@@ -410,19 +410,32 @@ export const answer = (
 /** B0 (29/07) — lượt "KỂ CÁCH EM NGHĨ": gửi suy nghĩ, KHÔNG phải đáp án.
  *  Server không chấm, không ghi lượt thử; chỉ đối thoại (thang Socratic) và
  *  ghi nhớ chất lượng suy nghĩ cho cổng nỗ lực. Cũng là đường của nút Xin gợi ý. */
+/** @param luaChon Đáp án em ĐANG chọn/vừa nộp ở câu này — chỉ là NGỮ CẢNH cho
+ *  sư tử (không chấm, không tính lần thử). Thiếu nó thì lượt xin gợi ý nghe như
+ *  em chưa chọn gì cả, dù em vừa bấm một phương án xong; và server không tra
+ *  được em đang dính BẪY nào nên chỉ hỏi được câu chung chung.
+ *  `raw` = chuỗi máy chấm (đối chiếu distractor), `nhan` = dạng đọc được. */
 export const answerReflect = (
   sessionId: string,
   questionId: string,
   reasoning: string,
+  luaChon?: { raw: string; nhan: string },
   onDelta?: (chunk: string) => void,
-) =>
-  onDelta
-    ? callFnStream<TurnResult>(
-      "chat-turn",
-      { sessionId, action: "answer", questionId, reasoning },
-      onDelta,
-    )
-    : callFn<TurnResult>("chat-turn", { sessionId, action: "answer", questionId, reasoning });
+) => {
+  const raw = luaChon?.raw?.trim() ?? "";
+  const nhan = luaChon?.nhan?.trim() ?? "";
+  const payload = {
+    sessionId,
+    action: "answer",
+    questionId,
+    reasoning,
+    ...(raw ? { daChon: raw } : {}),
+    ...(nhan && nhan !== raw ? { daChonNhan: nhan } : {}),
+  };
+  return onDelta
+    ? callFnStream<TurnResult>("chat-turn", payload, onDelta)
+    : callFn<TurnResult>("chat-turn", payload);
+};
 
 export const writing = (sessionId: string, questionId: string, text: string) =>
   callFn<TurnResult>("chat-turn", { sessionId, action: "writing", questionId, text });

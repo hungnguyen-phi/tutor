@@ -3,13 +3,13 @@
 /**
  * Mục tiêu (hi-fi 4c) — VIEW dùng trong trang MỘT TRANG /learn.
  *
- * Bản desktop full màn (yêu cầu chủ dự án): nền trắng, hero WIG navy nhấn
- * vàng, lớp bên trong navy + vàng. Thêm 2 khối THẬT: "Cách kiếm XP" (bảng
+ * Bản desktop full màn (yêu cầu chủ dự án): nền trắng, hero navy nhấn vàng,
+ * lớp bên trong navy + vàng. Thêm 2 khối THẬT: "Cách kiếm XP" (bảng
  * thưởng G.XP) và "Thang hạng nỗ lực" (G.LEAGUES, vị trí hiện tại của bạn).
  *
  * Nhiệm vụ đo NỖ LỰC, không đo năng lực (PRODUCT.md). Mọi con số tính từ dữ
- * liệu thật đang có (XP, chuỗi ngày, số điểm thành thạo); tên chương + hạn WIG
- * nhận qua props từ TutorApp — server chưa trả hạn thì dòng hạn đổi nội dung
+ * liệu thật đang có (XP, chuỗi ngày, số điểm thành thạo); tên chương + hạn của
+ * mục tiêu nhận qua props từ TutorApp — server chưa trả hạn thì dòng hạn đổi nội dung
  * thật ("mục tiêu học kỳ này"), KHÔNG bịa ngày.
  */
 
@@ -77,7 +77,7 @@ function studiedDaysThisWeek(p: G.Progress): Set<number> {
   return done;
 }
 
-/** Dòng hạn WIG "hạn 20/7 · còn 10 ngày" — tính THẬT từ ISO date server trả. */
+/** Dòng hạn "hạn 20/7 · còn 10 ngày" — tính THẬT từ ISO date server trả. */
 function dueLine(iso: string): string {
   const due = new Date(`${iso.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(due.getTime())) return "mục tiêu học kỳ này";
@@ -194,12 +194,16 @@ export default function QuestsView({
 
   return (
     <div className="ws">
-      {/* HERO = WIG navy nhấn vàng — mục tiêu lớn nhất */}
+      {/* HERO navy nhấn vàng — mục tiêu lớn nhất, NÓI BẰNG TIẾNG CỦA HỌC SINH.
+          Chữ "WIG" (Wildly Important Goal, khung 4DX) đã gỡ 13/08 theo yêu cầu
+          chủ dự án: đó là từ vựng quản trị của nhà trường, một em lớp 10 đọc vào
+          không hiểu và cũng không cần hiểu. Bản thân mục tiêu + thanh tiến độ
+          thì giữ — số vẫn là số thật (điểm kiến thức đã thành thạo). */}
       <header className="ws-hero">
         <div className="ws-hero-text">
           <span className="ws-kicker">
             <Target aria-hidden strokeWidth={2.5} />
-            Mục tiêu lớn · WIG
+            Mục tiêu lớn nhất lúc này
           </span>
           <h1 className="ws-title">{wigName}</h1>
           <p className="ws-lead">

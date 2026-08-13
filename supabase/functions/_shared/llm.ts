@@ -4,6 +4,7 @@
  * The ONLY place a provider/key is used in the edge runtime.
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { boGachDai } from "./text.ts";
 
 type Tier = "cheap" | "default" | "strong" | "vision";
 
@@ -127,7 +128,13 @@ export function rehydrate(text: string, map: Record<string, string>): string {
   // trong mã, nhưng MÔ HÌNH vẫn có thể tự viết ra — nên chặn ở đây, chỗ MỌI lời
   // do AI sinh đều đi qua trước khi tới mắt học sinh. Chặn bằng lời dặn trong
   // prompt thì vừa tốn token vừa không chắc; đổi ký tự thì chắc và miễn phí.
-  return out.replace(/[«»]/g, '"');
+  //
+  // GẠCH DÀI cũng vậy (13/08) — cùng lý do, cùng chỗ chặn. Ở đây dùng bản NHẸ
+  // (`boGachDai`, chỉ — và –) chứ không phải `boGachNgang`: hàm này còn chạy
+  // trên TỪNG MẨU chữ của luồng SSE, mà mẩu rời thì cắt ngang được một công
+  // thức $…$, nên luật gạch nối ASCII của bản đầy đủ sẽ đụng nhầm dấu trừ.
+  // Bản đầy đủ áp ở đường ra chuỗi hoàn chỉnh — xem `json()` trong cors.ts.
+  return boGachDai(out.replace(/[«»]/g, '"'));
 }
 
 export interface LlmCallArgs {

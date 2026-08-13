@@ -29,7 +29,7 @@ fs.writeFileSync(
   path.join(OUT, "mathtex.mjs"),
   ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText,
 );
-const { segmentMath, normalizeTex } = await import(pathToFileURL(path.join(OUT, "mathtex.mjs")).href);
+const { segmentMath, normalizeTex, capitalizeLead } = await import(pathToFileURL(path.join(OUT, "mathtex.mjs")).href);
 
 let dat = 0, truot = 0;
 const tc = (ten, thay, mong) => {
@@ -73,6 +73,20 @@ tc("chữ thường — nguyên văn", ghep(segmentMath("Hôm nay trời mưa"))
 tc("căn thức vẫn chạy", normalizeTex("√(x+1)"), "\\sqrt{x+1}");
 tc("tiếng Việt có dấu KHÔNG bị nhận nhầm",
   segmentMath("Mệnh đề đúng").every((s) => s.t === "text"), true);
+
+// CAP KHONG DUOC DOI TEN LENH LaTeX (bat tren production 13/08).
+// O dap an goi <MathText cap>, in ra nguyen ma "\\Overline{P}".
+// Du lieu DUNG (\\overline). Thu pham la capitalizeLead: no viet hoa
+// "chu cai dau tien cua chuoi", ma chu do nam TRONG ten lenh -> KaTeX khong
+// biet lenh do -> bo cuoc, nha ma tho ra man hinh. Chat thoat vi khong co cap.
+console.log("\n── capitalizeLead không được đụng lệnh LaTeX ──");
+tc("overline giữ nguyên chữ thường",
+  capitalizeLead("\\overline{P} (hoặc ¬P)"), "\\overline{P} (hoặc ¬P)");
+tc("sqrt giữ nguyên", capitalizeLead("\\sqrt{2} là số vô tỉ"), "\\sqrt{2} là số vô tỉ");
+tc("frac giữ nguyên", capitalizeLead("\\frac{1}{2} của số đó"), "\\frac{1}{2} của số đó");
+tc("câu chữ thường VẪN được viết hoa (không siết nhầm)",
+  capitalizeLead("hôm nay trời mưa"), "Hôm nay trời mưa");
+tc("câu đã hoa thì giữ nguyên", capitalizeLead("Hôm nay trời mưa"), "Hôm nay trời mưa");
 
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);

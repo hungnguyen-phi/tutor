@@ -17,7 +17,7 @@ const FEATURES = [
     Icon: Target,
     hue: "ok",
     t: "Mục tiêu lớn (4DX)",
-    d: "Bảng điểm tuần theo WIG, xếp hạng theo nỗ lực chứ không theo điểm.",
+    d: "Bảng tuần của lớp, xếp hạng theo nỗ lực chứ không theo điểm số.",
   },
   {
     Icon: Handshake,
