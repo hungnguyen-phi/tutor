@@ -311,15 +311,30 @@ async function callFnStream<T>(
       code: SESSION_EXPIRED,
     });
   }
-  const res = await fetch(`${FUNCTIONS_BASE}/${fn}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ ...(body as Record<string, unknown>), stream: true }),
-  });
+  const goi = (t: string) =>
+    fetch(`${FUNCTIONS_BASE}/${fn}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${t}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ ...(body as Record<string, unknown>), stream: true }),
+    });
+
+  let res = await goi(token);
+  // ĐƯỜNG HỒI PHỤC — GIỐNG HỆT `callFn` (vá 14/08). Trước đây nhánh phát chữ
+  // dần gọi ĐÚNG MỘT PHÁT rồi thôi: server trả 401 là em bị ném thẳng ra màn
+  // "Phiên đăng nhập đã hết hạn", dù refresh token thường vẫn còn sống. Mà đây
+  // lại đúng là đường màn HỌC đi (nộp đáp án, nói chuyện với sư tử) — nên chỗ
+  // duy nhất chưa có lưới lại chính là chỗ em ngồi lâu nhất. Chủ dự án dính:
+  // "tôi đang học dở thì bị văng?". Thử làm mới ĐÚNG MỘT LẦN rồi gọi lại, im
+  // lặng. Chỉ khi lần này cũng 401 mới thật sự là hết phiên.
+  if (res.status === 401) {
+    const { data: moi } = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
+    const tokenMoi = moi.session?.access_token;
+    if (tokenMoi && tokenMoi !== token) res = await goi(tokenMoi);
+  }
   const ctype = res.headers.get("Content-Type") ?? "";
   // Server trả JSON (bản function cũ chưa biết phát dần, hoặc lượt này không có
   // gì để phát, hoặc lỗi) → ĐỌC CHÍNH PHẢN HỒI NÀY.
