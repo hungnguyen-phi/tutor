@@ -109,37 +109,12 @@ Deno.serve(async (req: Request) => {
       .filter((q) => !isHidden(overrides.get(q.id)))
       .map((q) => applyQuestionEdit(q, overrides.get(q.id)));
 
-    // ── BẬC THANG ĐỘ KHÓ, KHÔNG PHẢI VÁCH ĐỨNG (viết lại 14/08) ────────────
-    // Nền: query xếp `tier ASC, dok ASC` nên câu khó luôn nằm CUỐI. Node chỉ
-    // xanh khi làm đúng một câu DOK≥3, buổi học 8 câu mà gần như không ai đi
-    // hết -> đo trên prod: 82 lượt DOK-1, 24 lượt DOK-2, ĐÚNG 5 lượt DOK-3.
-    // Node không bao giờ xanh, lộ trình đứng ở 0%.
-    //
-    // Bản vá 13/08 nhấc câu DOK≥3 đầu tiên lên vị trí 3. Chạm được mastery,
-    // nhưng đẻ ra một vách: dễ, dễ, KHÓ NHẤT, rồi tụt về trung bình. Chủ dự án
-    // hỏi đúng chỗ đó ("bài học có sắp xếp đúng thứ tự chưa").
-    //
-    // Nay XOAY VÒNG theo DOK: mỗi vòng lấy một câu ở từng bậc 1→2→3→4. Buổi học
-    // thành nhiều nhịp lên dốc thật (nhớ lại → hiểu → vận dụng), câu vận dụng
-    // đầu tiên rơi vào vị trí 3 SAU một câu DOK-2 chứ không sau hai câu DOK-1.
-    // Vẫn TẤT ĐỊNH (thứ tự trong từng bậc giữ nguyên `question_key`) nên em
-    // thoát ra vào lại vẫn đúng chỗ đang dở — lý do cả khối này xếp cố định.
-    const theoDok = new Map<number, typeof served>();
-    for (const q of served) {
-      const d = Number(q.dok) || 1;
-      (theoDok.get(d) ?? theoDok.set(d, []).get(d)!).push(q);
-    }
-    const bac = [...theoDok.keys()].sort((a, b) => a - b);
-    if (bac.length > 1) {
-      const xoay: typeof served = [];
-      for (let v = 0; xoay.length < served.length; v++) {
-        for (const d of bac) {
-          const q = theoDok.get(d)![v];
-          if (q) xoay.push(q);
-        }
-      }
-      served = xoay;
-    }
+    // KHÔNG XÁO THỨ TỰ CÂU (chốt 14/08). Hai bản vá 13-14/08 từng chen câu
+    // DOK≥3 lên sớm để node chạm được mastery — chủ dự án bác: "không được phá
+    // vòng sư phạm, không tự kiếm bài khó hơn để nâng". Thứ tự `tier ASC,
+    // dok ASC` là bậc thang do người soạn đặt; muốn học sinh tới được câu khó
+    // thì sửa ở chỗ khác (số câu mỗi buổi, cách tính mastery), KHÔNG phải bằng
+    // cách trộn lại đề ngay trước mắt em. Đừng dựng lại vòng xoay ấy.
 
     // LÀM LẠI ĐÚNG CÂU BỊ TRẢ: câu được yêu cầu nhảy lên đầu danh sách phục vụ.
     // Chỉ nhận id có thật trong danh sách vừa lọc (đã qua kiểm version + overlay
