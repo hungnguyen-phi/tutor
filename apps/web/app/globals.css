@@ -6265,12 +6265,14 @@ html[data-motion="reduce"] .spin {
   overflow-y: hidden;
 }
 .qcard-text {
+  white-space: pre-line; /* dau xuong dong that -> moi y mot dong (xem xuongDongTungY) */
   font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--ink-2);
 }
 /* Đề MCQ (chữ cái): to hơn đáp án một chút, đậm vừa — đề nổi trên, đáp án nhỏ dưới. */
 .qcard-stem {
+  white-space: pre-line; /* dau xuong dong that -> moi y mot dong (xem xuongDongTungY) */
   font-size: 1.1875rem;
   line-height: 1.45;
   font-weight: 600;

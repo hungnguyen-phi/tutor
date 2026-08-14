@@ -1743,7 +1743,7 @@ export default function TutorApp() {
                   BỎ: KaTeX lo phần công thức, còn câu tiếng Việt in nghiêng
                   suốt dòng thì rất khó đọc. */}
               {letterMCQ ? (
-                <div className="qcard-stem"><MathText block cap>{letterMCQ.stem}</MathText></div>
+                <div className="qcard-stem"><MathText block cap>{xuongDongTungY(letterMCQ.stem)}</MathText></div>
               ) : quoteParsed ? (
                 /* Đề có LỜI TRÍCH ('bạn ấy nói/viết…') → lời trích đứng thẻ
                    riêng, đề bao quanh — em phân biệt được ĐÂU là lời cần soi
@@ -1762,7 +1762,7 @@ export default function TutorApp() {
               ) : mathy(q.prompt) ? (
                 <div className="qcard-expr"><MathText block cap>{q.prompt}</MathText></div>
               ) : (
-                <div className="qcard-text"><MathText block cap>{q.prompt}</MathText></div>
+                <div className="qcard-text"><MathText block cap>{xuongDongTungY(q.prompt)}</MathText></div>
               )}
             </div>
           ) : null}
@@ -2287,6 +2287,30 @@ export default function TutorApp() {
 // Render toán chuyển hẳn sang KaTeX qua <MathText> (lib/mathrender) — chuẩn cho
 // học sinh, thay bộ "làm đẹp" inline cũ. Đây chỉ còn cờ nhận biết đề có chất toán
 // để chọn kiểu chữ serif.
+
+/**
+ * ĐỀ LIỆT KÊ "(1)… (2)… (3)…" → MỖI Ý MỘT DÒNG (14/08).
+ *
+ * Chủ dự án: "nó không chịu để format ra cho đẹp nhỉ, mỗi câu 1 dòng không đẹp
+ * hơn à?". Đề kiểu "Trong các câu sau, có bao nhiêu câu KHÔNG phải mệnh đề?
+ * (1) 2+2=5 (2) Mấy giờ rồi? (3) Số π là số vô tỉ…" nằm nguyên một khối chữ,
+ * em phải tự dò xem ý nào tới ý nào — mà đây đúng là loại câu đòi soi từng ý.
+ *
+ * Chỉ đụng CÁCH HIỂN THỊ, KHÔNG sửa dữ liệu: chèn dấu xuống dòng trước mỗi
+ * nhãn "(k)". Đòi có TỪ HAI nhãn trở lên và chúng phải chạy đúng thứ tự 1,2,3…
+ * — để một câu lỡ có "(2)" giữa dòng (chú thích, số mũ) không bị bẻ oan.
+ */
+function xuongDongTungY(de: string): string {
+  const nhan = [...de.matchAll(/\((\d{1,2})\)/g)];
+  if (nhan.length < 2) return de;
+  if (nhan.some((m, i) => Number(m[1]) !== i + 1)) return de;
+  // Ngắt trước MỌI nhãn, kể cả "(1)" — nó thường dính đuôi câu dẫn ("…mệnh đề?
+  // (1) 2+2=5"). Chỉ bỏ qua nhãn nằm ngay đầu chuỗi, kẻo đẻ ra một dòng trống.
+  return nhan.filter((m) => de.slice(0, m.index!).trim() !== "").reduceRight(
+    (t, m) => t.slice(0, m.index!).replace(/\s+$/, "") + "\n" + t.slice(m.index!),
+    de,
+  );
+}
 
 /** Eyebrow trên thẻ câu hỏi — lệnh làm bài theo dạng câu (hi-fi 3b). */
 function kindEyebrow(q: DiagnoseQuestion): string {
