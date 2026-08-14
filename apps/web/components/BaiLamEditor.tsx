@@ -207,9 +207,6 @@ export default function BaiLamEditor({
           <Sigma aria-hidden strokeWidth={2.25} />
           {dangSua !== null ? "Đóng bảng công thức" : "Chèn công thức"}
         </button>
-        <span className="muted ble-tip">
-          Bấm vào hình công thức muốn dùng — không cần nhớ cú pháp gì cả.
-        </span>
       </div>
 
       {dangSua !== null && (

@@ -1930,7 +1930,7 @@ export default function TutorApp() {
             disabled={busy}
           />
           <div className="submit-row">
-            <label className="submit-attach">
+            <label className="submit-attach" data-locked>
               <input
                 className="sr-only"
                 type="file"
@@ -1940,7 +1940,10 @@ export default function TutorApp() {
                 accept="image/*,.docx,.txt"
                 /* Điện thoại: mở thẳng camera sau thay vì thư viện ảnh. */
                 capture="environment"
-                disabled={busy}
+                /* KHOA (14/08, chu du an): server chua doc duoc anh/tep nen
+                   nhan vao la hua suong. Khoa han thay vi de bam roi bao hong
+                   o buoc sau. KHONG kem ghi chu giai thich - chu du an chot vay. */
+                disabled
                 onChange={(e) => {
                   setWorkFile(e.target.files?.[0] ?? null);
                   setError(null);
@@ -1953,12 +1956,6 @@ export default function TutorApp() {
                   : "Nộp ảnh bài viết tay hoặc tệp Word"}
               </span>
             </label>
-            {/* Đ1 — chụp thẳng bằng camera máy. Ô "chọn tệp" chỉ tiện trên điện
-                thoại; em học bằng máy của trường thì không có đường nào đưa bài
-                giấy lên. Cùng khối với kho báu (CameraShot). */}
-            {!workFile && (
-              <CameraShot disabled={busy} onCapture={setWorkFile} onError={setError} label="Chụp bài bằng camera" />
-            )}
             {workFile && (
               <button type="button" className="submit-unattach" onClick={() => setWorkFile(null)} aria-label="Gỡ tệp">
                 <X aria-hidden strokeWidth={2.5} />

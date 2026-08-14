@@ -12748,6 +12748,12 @@ body:has(.lfoot-says) { --lfoot-h: 216px; }
    Chi go dung cap ke nhau nay; moi cho khac giu nguyen cach cuoi mep. */
 .lesson-kind + .dang-tl { margin-top: 18px; }
 
+
+/* O NOP TEP DANG KHOA (14/08): server chua doc duoc anh/tep. Khoa han - chim,
+   khong bat con tro, khong bam duoc. Khong kem ghi chu giai thich (chu du an
+   chot vay), nen cai duy nhat noi ra trang thai la chinh dang ve cua no. */
+.submit-attach[data-locked] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
    Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,
    hoàng hôn ánh hồng, đêm sao ánh trăng bạc. */
