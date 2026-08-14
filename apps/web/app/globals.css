@@ -12739,6 +12739,15 @@ body:has(.lfoot-says) { --lfoot-h: 216px; }
 }
 .skip-link:focus-visible { top: 12px; }
 
+
+/* VIEN THUOC "Bai tu luan..." DE LEN DONG NHAC (va 14/08).
+   `.lesson-kind` co `margin-bottom: -11px` la CO Y: vien thuoc navy cuoi len
+   mep tren THE DE. Nhung o cau tu luan, thu dung ngay sau no khong phai the de
+   ma la dong nhac dinh dang (`.dang-tl`) - va dong nay con keo len them 2px.
+   Hai luc keo cong lai nen hai dong chu chong len nhau, doc khong ra.
+   Chi go dung cap ke nhau nay; moi cho khac giu nguyen cach cuoi mep. */
+.lesson-kind + .dang-tl { margin-top: 18px; }
+
 /* Quầng nắng vàng ôm chân vũng sáng — nối trang sách với mặt đất của tranh.
    Màu ánh lấy từ MẶT TRỜI của thế giới (--scene-orb-glow): thảo nguyên ánh vàng,
    hoàng hôn ánh hồng, đêm sao ánh trăng bạc. */
