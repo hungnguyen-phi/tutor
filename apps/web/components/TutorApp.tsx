@@ -43,6 +43,14 @@ import { usePresence, PRESENCE_ENABLED } from "../lib/presence";
 import LearnAside from "./LearnAside";
 import BaiLamEditor from "./BaiLamEditor";
 import { useRotation, pickGreeting } from "../lib/nudges";
+import {
+  docPhienDo,
+  luuPhienDo,
+  xoaPhienDo,
+  dongGoi,
+  cauDangLam,
+  type PhienDo,
+} from "../lib/phien-do";
 import { MathText } from "../lib/mathrender";
 import "katex/dist/katex.min.css";
 import {
@@ -121,6 +129,10 @@ type Msg =
   | { role: "gate"; text: string }
   | { role: "hint"; text: string }
   | { role: "feedback"; text: string };
+
+/** Vai hợp lệ của một lời — cửa lọc khi dựng lại hội thoại từ gói ở máy
+ *  (localStorage là thứ sửa được, và bản app cũ cũng ghi vào cùng khoá). */
+const VAI_LOI: string[] = ["student", "tutor", "gate", "hint", "feedback"];
 
 // "submitted": đã NỘP BÀI làm ngoài — chưa chấm, nhưng được đi tiếp ngay.
 type Verdict = "ok" | "retry" | "done" | "submitted" | null;
@@ -207,6 +219,9 @@ export default function TutorApp() {
   const [expired, setExpired] = useState(false);
   /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
   const [dangNoiLai, datDangNoiLai] = useState(false);
+  /** BUỔI HỌC DỞ tìm thấy ở máy (xem lib/phien-do) — nuôi thẻ "Học tiếp" trên
+   *  lộ trình. null = không có gì để nối lại. */
+  const [phienDo, setPhienDo] = useState<PhienDo | null>(null);
 
   /** Khung tin nhắn — để LĂN XUỐNG ĐÁY khi có lời mới. Từ 13/08 khung chat có
    *  chiều cao cố định và tự cuộn BÊN TRONG (xem `.lsn-chat .thread`), nên lời
@@ -384,6 +399,80 @@ export default function TutorApp() {
   // Câu đã từng trả lời sai trong buổi → đếm "chính xác x/y" + link ôn lại.
   const wrongRef = useRef<Set<string>>(new Set());
 
+  // ── BUỔI HỌC DỞ — giữ ở máy để văng rồi còn nhặt lại (nợ 14/08) ──────────
+  // Trước bản vá này, cả buổi học chỉ sống trong state React: hết phiên, tải
+  // lại trang, hay iOS thu hồi tab là em rơi về lộ trình và làm lại từ câu 1.
+  // Em gõ chữ thì `luuNhap` còn giữ được bài; em làm TRẮC NGHIỆM thì chẳng giữ
+  // được gì — mà đó là phần lớn ngân hàng câu hỏi. Chi tiết ở lib/phien-do.
+  const uid = session?.user?.id;
+  /** Gói đã dựng nhưng CHƯA kịp ghi (đang trong nhịp hoãn) — giữ ở ref để xả
+   *  được lúc rời trang. */
+  const goiChoGhiRef = useRef<PhienDo | null>(null);
+  useEffect(() => {
+    if (!uid) return;
+    // KHÔNG ghi đè khi không có buổi / buổi đã đóng. Việc XOÁ do đúng đường kết
+    // thúc buổi lo (`next`), không phải effect này: ses null một nhịp giữa hai
+    // lần commit mà gói bay mất thì hỏng đúng lúc cần nó nhất.
+    if (!ses || finished) return;
+    const goi = dongGoi({
+      subject,
+      ses,
+      qi,
+      earned,
+      sai: [...wrongRef.current],
+      tiem: injectedStack,
+      nhanTiem: remediateLabel,
+      loi: msgs,
+      batDauLuc: startedAtRef.current,
+      now: Date.now(),
+    });
+    goiChoGhiRef.current = goi;
+    // HOÃN 400ms. Lời sư tử phát theo TỪNG MẨU CHỮ, mỗi mẩu là một `setMsgs`:
+    // ghi thẳng ở đây là hàng trăm lượt `localStorage.setItem` (lệnh ĐỒNG BỘ,
+    // chặn luồng chính) trong đúng lúc chữ đang chạy trên màn hình em. Hoãn thì
+    // cả tràng chỉ tốn MỘT lần ghi, mà cửa sổ mất mát chỉ là 400ms cuối.
+    const t = window.setTimeout(() => {
+      luuPhienDo(uid, goi);
+      goiChoGhiRef.current = null;
+    }, 400);
+    return () => window.clearTimeout(t);
+    // `wrongRef` là ref nên không tự kích hoạt effect — nhưng mỗi lần trả lời
+    // sai đều kèm một lời mới vào `msgs`, nên nó vẫn được ghi cùng nhịp.
+  }, [uid, ses, qi, earned, msgs, injectedStack, remediateLabel, finished, subject]);
+
+  /** Ghi NGAY phần đang treo. Gọi trước mọi lúc sắp mất quyền chạy, và trước
+   *  khi ĐỌC lại gói (đọc mà chưa xả thì thấy bản cũ hơn 400ms — hoặc không
+   *  thấy gì, nếu buổi vừa mở chưa kịp ghi lần đầu). */
+  const xaGoiChoGhi = useCallback(() => {
+    const g = goiChoGhiRef.current;
+    if (!g || !uid) return;
+    goiChoGhiRef.current = null;
+    luuPhienDo(uid, g);
+  }, [uid]);
+
+  // XẢ NỐT trước khi mất quyền chạy. `visibilitychange`→hidden là tín hiệu duy
+  // nhất còn đáng tin trên iOS (nó giết tab nền không báo trước, `beforeunload`
+  // thường không bao giờ nổ) — mà tab bị giết giữa buổi chính là ca ta đang cứu.
+  useEffect(() => {
+    const khiAn = () => {
+      if (document.visibilityState === "hidden") xaGoiChoGhi();
+    };
+    document.addEventListener("visibilitychange", khiAn);
+    window.addEventListener("pagehide", xaGoiChoGhi);
+    return () => {
+      document.removeEventListener("visibilitychange", khiAn);
+      window.removeEventListener("pagehide", xaGoiChoGhi);
+      xaGoiChoGhi();
+    };
+  }, [xaGoiChoGhi]);
+
+  // Mở app: có buổi dở còn hạn → lộ trình mời "Học tiếp". CỐ Ý không tự nhảy
+  // vào bài: mở app lên mà bị ném thẳng vào một câu hỏi là mất phương hướng,
+  // nhất là khi em vừa bị văng và chưa hiểu chuyện gì xảy ra. Để em bấm.
+  useEffect(() => {
+    setPhienDo(uid ? docPhienDo(uid) : null);
+  }, [uid]);
+
   useEffect(() => {
     setProgress(G.load());
     setMastered(G.loadMastered());
@@ -408,7 +497,8 @@ export default function TutorApp() {
   // ── Lộ trình từ server (KG v2.2) ──────────────────────────────────────
   // Function `learning-path` có thể CHƯA deploy. Mọi lỗi — mạng, 404, dữ liệu
   // sai dạng — đều rơi về null, không hiện lỗi: app phải chạy như cũ.
-  const uid = session?.user?.id;
+  // (`uid` khai báo ở khối "buổi học dở" phía trên — PHẢI đứng trước mọi effect
+  //  dùng nó trong mảng deps, kẻo chạm vùng chết TDZ ngay lúc render.)
 
   // ── HỌC CÙNG NHAU (presence) ──────────────────────────────────────────────
   // Đọc lại opt-in mỗi lần đổi view (bật/tắt ở Cài đặt xong quay lại thấy ngay).
@@ -606,6 +696,10 @@ export default function TutorApp() {
       advancePlanRef.current = null;
       detourRepsRef.current = 0;
       resetQuestion();
+      // Buổi mới thay chỗ buổi dở cũ: thẻ "Học tiếp" phải tắt NGAY, và effect
+      // lưu ở trên sẽ ghi đè gói bằng buổi này. Em bấm một bài khác thay vì
+      // nhận lời mời — đó cũng là một cách trả lời, tôn trọng nó.
+      setPhienDo(null);
       // Mốc đo thật cho màn hoàn thành: thời gian buổi + những câu từng sai.
       startedAtRef.current = Date.now();
       setElapsedSec(null);
@@ -623,6 +717,54 @@ export default function TutorApp() {
       { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
     } finally {
       setBusy(false);
+    }
+  }
+
+  /**
+   * NỐI LẠI BUỔI DỞ — dựng lại buổi học từ gói ở máy, KHÔNG gọi `diagnose`.
+   *
+   * Không gọi diagnose là chủ ý: mở buổi mới sẽ bỏ hoang hàng `learning_sessions`
+   * cũ (không bao giờ được đóng, mastery của nó không bao giờ được tính lại) và
+   * cắt buổi của em làm đôi trong dữ liệu. Giữ nguyên `sessionId` thì mọi bằng
+   * chứng vẫn thuộc một buổi, và câu em thấy y hệt câu em đang làm dở.
+   *
+   * Làm lại đúng câu vừa làm không đẻ ra bằng chứng/XP thứ hai — server chốt
+   * bằng UNIQUE(session_id, question_id) và đếm số lần thử từ bảng `attempts`,
+   * không tin `attempts` của client (nên đặt lại về 0 ở đây là vô hại).
+   */
+  function hocTiep() {
+    const p = phienDo;
+    if (!p || busy) return;
+    setError(null);
+    setFinished(null);
+    if (p.subject !== subject && SUBJECTS.some((s) => s.key === p.subject)) {
+      setSubject(p.subject as Subject);
+    }
+    setSes(p.ses);
+    setQi(p.qi);
+    setEarned(p.earned);
+    setInjectedStack(p.tiem);
+    setRemediateLabel(p.nhanTiem);
+    advancePlanRef.current = null;
+    detourRepsRef.current = 0;
+    // Reset MỀM: làm sạch ô trả lời + kết quả, nhưng GIỮ mạch hội thoại — bản
+    // đồ để em nhớ mình đang nói tới đâu với sư tử. (`resetQuestion` xoá msgs.)
+    softResetForNewQuestion();
+    setMsgs(p.loi.filter((m): m is Msg => VAI_LOI.includes(m.role)));
+    wrongRef.current = new Set(p.sai);
+    // Đồng hồ buổi học LÙI LẠI đúng phần đã học, không tính quãng em offline:
+    // nối lại sau một đêm mà màn hoàn thành khoe "9 tiếng 12 phút" thì con số
+    // đó thành trò cười. Cũng nhờ vậy nhắc-nghỉ-25' tính theo giờ học thật.
+    startedAtRef.current = Date.now() - p.daHocMs;
+    setElapsedSec(null);
+    setBreakNudge(false);
+    setPhienDo(null);
+    const { next: tienDo, streakGrew } = G.recordStudyDay(G.load());
+    G.save(tienDo);
+    setProgress(tienDo);
+    if (streakGrew) {
+      setBump(true);
+      window.setTimeout(() => setBump(false), 700);
     }
   }
 
@@ -1025,6 +1167,15 @@ export default function TutorApp() {
         startedAtRef.current ? Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)) : null,
       );
       setFinished(r);
+      // Buổi đã ĐÓNG trên server → gói nối lại phải biến mất. Còn để lại là
+      // lần sau mở app em được mời "học tiếp" một buổi đã học xong: bấm vào chỉ
+      // gặp lại câu cuối và một màn hoàn thành thứ hai.
+      // PHẢI dọn cả gói đang chờ ghi: em bấm "Tiếp tục" trong vòng 400ms sau
+      // câu cuối thì nhịp hoãn vẫn còn treo một bản — không dọn thì lúc rời
+      // trang nó ghi lại, làm buổi vừa xong SỐNG DẬY.
+      goiChoGhiRef.current = null;
+      if (uid) xoaPhienDo(uid);
+      setPhienDo(null);
       setPathVersion((v) => v + 1); // mastery vừa đổi — nạp lại lộ trình server
     } catch (e) {
       { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
@@ -1034,6 +1185,11 @@ export default function TutorApp() {
   }
 
   function backToPath() {
+    // THOÁT GIỮA CHỪNG cũng là một buổi dở: thẻ "Học tiếp" hiện lại ngay để em
+    // quay vào đúng chỗ, thay vì phải nhớ mình đang làm bài nào tới câu mấy.
+    // (Sau khi HỌC XONG thì `next` đã xoá gói — đọc lại chỉ ra null.)
+    xaGoiChoGhi(); // mở bài rồi bấm X trong 400ms: chưa xả thì đọc ra rỗng
+    setPhienDo(uid ? docPhienDo(uid) : null);
     setSes(null);
     setFinished(null);
     setInjectedStack([]);
@@ -1091,12 +1247,13 @@ export default function TutorApp() {
           <Lion mood="thinking" size={72} decorative />
           <h2 className="ws-panel-title">Phiên đăng nhập đã hết hạn</h2>
           {/* Câu này TRƯỚC ĐÂY LÀ NÓI DỐI: không có gì được lưu, bấm nút là
-              signOut + chuyển trang và bài em vừa gõ bay sạch. Nay bài gõ dở
-              được giữ trong localStorage theo từng câu (xem `luuNhap`), nên
-              câu hứa mới đúng — và chỉ hứa đúng phần giữ được. */}
+              signOut + chuyển trang và bài em vừa gõ bay sạch. Rồi nó đúng một
+              nửa: `luuNhap` giữ chữ em GÕ, nhưng em làm trắc nghiệm thì mất cả
+              buổi. Nay cả buổi được đóng gói (xem lib/phien-do) nên hứa được
+              nguyên câu — và vẫn chỉ hứa đúng phần giữ được. */}
           <p className="muted">
-            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Bài em đang gõ dở đã được
-            giữ lại — đăng nhập lại là thấy nguyên.
+            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Buổi học đang dở đã được
+            giữ lại — đăng nhập lại là học tiếp đúng chỗ cũ.
           </p>
           <button
             className="btn btn-gold"
@@ -1275,6 +1432,27 @@ export default function TutorApp() {
     // Tên hiển thị: override cục bộ (Cài đặt) thắng tên server
     const firstName = Prefs.displayNameOf(profile?.full_name)?.split(/\s+/).pop();
 
+    // ── Lời mời nối lại buổi dở ─────────────────────────────────────────────
+    // Phải nói ĐÚNG chỗ em đang đứng, nếu không thẻ chỉ là một nút mơ hồ. Tên
+    // bài chỉ tra được khi buổi dở CÙNG MÔN với lộ trình đang mở (serverPath là
+    // của môn hiện tại); khác môn thì nêu tên môn — vẫn đủ để em nhận ra.
+    const monPhienDo = phienDo ? SUBJECTS.find((s) => s.key === phienDo.subject) : null;
+    const tenBaiPhienDo =
+      phienDo && phienDo.subject === subject
+        ? (serverPath?.find(
+            (n) => n.key === (cauDangLam(phienDo)?.nodeKey ?? phienDo.ses.node),
+          )?.label ?? null)
+        : null;
+    const moTaPhienDo = phienDo
+      ? [
+          tenBaiPhienDo ?? monPhienDo?.unit ?? null,
+          `câu ${phienDo.qi + 1}/${phienDo.ses.questions.length}`,
+          phienDo.earned > 0 ? `+${phienDo.earned} XP đã kiếm` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
+
     // Tab khác Học: cùng AppShell, view đổi tại chỗ — "ấn cái là đến".
     // Cài đặt không có tab riêng — rail giữ đèn ở "Tôi" (cửa vào của nó).
     if (view !== "learn") {
@@ -1376,6 +1554,30 @@ export default function TutorApp() {
                 <AlertTriangle aria-hidden strokeWidth={2} />
                 <span>{error}</span>
               </div>
+            )}
+
+            {/* BUỔI HỌC DỞ — mời quay lại đúng chỗ đã dừng (nợ 14/08).
+                MỘT vật thể bấm được cả thẻ, không phải thẻ + nút rời. KHÔNG có
+                nút "bỏ": bấm bất kỳ bài nào trên lộ trình là gói tự bị thay
+                (xem `start`), nên em không bao giờ kẹt với lời mời này — không
+                cần bắt em từ chối ra mặt. */}
+            {phienDo && (
+              <button
+                type="button"
+                className="tiep-do"
+                onClick={hocTiep}
+                disabled={busy}
+                aria-label={`Học tiếp buổi đang dở — ${moTaPhienDo}`}
+              >
+                <span className="tiep-do-icon" aria-hidden>
+                  <RefreshCw strokeWidth={2} />
+                </span>
+                <span className="tiep-do-body">
+                  <b className="tiep-do-title">Học tiếp buổi đang dở</b>
+                  <span className="tiep-do-sub">{moTaPhienDo}</span>
+                </span>
+                <ArrowRight className="tiep-do-go" aria-hidden strokeWidth={2} />
+              </button>
             )}
 
             <LearningPath
