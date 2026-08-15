@@ -1,7 +1,58 @@
 # BÀN GIAO TRẠNG THÁI DỰ ÁN — AI Personal Tutor Trường Việt Anh
-*(File tri thức để tiếp tục ở phiên/nick khác · cập nhật 2026-07-24)*
+*(File tri thức để tiếp tục ở phiên/nick khác · cập nhật **2026-08-15**)*
 
 > Đọc file này là nắm trọn: kiến trúc, hạ tầng, khoá quan trọng, đã làm gì, đang chờ gì, ràng buộc vận hành. Các file chi tiết đều nằm trong `docs/`.
+
+---
+
+## 0. PHIÊN GẦN NHẤT — 13–14/08: vá lỗi luồng học + giao diện
+
+**Đã deploy đủ ba vế** (web `9ec61a4` · `chat-turn` · `diagnose`). Web đi qua
+`git push origin HEAD:main` → Coolify ~2–4 phút. **Kiểm bằng hard-reload
+(Ctrl+Shift+R)** — tải lại thường ra bundle cũ, đã dính hai lần.
+
+**Đã sửa (~27 lỗi).** Đáng nhớ vì đều là *code tự làm hỏng, không phải dữ liệu sai*:
+- `capitalizeLead` viết hoa chữ nằm TRONG tên lệnh LaTeX → `\overline` thành
+  `\Overline` → KaTeX nhả mã thô ra ô đáp án.
+- Luật chặn iOS tự phóng to viết bằng `:where()` nên độ đặc hiệu 0 — thua mọi
+  tên lớp; đúng một ô nhập (`.reflect-input`) lọt lưới.
+- `callFnStream` thiếu lưới hồi phục 401 mà `callFn` đã có từ lâu → **chỗ duy
+  nhất chưa có lưới lại là đường màn Học đi** ("đang học dở thì bị văng").
+- `pathVersion` chỉ tăng khi học HẾT buổi → thoát giữa chừng thì lộ trình đứng im.
+- Chấm tự luận lấy `so_y_can` từ ĐÁP ÁN MẪU (luôn đầy đủ hơn đề đòi) → em làm
+  đúng yêu cầu vẫn trượt. Nay thước đo là ĐỀ BÀI.
+- Giao diện: gỡ WIG khỏi app học sinh, nền trời cho 4 tab ngoài Học, Kho báu bỏ
+  5 dải màu bão hoà, cấm gạch ngang trong lời AI, khung chat cao cố định,
+  vùng chạm 44px, đề liệt kê `(1)…(5)` xuống dòng từng ý.
+
+**HAI BÀI HỌC — đọc trước khi sửa tiếp:**
+1. **ĐO, ĐỪNG SUY DIỄN.** Tôi kết luận sai **ba lần liên tiếp** về cùng triệu
+   chứng "925 XP mà 0 điểm thành thạo": "XP bị farm" (sai — DB có unique index
+   chống farm), "DOK-3 toàn `[NOPBAI]`" (sai — chỉ 67/669), "kho thiếu câu DOK-3"
+   (sai — 390 câu active, 201/204 node có). Đọc DB trước qua Management API.
+2. **ĐỪNG ĐÈ LÊN BẬC THANG SƯ PHẠM.** Có số liệu đúng rồi (82 lượt DOK-1 / 24
+   DOK-2 / **5 DOK-3** trên toàn hệ thống) tôi lại đi trộn lại đề ngay trước mắt
+   học sinh để ép node xanh. Chủ dự án bác: *"không được phá vòng sư phạm, ko tự
+   kiếm bài khó hơn để nâng"*. Đã revert (`25ba257`), có ghi chú tại chỗ trong
+   `diagnose/index.ts` — **đừng dựng lại**.
+
+**CÒN NỢ:**
+- **Nghiệm thu** bản vá chấm tự luận: nộp lại bài "phản bác bạn Nam" phải ĐẠT
+  (sửa/thêm một chữ để thoát cache của `grade-open`, nó bật `cache: true`).
+- **Ba màn chưa soát lại bằng mắt sau deploy:** màn làm bài, Kho báu, `#scoreboard`.
+- **Khôi phục buổi học đang dở khi hết phiên** — màn "Phiên đã hết hạn" hứa
+  "bài đang gõ dở đã giữ lại", chỉ ĐÚNG với bài tự luận (localStorage). Đang làm
+  trắc nghiệm mà văng thì mất cả buổi. Cần khôi phục `learning_sessions` active.
+- **Mastery vẫn 0 điểm** cho học sinh thật. Số liệu đã có, hướng sửa CHƯA chốt —
+  phải hỏi chủ dự án trước, không tự quyết.
+- **Kho báu:** khó tìm lối vào (phải bấm nút `node-treasure` trên thẻ node) ·
+  thưa nội dung (3 nhóm × 1 mục — là **dữ liệu học liệu**, không sửa bằng code).
+- **Phông chữ:** đang IBM Plex Sans (bộ chữ doanh nghiệp). Đề xuất **Baloo 2**
+  cho tiêu đề, giữ thân bài. Chủ dự án chưa chốt.
+
+**Bộ kiểm chạy được** (`node tools/<tên>.mjs`, chạy TỪ THƯ MỤC GỐC repo):
+`mathtex-matrix` 17 · `goiy-matrix` 63 · `gachngang-matrix` 24 (mới) ·
+`grading-matrix` 118 · `memory-matrix` 28 · `stream-matrix` 19 · `nopbai-matrix` 20.
 
 ---
 
