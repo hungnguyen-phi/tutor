@@ -40,9 +40,7 @@
 - **Nghiệm thu** bản vá chấm tự luận: nộp lại bài "phản bác bạn Nam" phải ĐẠT
   (sửa/thêm một chữ để thoát cache của `grade-open`, nó bật `cache: true`).
 - **Ba màn chưa soát lại bằng mắt sau deploy:** màn làm bài, Kho báu, `#scoreboard`.
-- **Khôi phục buổi học đang dở khi hết phiên** — màn "Phiên đã hết hạn" hứa
-  "bài đang gõ dở đã giữ lại", chỉ ĐÚNG với bài tự luận (localStorage). Đang làm
-  trắc nghiệm mà văng thì mất cả buổi. Cần khôi phục `learning_sessions` active.
+- ~~Khôi phục buổi học đang dở~~ → **ĐÃ CODE 15/08 (`4d98c18`), CHƯA PUSH**, xem §0b.
 - **Mastery vẫn 0 điểm** cho học sinh thật. Số liệu đã có, hướng sửa CHƯA chốt —
   phải hỏi chủ dự án trước, không tự quyết.
 - **Kho báu:** khó tìm lối vào (phải bấm nút `node-treasure` trên thẻ node) ·
@@ -51,8 +49,39 @@
   cho tiêu đề, giữ thân bài. Chủ dự án chưa chốt.
 
 **Bộ kiểm chạy được** (`node tools/<tên>.mjs`, chạy TỪ THƯ MỤC GỐC repo):
-`mathtex-matrix` 17 · `goiy-matrix` 63 · `gachngang-matrix` 24 (mới) ·
-`grading-matrix` 118 · `memory-matrix` 28 · `stream-matrix` 19 · `nopbai-matrix` 20.
+`mathtex-matrix` 17 · `goiy-matrix` 63 · `gachngang-matrix` 24 · `grading-matrix` 118 ·
+`memory-matrix` 28 · `stream-matrix` 19 · `nopbai-matrix` 20 · `phien-do-matrix` 44 (mới).
+
+---
+
+## 0b. PHIÊN 15/08 — giữ buổi học đang dở (`4d98c18`, **CHƯA PUSH**)
+
+Xong món "khôi phục buổi học đang dở" trong danh sách nợ. **Chưa lên prod** —
+chủ dự án tự chạy `git push origin HEAD:main` rồi soát trên tutor.vietanh.org
+(hard-reload). **Chỉ đụng web, KHÔNG cần deploy edge function nào.**
+
+- `apps/web/lib/phien-do.ts` (mới) — đóng gói cả buổi xuống localStorage, **khoá
+  theo uid** (máy phòng máy dùng chung). Hạn 24h. Giữ: `sessionId`, bộ câu, `qi`,
+  XP buổi, ngăn xếp vá nền, hội thoại (trần 40 lời), câu từng sai, thời gian đã học.
+- Nối lại **GIỮ NGUYÊN `sessionId`** → dùng đúng hàng `learning_sessions` đang
+  active, KHÔNG gọi lại `diagnose` (gọi là bỏ hoang phiên cũ + cắt buổi làm đôi).
+  An toàn nhờ `UNIQUE(session_id, question_id)` + unique index XP + số lần thử
+  đếm từ bảng `attempts` (server không tin client).
+- Thẻ **"Học tiếp buổi đang dở"** trên lộ trình (`.tiep-do`), nói rõ tên bài ·
+  câu mấy · XP đã kiếm. Không có nút "bỏ": bấm bài khác là gói tự bị thay.
+- Ghi **hoãn 400ms** + xả ở `visibilitychange`→hidden / `pagehide` — lời sư tử
+  phát từng mẩu chữ, ghi thẳng là hàng trăm lượt `setItem` chặn luồng chính.
+- Lời ở màn hết phiên sửa thành *"Buổi học đang dở đã được giữ lại"* (trước đó
+  chỉ đúng với bài tự luận).
+
+**Giới hạn đã biết:** gói nằm ở MÁY → văng ở điện thoại rồi mở máy tính thì
+không nối lại được. Muốn xuyên thiết bị phải có endpoint đọc `learning_sessions`
+active + phục vụ lại đúng bộ câu — chưa làm vì ca thật của pilot là cùng một máy.
+
+**Chưa ai nhìn tận mắt trên app thật** (chủ dự án chọn soát thẳng trên prod sau
+khi push). Đường cần đi: đăng nhập `hs1@` → mở bài → trả lời 1-2 câu → tải lại
+trang (hoặc đợi hết phiên) → thẻ "Học tiếp" phải hiện đúng câu → bấm vào phải
+quay đúng chỗ, XP không nhảy lung tung.
 
 ---
 
