@@ -40,7 +40,7 @@
 - **Nghiệm thu** bản vá chấm tự luận: nộp lại bài "phản bác bạn Nam" phải ĐẠT
   (sửa/thêm một chữ để thoát cache của `grade-open`, nó bật `cache: true`).
 - **Ba màn chưa soát lại bằng mắt sau deploy:** màn làm bài, Kho báu, `#scoreboard`.
-- ~~Khôi phục buổi học đang dở~~ → **ĐÃ CODE 15/08 (`4d98c18`), CHƯA PUSH**, xem §0b.
+- ~~Khôi phục buổi học đang dở~~ → **LIVE, nghiệm thu trên prod 18/08**, xem §0b.
 - **Mastery vẫn 0 điểm** cho học sinh thật. Số liệu đã có, hướng sửa CHƯA chốt —
   phải hỏi chủ dự án trước, không tự quyết.
 - **Kho báu:** khó tìm lối vào (phải bấm nút `node-treasure` trên thẻ node) ·
@@ -57,11 +57,11 @@
 
 ---
 
-## 0b. PHIÊN 15/08 — giữ buổi học đang dở (`4d98c18`, **CHƯA PUSH**)
+## 0b. PHIÊN 15/08 — giữ buổi học đang dở (`4d98c18`, LIVE; UI đổi POP-UP 18/08 `b879c7a`)
 
-Xong món "khôi phục buổi học đang dở" trong danh sách nợ. **Chưa lên prod** —
-chủ dự án tự chạy `git push origin HEAD:main` rồi soát trên tutor.vietanh.org
-(hard-reload). **Chỉ đụng web, KHÔNG cần deploy edge function nào.**
+Xong món "khôi phục buổi học đang dở". **Đã live + đã soát trên prod 18/08**
+(pop-up hiện đúng, "Để sau" đóng sạch, "Học tiếp" về đúng câu 1/8).
+**Chỉ đụng web, KHÔNG cần deploy edge function nào.**
 
 - `apps/web/lib/phien-do.ts` (mới) — đóng gói cả buổi xuống localStorage, **khoá
   theo uid** (máy phòng máy dùng chung). Hạn 24h. Giữ: `sessionId`, bộ câu, `qi`,
@@ -70,8 +70,11 @@ chủ dự án tự chạy `git push origin HEAD:main` rồi soát trên tutor.v
   active, KHÔNG gọi lại `diagnose` (gọi là bỏ hoang phiên cũ + cắt buổi làm đôi).
   An toàn nhờ `UNIQUE(session_id, question_id)` + unique index XP + số lần thử
   đếm từ bảng `attempts` (server không tin client).
-- Thẻ **"Học tiếp buổi đang dở"** trên lộ trình (`.tiep-do`), nói rõ tên bài ·
-  câu mấy · XP đã kiếm. Không có nút "bỏ": bấm bài khác là gói tự bị thay.
+- Lời mời là **POP-UP `Sheet`** (đổi 18/08, `b879c7a` — bản đầu là thẻ trong
+  flow đầu `.learn-main`, bị chủ dự án chê đúng: lộ trình desktop toàn lớp nổi
+  absolute — HUD, `.learn-aside` — nên thẻ đè/bị đè lung tung). Nói rõ tên bài ·
+  câu mấy · XP đã kiếm; "Để sau" chỉ đóng lời mời theo `luuLuc` (gói còn nguyên,
+  gói mới thì mời lại); bấm bài khác là gói tự bị thay.
 - Ghi **hoãn 400ms** + xả ở `visibilitychange`→hidden / `pagehide` — lời sư tử
   phát từng mẩu chữ, ghi thẳng là hàng trăm lượt `setItem` chặn luồng chính.
 - Lời ở màn hết phiên sửa thành *"Buổi học đang dở đã được giữ lại"* (trước đó
@@ -81,10 +84,8 @@ chủ dự án tự chạy `git push origin HEAD:main` rồi soát trên tutor.v
 không nối lại được. Muốn xuyên thiết bị phải có endpoint đọc `learning_sessions`
 active + phục vụ lại đúng bộ câu — chưa làm vì ca thật của pilot là cùng một máy.
 
-**Chưa ai nhìn tận mắt trên app thật** (chủ dự án chọn soát thẳng trên prod sau
-khi push). Đường cần đi: đăng nhập `hs1@` → mở bài → trả lời 1-2 câu → tải lại
-trang (hoặc đợi hết phiên) → thẻ "Học tiếp" phải hiện đúng câu → bấm vào phải
-quay đúng chỗ, XP không nhảy lung tung.
+**Đã nghiệm thu trên prod 18/08** (acc `hs1@`, cả hai nút của pop-up). Còn
+chưa thử riêng ca "đợi hết phiên đăng nhập thật" — mới thử ca tải-lại-trang.
 
 ---
 
