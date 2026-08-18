@@ -45,8 +45,11 @@
   phải hỏi chủ dự án trước, không tự quyết.
 - **Kho báu:** khó tìm lối vào (phải bấm nút `node-treasure` trên thẻ node) ·
   thưa nội dung (3 nhóm × 1 mục — là **dữ liệu học liệu**, không sửa bằng code).
-- **Phông chữ:** đang IBM Plex Sans (bộ chữ doanh nghiệp). Đề xuất **Baloo 2**
-  cho tiêu đề, giữ thân bài. Chủ dự án chưa chốt.
+- ~~Phông chữ~~ — **CHỐT & LIVE 18/08** (`7601ad7`): **Baloo 2** tiêu đề +
+  **Nunito** thân bài (chủ dự án chọn "thay cả hai", phong cách Duolingo).
+  Serif gỡ khỏi UI; biến `--font-serif` GIỮ TÊN nhưng trỏ Baloo 2 (12 chỗ trong
+  globals.css khỏi đổi tên); `.math` (mã chết) tách về Georgia. KaTeX không
+  ảnh hưởng — tự mang phông riêng.
 
 **Bộ kiểm chạy được** (`node tools/<tên>.mjs`, chạy TỪ THƯ MỤC GỐC repo):
 `mathtex-matrix` 17 · `goiy-matrix` 63 · `gachngang-matrix` 24 · `grading-matrix` 118 ·
