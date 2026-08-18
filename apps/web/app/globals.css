@@ -9409,25 +9409,15 @@ body:has(.lfoot-says) .lesson-pad {
   grid-auto-rows: 1fr; /* thẻ trong lưới cao ĐỀU nhau */
 }
 
-/* ── 2a. Dải chỉ số = sticker dán hơi lệch, hover đứng thẳng nhún lên ── */
+/* ── 2a. Dải chỉ số: hover nhún lên. Trò "sticker dán hơi lệch" (xoay ±0.8°
+   so le) đã GỠ 18/08 — chủ dự án: "bị lệch trông xấu quá". Thẻ số liệu phải
+   đứng thẳng hàng; muốn nghịch thì nghịch ở sư tử, đừng nghịch ở con số. ── */
 .ws-stat {
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
 }
-.ws-stats .ws-stat:nth-child(odd) {
-  transform: rotate(-0.8deg);
-}
-.ws-stats .ws-stat:nth-child(even) {
-  transform: rotate(0.8deg);
-}
 .ws-stats .ws-stat:hover {
-  transform: rotate(0deg) translateY(-3px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-lift);
-}
-@media (max-width: 760px) {
-  .ws-stats .ws-stat:nth-child(odd),
-  .ws-stats .ws-stat:nth-child(even) {
-    transform: none;
-  }
 }
 
 /* ── 2b. Lời sư tử = bong bóng thoại có ĐUÔI chỉ về phía bạn ấy ── */
