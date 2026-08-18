@@ -40,7 +40,7 @@
 - **Nghiệm thu** bản vá chấm tự luận: nộp lại bài "phản bác bạn Nam" phải ĐẠT
   (sửa/thêm một chữ để thoát cache của `grade-open`, nó bật `cache: true`).
 - **Ba màn chưa soát lại bằng mắt sau deploy:** màn làm bài, Kho báu, `#scoreboard`.
-- ~~Khôi phục buổi học đang dở~~ → **LIVE, nghiệm thu trên prod 18/08**, xem §0b.
+- ~~Khôi phục buổi học đang dở~~ → làm xong, nghiệm thu prod, rồi **CHỦ DỰ ÁN CHO ẨN 18/08** (`1a4ff75`, cờ `PHIEN_DO_ENABLED=false`), xem §0b.
 - **Mastery vẫn 0 điểm** cho học sinh thật. Số liệu đã có, hướng sửa CHƯA chốt —
   phải hỏi chủ dự án trước, không tự quyết.
 - **Kho báu:** khó tìm lối vào (phải bấm nút `node-treasure` trên thẻ node) ·
@@ -57,11 +57,16 @@
 
 ---
 
-## 0b. PHIÊN 15/08 — giữ buổi học đang dở (`4d98c18`, LIVE; UI đổi POP-UP 18/08 `b879c7a`)
+## 0b. PHIÊN 15/08 — giữ buổi học đang dở (`4d98c18`; pop-up `b879c7a`/`fce00f5`; **ẨN 18/08 `1a4ff75`**)
 
-Xong món "khôi phục buổi học đang dở". **Đã live + đã soát trên prod 18/08**
-(pop-up hiện đúng, "Để sau" đóng sạch, "Học tiếp" về đúng câu 1/8).
-**Chỉ đụng web, KHÔNG cần deploy edge function nào.**
+Làm xong + nghiệm thu prod, rồi **chủ dự án quyết ẨN**: *"không cần giúp học
+tiếp — nếu out, kết quả nên được fallback, kể cả điểm cộng, tránh spam"*. Fallback
+đó ĐÃ CÓ SẴN: `chat-turn` ghi mastery + XP từng câu ngay khi trả lời, văng chỉ
+mất vị trí đang đứng. Tắt qua cờ **`PHIEN_DO_ENABLED=false`** (`lib/phien-do.ts`,
+kiểu PRESENCE_ENABLED) — toàn bộ code + bộ kiểm giữ nguyên, bật lại là một dòng.
+Lời màn hết phiên đổi thành "điểm đã lưu", không hứa "học tiếp đúng chỗ cũ" nữa.
+**Chỉ đụng web, KHÔNG cần deploy edge function nào.** Phần dưới là hồ sơ thiết
+kế để ai bật lại thì đọc:
 
 - `apps/web/lib/phien-do.ts` (mới) — đóng gói cả buổi xuống localStorage, **khoá
   theo uid** (máy phòng máy dùng chung). Hạn 24h. Giữ: `sessionId`, bộ câu, `qi`,
