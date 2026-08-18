@@ -13611,130 +13611,13 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   font-size: 0.8rem;
 }
 
-/* ═══ THẺ "HỌC TIẾP BUỔI ĐANG DỞ" (nợ 14/08) ═══════════════════════════════
-   Đứng ngay trên lộ trình: việc đang dang dở phải nằm TRƯỚC danh sách bài mới,
-   nếu không em sẽ bắt đầu một buổi mới đè lên buổi cũ mà không biết.
-   CẢ THẺ LÀ MỘT NÚT — không thẻ-kèm-nút-con (bấm trượt vào khoảng trống là
-   không có gì xảy ra, đọc ra như app đơ). Cao tối thiểu 56px, thoả vùng chạm.
-   Nhấn màu VÀNG — màu "đi tiếp" của app — chứ KHÔNG dùng sắc cảnh báo: em
-   không làm gì sai, em chỉ đang quay lại chỗ cũ. */
-.tiep-do {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 56px;
-  margin: 0 0 14px;
-  padding: 10px 14px;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 14px;
-  border: 1px solid var(--gold);
-  background: var(--surface);
-  box-shadow: var(--shadow-row);
-  transition:
-    transform var(--t-fast) var(--ease),
-    box-shadow var(--t-fast) var(--ease);
-}
-.tiep-do:hover {
-  transform: translateY(-2px);
-}
-.tiep-do:active {
-  transform: translateY(1px);
-}
-.tiep-do:disabled {
-  opacity: 0.6;
-  cursor: default;
-  transform: none;
-}
-.tiep-do-icon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--gold-tint);
-  color: var(--navy);
-}
-.tiep-do-icon svg {
-  width: 18px;
-  height: 18px;
-}
-.tiep-do-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.tiep-do-title {
-  font-size: 0.9375rem;
+/* ═══ SHEET "HỌC TIẾP BUỔI ĐANG DỞ" ═══════════════════════════════════════
+   Là POP-UP (component Sheet: mobile trượt đáy, desktop dialog giữa màn) —
+   KHÔNG phải thẻ trong flow. Bản thẻ cũ đứng đầu .learn-main đã bỏ 18/08:
+   lộ trình desktop toàn lớp nổi absolute (HUD, .learn-aside) nên thẻ trong
+   flow đè/bị đè lung tung, chủ dự án bắt được trên prod. */
+.tiep-do-mota {
+  margin: 0 0 8px;
   font-weight: 700;
-  color: var(--navy);
-}
-/* Dòng dưới nói ĐÚNG chỗ em đang đứng (tên bài · câu mấy · XP đã kiếm) — thẻ
-   không có nó thì chỉ là một cái nút mơ hồ, mà bấm vào cái nút mơ hồ là rủi ro
-   với em: biết đâu mất buổi đang làm. Dài quá thì cắt, không xuống dòng lần 3. */
-.tiep-do-sub {
-  min-width: 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--ink-2);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-}
-.tiep-do-go {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  color: var(--gold-ink, var(--navy));
-  transition: transform var(--t-fast) var(--ease);
-}
-.tiep-do:hover .tiep-do-go {
-  transform: translateX(3px);
-}
-html[data-motion="reduce"] .tiep-do,
-html[data-motion="reduce"] .tiep-do-go {
-  transition: none;
-}
-html[data-motion="reduce"] .tiep-do:hover,
-html[data-motion="reduce"] .tiep-do:hover .tiep-do-go {
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .tiep-do,
-  .tiep-do-go {
-    transition: none;
-  }
-  .tiep-do:hover,
-  .tiep-do:hover .tiep-do-go {
-    transform: none;
-  }
-}
-/* Desktop lộ trình: HUD là ABSOLUTE nổi trên trời (xem `.learn-main .hud`
-   top:16 left/right:28) nên thẻ trong flow đứng đầu .learn-main sẽ CHUI XUỐNG
-   DƯỚI dải pill môn + lửa + XP (lỗi 18/08 — chủ dự án bắt được trên prod).
-   Đẩy thẻ xuống dưới HUD bằng margin-top, và vì thẻ đã gánh phần chừa chỗ nên
-   .scene thôi chừa 84px nữa (nếu không banner tụt sâu, đường dấu chân mất cao). */
-@media (min-width: 900px) {
-  .learn-main > .tiep-do {
-    margin: 76px 28px 0;
-    width: auto;
-  }
-  .learn-main:has(> .tiep-do) .scene {
-    padding-top: 14px;
-  }
-}
-/* ≥1200px cột phải "Nhiệm vụ" (.learn-aside) CŨNG absolute (top:84 right:28
-   width:330) — thẻ full-bleed sẽ chui dưới nó. Nhường đúng phần cột phải,
-   khớp con số 386px mà .scene đã né (28 + 330 + 28). */
-@media (min-width: 1200px) {
-  .learn-main > .tiep-do {
-    margin-right: 386px;
-  }
+  color: var(--ink);
 }

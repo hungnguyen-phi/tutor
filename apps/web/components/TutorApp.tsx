@@ -27,6 +27,7 @@ import Splash from "./Splash";
 import AppShell, { type NavKey } from "./AppShell";
 import Hud from "./Hud";
 import SubjectPicker, { type SubjectInfo } from "./SubjectPicker";
+import Sheet from "./Sheet";
 import PresenceStrip from "./PresenceStrip";
 import LearningPath, { type PathNode } from "./LearningPath";
 import CameraShot from "./CameraShot";
@@ -219,9 +220,19 @@ export default function TutorApp() {
   const [expired, setExpired] = useState(false);
   /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
   const [dangNoiLai, datDangNoiLai] = useState(false);
-  /** BUỔI HỌC DỞ tìm thấy ở máy (xem lib/phien-do) — nuôi thẻ "Học tiếp" trên
-   *  lộ trình. null = không có gì để nối lại. */
+  /** BUỔI HỌC DỞ tìm thấy ở máy (xem lib/phien-do) — nuôi POP-UP "Học tiếp"
+   *  khi mở lộ trình. null = không có gì để nối lại. */
   const [phienDo, setPhienDo] = useState<PhienDo | null>(null);
+  /** Pop-up mời nối lại đang mở? Tách khỏi `phienDo` vì "Để sau" chỉ đóng lời
+   *  mời, KHÔNG xoá gói — em đổi ý thì buổi dở vẫn còn đó. */
+  const [moiNoiLai, setMoiNoiLai] = useState(false);
+  /** `luuLuc` của gói đã bấm "Để sau" — cùng gói thì đừng mời lại mỗi lần em
+   *  quay về lộ trình (mời dai là nài nỉ). Gói MỚI (học thêm rồi lại dở) thì
+   *  `luuLuc` đổi → mời lại là đúng. */
+  const boQuaLucRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (phienDo && phienDo.luuLuc !== boQuaLucRef.current) setMoiNoiLai(true);
+  }, [phienDo]);
 
   /** Khung tin nhắn — để LĂN XUỐNG ĐÁY khi có lời mới. Từ 13/08 khung chat có
    *  chiều cao cố định và tự cuộn BÊN TRONG (xem `.lsn-chat .thread`), nên lời
@@ -735,6 +746,7 @@ export default function TutorApp() {
   function hocTiep() {
     const p = phienDo;
     if (!p || busy) return;
+    setMoiNoiLai(false);
     setError(null);
     setFinished(null);
     if (p.subject !== subject && SUBJECTS.some((s) => s.key === p.subject)) {
@@ -1556,29 +1568,35 @@ export default function TutorApp() {
               </div>
             )}
 
-            {/* BUỔI HỌC DỞ — mời quay lại đúng chỗ đã dừng (nợ 14/08).
-                MỘT vật thể bấm được cả thẻ, không phải thẻ + nút rời. KHÔNG có
-                nút "bỏ": bấm bất kỳ bài nào trên lộ trình là gói tự bị thay
-                (xem `start`), nên em không bao giờ kẹt với lời mời này — không
-                cần bắt em từ chối ra mặt. */}
-            {phienDo && (
-              <button
-                type="button"
-                className="tiep-do"
-                onClick={hocTiep}
-                disabled={busy}
-                aria-label={`Học tiếp buổi đang dở — ${moTaPhienDo}`}
-              >
-                <span className="tiep-do-icon" aria-hidden>
-                  <RefreshCw strokeWidth={2} />
-                </span>
-                <span className="tiep-do-body">
-                  <b className="tiep-do-title">Học tiếp buổi đang dở</b>
-                  <span className="tiep-do-sub">{moTaPhienDo}</span>
-                </span>
-                <ArrowRight className="tiep-do-go" aria-hidden strokeWidth={2} />
-              </button>
-            )}
+            {/* BUỔI HỌC DỞ — POP-UP mời quay lại đúng chỗ đã dừng (đổi từ thẻ
+                trong flow 18/08: lộ trình desktop toàn lớp nổi absolute nên thẻ
+                đè/bị đè lung tung). "Để sau" chỉ đóng lời mời — gói còn nguyên,
+                và bấm bài bất kỳ trên lộ trình là gói tự bị thay (xem `start`). */}
+            <Sheet
+              open={!!phienDo && moiNoiLai}
+              onClose={() => {
+                boQuaLucRef.current = phienDo?.luuLuc ?? null;
+                setMoiNoiLai(false);
+              }}
+              title="Học tiếp buổi đang dở?"
+            >
+              <p className="tiep-do-mota">{moTaPhienDo}</p>
+              <p>Quay lại là vào đúng câu đang làm — XP đã kiếm vẫn còn nguyên.</p>
+              <div className="sheet-actions">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    boQuaLucRef.current = phienDo?.luuLuc ?? null;
+                    setMoiNoiLai(false);
+                  }}
+                >
+                  Để sau
+                </button>
+                <button className="btn" data-autofocus onClick={hocTiep} disabled={busy}>
+                  Học tiếp
+                </button>
+              </div>
+            </Sheet>
 
             <LearningPath
               unit={bannerUnit}
