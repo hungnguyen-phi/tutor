@@ -233,6 +233,10 @@ export default function TutorApp() {
   useEffect(() => {
     if (phienDo && phienDo.luuLuc !== boQuaLucRef.current) setMoiNoiLai(true);
   }, [phienDo]);
+  const boQuaNoiLai = useCallback(() => {
+    boQuaLucRef.current = phienDo?.luuLuc ?? null;
+    setMoiNoiLai(false);
+  }, [phienDo]);
 
   /** Khung tin nhắn — để LĂN XUỐNG ĐÁY khi có lời mới. Từ 13/08 khung chat có
    *  chiều cao cố định và tự cuộn BÊN TRONG (xem `.lsn-chat .thread`), nên lời
@@ -1574,26 +1578,26 @@ export default function TutorApp() {
                 và bấm bài bất kỳ trên lộ trình là gói tự bị thay (xem `start`). */}
             <Sheet
               open={!!phienDo && moiNoiLai}
-              onClose={() => {
-                boQuaLucRef.current = phienDo?.luuLuc ?? null;
-                setMoiNoiLai(false);
-              }}
-              title="Học tiếp buổi đang dở?"
+              onClose={boQuaNoiLai}
+              title="Buổi học đang chờ bạn!"
             >
-              <p className="tiep-do-mota">{moTaPhienDo}</p>
-              <p>Quay lại là vào đúng câu đang làm — XP đã kiếm vẫn còn nguyên.</p>
-              <div className="sheet-actions">
+              <div className="tiep-do-pop">
+                {/* Sư tử CHẠY — "mình đi tiếp thôi", không phải cảnh báo */}
+                <Lion mood="run" size={126} decorative />
+                <span className="tiep-do-chip">{moTaPhienDo}</span>
+                <p className="tiep-do-loi">
+                  Quay lại là vào đúng câu đang làm — XP đã kiếm vẫn còn nguyên.
+                </p>
                 <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    boQuaLucRef.current = phienDo?.luuLuc ?? null;
-                    setMoiNoiLai(false);
-                  }}
+                  className="btn btn-gold btn-block"
+                  data-autofocus
+                  onClick={hocTiep}
+                  disabled={busy}
                 >
-                  Để sau
+                  Học tiếp thôi!
                 </button>
-                <button className="btn" data-autofocus onClick={hocTiep} disabled={busy}>
-                  Học tiếp
+                <button type="button" className="btn btn-quiet tiep-do-desau" onClick={boQuaNoiLai}>
+                  Để sau
                 </button>
               </div>
             </Sheet>

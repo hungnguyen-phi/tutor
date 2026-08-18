@@ -13616,8 +13616,49 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
    KHÔNG phải thẻ trong flow. Bản thẻ cũ đứng đầu .learn-main đã bỏ 18/08:
    lộ trình desktop toàn lớp nổi absolute (HUD, .learn-aside) nên thẻ trong
    flow đè/bị đè lung tung, chủ dự án bắt được trên prod. */
-.tiep-do-mota {
-  margin: 0 0 8px;
-  font-weight: 700;
+/* Tiêu đề sheet mượn của Sheet nhưng lên đồ display: Baloo, to, căn giữa */
+.sheet-panel:has(.tiep-do-pop) .sheet-title {
+  margin-bottom: 0;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-size: 1.4375rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.tiep-do-pop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 2px;
+  text-align: center;
+}
+/* Chip vàng nêu đúng chỗ đang đứng: tên bài · câu mấy · XP đã kiếm */
+.tiep-do-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 7px 14px;
+  border: 1px solid color-mix(in oklab, var(--gold) 55%, white);
+  border-radius: var(--r-pill);
+  background: var(--gold-tint);
   color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.tiep-do-loi {
+  margin: 0;
+  max-width: 38ch;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.tiep-do-pop .btn {
+  margin-top: 6px;
+  min-height: 52px;
+  font-size: 1rem;
+}
+/* "Để sau" là nút chữ lặng — Duolingo xếp DỌC dưới nút chính, không chia đôi
+   hàng ngang (hai nút ngang nhau đọc như hai lựa chọn ngang giá trị). */
+.tiep-do-desau {
+  min-height: 44px;
+  padding: 8px 20px;
 }
