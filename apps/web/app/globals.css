@@ -13716,3 +13716,17 @@ html[data-motion="reduce"] .tiep-do:hover .tiep-do-go {
     transform: none;
   }
 }
+/* Desktop lộ trình: HUD là ABSOLUTE nổi trên trời (xem `.learn-main .hud`
+   top:16 left/right:28) nên thẻ trong flow đứng đầu .learn-main sẽ CHUI XUỐNG
+   DƯỚI dải pill môn + lửa + XP (lỗi 18/08 — chủ dự án bắt được trên prod).
+   Đẩy thẻ xuống dưới HUD bằng margin-top, và vì thẻ đã gánh phần chừa chỗ nên
+   .scene thôi chừa 84px nữa (nếu không banner tụt sâu, đường dấu chân mất cao). */
+@media (min-width: 900px) {
+  .learn-main > .tiep-do {
+    margin: 76px 28px 0;
+    width: auto;
+  }
+  .learn-main:has(> .tiep-do) .scene {
+    padding-top: 14px;
+  }
+}
