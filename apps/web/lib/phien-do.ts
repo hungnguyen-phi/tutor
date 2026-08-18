@@ -1,6 +1,13 @@
 /**
  * BUỔI HỌC ĐANG DỞ — nhặt lại được sau khi văng.
  *
+ * ⛔ TẠM ẨN (chủ dự án, 18/08): *"không cần giúp học tiếp — nếu out, kết quả
+ * nên được fallback, kể cả điểm cộng, tránh spam"*. Mà fallback đó ĐÃ CÓ SẴN
+ * ở server: mỗi câu trả lời xong là `chat-turn` ghi ngay mastery + XP vào DB,
+ * văng giữa buổi chỉ mất VỊ TRÍ đang đứng, không mất điểm nào. Lời mời vì thế
+ * thành pop-up phiền. Tắt qua cờ PHIEN_DO_ENABLED (kiểu PRESENCE_ENABLED) —
+ * code + bộ kiểm phien-do-matrix giữ nguyên, bật lại là một dòng.
+ *
  * VÌ SAO (nợ 14/08). Màn "Phiên đăng nhập đã hết hạn" hứa với học sinh: *"Bài
  * em đang gõ dở đã được giữ lại"*. Lời hứa đó mới đúng MỘT NỬA: `luuNhap` giữ
  * chữ em đang gõ theo từng câu, nhưng CẢ BUỔI HỌC — 20 câu server vừa phục vụ,
@@ -34,6 +41,9 @@
 import type { DiagnoseQuestion, DiagnoseResult } from "./api";
 
 /** Đổi số này khi hình dạng gói đổi — gói bản cũ bị bỏ qua thay vì dựng sai. */
+/** Cờ tắt cả tính năng (ghi + mời) — xem chú thích ⛔ đầu file. */
+export const PHIEN_DO_ENABLED = false;
+
 export const BAN_GOI = 1;
 
 /** Quá hạn thì thôi mời: buổi của hôm kia nối lại chỉ làm em bối rối, mà số

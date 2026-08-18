@@ -45,6 +45,7 @@ import LearnAside from "./LearnAside";
 import BaiLamEditor from "./BaiLamEditor";
 import { useRotation, pickGreeting } from "../lib/nudges";
 import {
+  PHIEN_DO_ENABLED,
   docPhienDo,
   luuPhienDo,
   xoaPhienDo,
@@ -424,7 +425,7 @@ export default function TutorApp() {
    *  được lúc rời trang. */
   const goiChoGhiRef = useRef<PhienDo | null>(null);
   useEffect(() => {
-    if (!uid) return;
+    if (!PHIEN_DO_ENABLED || !uid) return;
     // KHÔNG ghi đè khi không có buổi / buổi đã đóng. Việc XOÁ do đúng đường kết
     // thúc buổi lo (`next`), không phải effect này: ses null một nhịp giữa hai
     // lần commit mà gói bay mất thì hỏng đúng lúc cần nó nhất.
@@ -485,7 +486,7 @@ export default function TutorApp() {
   // vào bài: mở app lên mà bị ném thẳng vào một câu hỏi là mất phương hướng,
   // nhất là khi em vừa bị văng và chưa hiểu chuyện gì xảy ra. Để em bấm.
   useEffect(() => {
-    setPhienDo(uid ? docPhienDo(uid) : null);
+    setPhienDo(PHIEN_DO_ENABLED && uid ? docPhienDo(uid) : null);
   }, [uid]);
 
   useEffect(() => {
@@ -1205,7 +1206,7 @@ export default function TutorApp() {
     // quay vào đúng chỗ, thay vì phải nhớ mình đang làm bài nào tới câu mấy.
     // (Sau khi HỌC XONG thì `next` đã xoá gói — đọc lại chỉ ra null.)
     xaGoiChoGhi(); // mở bài rồi bấm X trong 400ms: chưa xả thì đọc ra rỗng
-    setPhienDo(uid ? docPhienDo(uid) : null);
+    setPhienDo(PHIEN_DO_ENABLED && uid ? docPhienDo(uid) : null);
     setSes(null);
     setFinished(null);
     setInjectedStack([]);
@@ -1268,8 +1269,8 @@ export default function TutorApp() {
               buổi. Nay cả buổi được đóng gói (xem lib/phien-do) nên hứa được
               nguyên câu — và vẫn chỉ hứa đúng phần giữ được. */}
           <p className="muted">
-            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Buổi học đang dở đã được
-            giữ lại — đăng nhập lại là học tiếp đúng chỗ cũ.
+            Bạn mở app lâu rồi nên hệ thống tự đăng xuất cho an toàn. Điểm và XP của những câu
+            đã làm đều được lưu rồi — đăng nhập lại là học tiếp bình thường.
           </p>
           <button
             className="btn btn-gold"
