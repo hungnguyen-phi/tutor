@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { Baloo_2, Nunito } from "next/font/google";
 import "./globals.css";
 // Bộ cảm xúc động của mascot — PHẢI đứng sau globals.css: choreography trong
 // này ghi đè nhịp cơ bản (.lion-greet đảo tay đè lion-sway, v.v.).
@@ -8,24 +8,20 @@ import "./globals.css";
 // css-loader sẽ lặng lẽ bỏ qua — import tại đây cho thứ tự tường minh.
 import "./lion-motion.css";
 
-// Hai họ chữ theo hi-fi handoff (design_handoff_ai_tutor): serif cho display
-// (tiêu đề trang, tên chương, biểu thức toán italic), sans cho toàn bộ UI.
-// Cả hai đều có subset vietnamese — dấu không va nhau.
-const sans = IBM_Plex_Sans({
+// Bộ chữ "nhí nhảnh nhưng nghiêm túc" (chốt 18/08, thay hi-fi handoff cũ):
+// Baloo 2 (tròn, dày) cho display — tiêu đề trang, tên chương, số liệu lớn;
+// Nunito cho thân bài. Cả hai là variable font CÓ subset vietnamese thật —
+// dấu tiếng Việt không va nhau. Biến giữ tên --font-serif để 12 chỗ trong
+// globals.css không phải đổi tên; `.math` (mã chết từ đợt KaTeX) đã tách
+// riêng về Georgia nên không bị Baloo hoá.
+const sans = Nunito({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
+  style: ["normal"],
   variable: "--font-sans",
   display: "swap",
 });
-// CHỈ style "normal" — KHÔNG italic (đo trên production 30/07).
-// Trang /login tải 201 KB font, trong đó Source Serif 4 chiếm 127 KB, và MỘT NỬA
-// số đó (50,3 KB latin + 13,7 KB vietnamese) là bộ ITALIC được preload cho…
-// không ai: chỗ duy nhất trong CSS đòi serif-italic là `.math`, mà `.math` đã
-// thành mã chết từ đợt chuyển sang KaTeX (không component nào còn gán class đó —
-// đã grep toàn bộ apps/web). Ai lỡ dùng lại thì rơi về Georgia italic, vẫn đọc được.
-const serif = Source_Serif_4({
+const serif = Baloo_2({
   subsets: ["latin", "vietnamese"],
-  style: ["normal"],
   variable: "--font-serif",
   display: "swap",
 });

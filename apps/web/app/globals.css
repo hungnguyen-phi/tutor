@@ -370,14 +370,14 @@ ul {
    Hi-fi: display = Source Serif 4 (tiêu đề trang, tên chương, khoảnh khắc
    lớn, biểu thức toán italic); UI = IBM Plex Sans cho toàn bộ còn lại. */
 .h1 {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 2rem; /* 32 / mobile 28 qua .h1 ở màn hẹp nếu cần */
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--navy);
 }
 .h2 {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -389,7 +389,7 @@ ul {
 }
 /* Tên thẻ lớn kiểu serif (banner chương, WIG) — 21–25px theo màn */
 .card-title {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--navy);
@@ -402,9 +402,10 @@ ul {
   text-transform: uppercase;
   color: var(--sky);
 }
-/* Biểu thức toán: serif italic đậm (hi-fi 3b) */
+/* Biểu thức toán: serif italic đậm (hi-fi 3b) — MÃ CHẾT (KaTeX thay thế),
+   giữ Georgia thật vì --font-serif đã đổi thành Baloo 2 (display tròn). */
 .math {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: Georgia, serif;
   font-style: italic;
   font-weight: 600;
 }
@@ -2775,7 +2776,7 @@ textarea {
   margin-bottom: 12px;
 }
 .access-denied h1 {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--navy);
@@ -5254,7 +5255,7 @@ html[data-motion="reduce"] .spin {
 }
 .pr-name {
   margin-top: 3px;
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -5989,7 +5990,7 @@ html[data-motion="reduce"] .spin {
   border-radius: var(--r-pill);
   background: #26275d;
   color: var(--gold);
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.625rem;
   font-weight: 700;
   box-shadow: 0 3px 0 #14153b;
@@ -6578,7 +6579,7 @@ html[data-motion="reduce"] .spin {
   position: absolute;
   top: 2px;
   left: 12px;
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 2rem;
   line-height: 1.4;
   color: var(--navy);
@@ -8357,7 +8358,7 @@ body:has(.lfoot-says) .lesson-pad {
 }
 .ws-title {
   margin: 12px 0 8px;
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: clamp(1.5rem, 3.2vw, 2.125rem);
   font-weight: 600;
   line-height: 1.12;
@@ -8500,7 +8501,7 @@ body:has(.lfoot-says) .lesson-pad {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.1875rem;
   font-weight: 600;
   color: var(--navy);
@@ -8806,7 +8807,7 @@ body:has(.lfoot-says) .lesson-pad {
 
 /* Nhãn tĩnh khi CHỈ có một bảng thật (không dựng tab giả) */
 .sb-scope-one {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.0625rem;
   font-weight: 700;
   color: var(--navy);
@@ -8831,7 +8832,7 @@ body:has(.lfoot-says) .lesson-pad {
   display: block;
 }
 .sb-cold-title {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.3;
@@ -9201,7 +9202,7 @@ body:has(.lfoot-says) .lesson-pad {
   border-radius: 50%;
   background: var(--gold);
   color: var(--on-gold);
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
   font-size: 1.875rem;
   font-weight: 700;
 }
