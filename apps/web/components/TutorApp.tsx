@@ -398,19 +398,41 @@ export default function TutorApp() {
   // đáng tin để so kè.
   const startedAtRef = useRef<number | null>(null);
   const [elapsedSec, setElapsedSec] = useState<number | null>(null);
-  // G14 "nhắc nghỉ": buổi học chủ động ~40'. Sau NGƯỠNG (25') gợi ý nghỉ mắt MỘT
-  // lần — không ép, không phạt (học bền vững). Băng-rôn dịu, học sinh tự tắt.
-  const [breakNudge, setBreakNudge] = useState(false);
+  // Nhắc-nghỉ 25' (G14 cũ) ĐÃ BỎ (chủ dự án 19/08): "em chăm quá, nghỉ đi" treo
+  // giữa lúc đang học là gây nhiễu. Thay bằng đồng hồ VẮNG MẶT — đo im lặng
+  // tuyệt đối chứ không đo giờ học, nên em cày lâu bao nhiêu cũng không bị nhắc:
+  //  · 30' không một cú bấm/gõ/cuộn nào → hỏi "Bạn còn ở đó không?"
+  //  · 120' → coi như đã rời máy: tự thoát về lộ trình. Điểm KHÔNG mất —
+  //    XP/attempts do server ghi sống từng lượt (chat-turn), thoát kiểu này đi
+  //    đúng đường "thoát giữa chừng" (backToPath) như em tự bấm X.
+  // Mốc theo TƯƠNG TÁC nên câu khó đang ngồi nghĩ-và-nháp vẫn an toàn: còn
+  // người là còn chạm máy; 2 tiếng không chạm gì thì không phải đang làm bài.
+  const lastActRef = useRef<number>(Date.now());
+  const [idleAsk, setIdleAsk] = useState(false);
   useEffect(() => {
     if (!ses || finished) return;
-    const BREAK_AT_MS = 25 * 60 * 1000;
+    lastActRef.current = Date.now();
+    const touch = () => {
+      lastActRef.current = Date.now();
+      setIdleAsk(false);
+    };
+    const evs = ["pointerdown", "keydown", "wheel", "touchstart", "scroll"] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    const ASK_AT_MS = 30 * 60 * 1000;
+    const OUT_AT_MS = 120 * 60 * 1000;
     const id = setInterval(() => {
-      if (startedAtRef.current && Date.now() - startedAtRef.current >= BREAK_AT_MS) {
-        setBreakNudge(true);
-        clearInterval(id);
+      const idle = Date.now() - lastActRef.current;
+      if (idle >= OUT_AT_MS) {
+        setIdleAsk(false);
+        backToPath();
+      } else if (idle >= ASK_AT_MS) {
+        setIdleAsk(true);
       }
-    }, 30_000);
-    return () => clearInterval(id);
+    }, 60_000);
+    return () => {
+      evs.forEach((e) => window.removeEventListener(e, touch));
+      clearInterval(id);
+    };
   }, [ses, finished]);
   // Câu đã từng trả lời sai trong buổi → đếm "chính xác x/y" + link ôn lại.
   const wrongRef = useRef<Set<string>>(new Set());
@@ -719,7 +741,8 @@ export default function TutorApp() {
       // Mốc đo thật cho màn hoàn thành: thời gian buổi + những câu từng sai.
       startedAtRef.current = Date.now();
       setElapsedSec(null);
-      setBreakNudge(false);
+      lastActRef.current = Date.now();
+      setIdleAsk(false);
       wrongRef.current = new Set();
 
       const { next, streakGrew } = G.recordStudyDay(G.load());
@@ -771,10 +794,11 @@ export default function TutorApp() {
     wrongRef.current = new Set(p.sai);
     // Đồng hồ buổi học LÙI LẠI đúng phần đã học, không tính quãng em offline:
     // nối lại sau một đêm mà màn hoàn thành khoe "9 tiếng 12 phút" thì con số
-    // đó thành trò cười. Cũng nhờ vậy nhắc-nghỉ-25' tính theo giờ học thật.
+    // đó thành trò cười.
     startedAtRef.current = Date.now() - p.daHocMs;
     setElapsedSec(null);
-    setBreakNudge(false);
+    lastActRef.current = Date.now();
+    setIdleAsk(false);
     setPhienDo(null);
     const { next: tienDo, streakGrew } = G.recordStudyDay(G.load());
     G.save(tienDo);
@@ -1839,14 +1863,15 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* G14 "nhắc nghỉ": gợi ý nghỉ mắt sau 25' — dịu, tự tắt, không chặn học. */}
-      {breakNudge && (
+      {/* Đồng hồ vắng mặt: 30' không tương tác → hỏi một câu. Mọi cú bấm/gõ
+          đều tự tắt băng-rôn (listener toàn cục), nút X chỉ là đường tắt rõ ràng. */}
+      {idleAsk && (
         <div className="mend-banner break-banner" role="status">
           <Timer aria-hidden strokeWidth={2.25} />
           <span>
-            Em học chăm quá — <b>nghỉ mắt 1–2 phút</b> rồi quay lại nhé, não nhớ tốt hơn khi được nghỉ.
+            Bạn còn ở đó không? Bấm hoặc gõ gì đó để mình biết bạn vẫn đang học nhé.
           </span>
-          <button className="break-x" onClick={() => setBreakNudge(false)} aria-label="Đã hiểu, tiếp tục">
+          <button className="break-x" onClick={() => setIdleAsk(false)} aria-label="Mình vẫn ở đây">
             <X aria-hidden strokeWidth={2.5} />
           </button>
         </div>

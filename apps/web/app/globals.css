@@ -12884,6 +12884,9 @@ body:has(.lfoot-says) { --lfoot-h: 216px; }
   bottom: 5px;
   left: 50%;
   translate: -50% 0;
+  /* Đứng TRÊN quầng thở trắng (::after của dấu chân "now"): pseudo vẽ sau con
+     trong cây nên không có z-index là cái viền đè lên mặt sư tử. */
+  z-index: 1;
   filter: drop-shadow(0 3px 4px rgb(0 0 0 / 35%));
 }
 /* Reset toàn cục img{max-width:100%} bóp ảnh theo bề ngang dấu chân 13px —
