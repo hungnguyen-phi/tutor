@@ -1047,7 +1047,9 @@ export default function TutorApp() {
   const [reflectText, setReflectText] = useState("");
   async function sendReflect(raw?: string) {
     const msg = (raw ?? reflectText).trim();
-    if (!ses || !q || busy || !msg) return;
+    // Đúng rồi thì chat ĐÃ KHOÁ (ô nhập không render nữa) — chốt thêm ở đây
+    // phòng lượt gửi lọt qua đúng khoảnh khắc verdict vừa đổi (Enter đang bay).
+    if (!ses || !q || busy || !msg || verdict === "ok") return;
     // ── CẦU CHAT→CHẤM (lỗi 20, 30/07) ────────────────────────────────────────
     // Chủ dự án đóng vai học sinh: nói "chốt C" hẳn hoi mà không có gì xảy ra —
     // muốn chốt thật phải thoát thoại → THỬ LẠI → bấm ô C → KIỂM TRA. Vì ô trò
@@ -2254,7 +2256,9 @@ export default function TutorApp() {
             <div>
               <b>Nói chuyện với sư tử</b>
               <span>
-                {attempts === 0
+                {verdict === "ok"
+                  ? "Xong câu này rồi — hẹn bạn ở câu sau nhé"
+                  : attempts === 0
                   ? "Mở sau khi bạn thử một lần"
                   : "Chỗ này không chấm đáp án, cứ kể cách bạn nghĩ"}
               </span>
@@ -2306,7 +2310,17 @@ export default function TutorApp() {
               nhìn là biết. Khoá ở đây KHÔNG thay thế cổng server (nó vẫn là
               chốt thật, client sửa được); đây là nói thật trạng thái, đúng
               nguyên tắc "mở ra là học được" — đừng mời gọi rồi từ chối. */}
-          {attempts === 0 ? (
+          {verdict === "ok" ? (
+            /* ĐÚNG RỒI THÌ KHOÁ CHAT (chủ dự án chốt 19/08, lỗi #32): sư tử đã
+               khen một câu trong luồng — nói thêm là máy cổng-nỗ-lực bên server
+               tưởng em đang kẹt và quay ra tra hỏi chính đáp án đúng. Câu đã
+               xong thì không còn gì để gỡ; chỉ chờ nút TIẾP TỤC. */
+            <div className="chat-locked">
+              <p>
+                Câu này xong rồi! Bấm <b>TIẾP TỤC</b> để qua câu mới nhé.
+              </p>
+            </div>
+          ) : attempts === 0 ? (
             <div className="chat-locked">
               <p>
                 Bạn đọc đề và <b>chọn một đáp án</b> trước nhé. Thử xong mình mở

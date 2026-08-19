@@ -566,7 +566,7 @@ Deno.serve(async (req: Request) => {
         // Ba truy vấn độc lập → SONG SONG (nhãn bài chỉ để AI có ngữ cảnh, không
         // đáng thêm một vòng mạng tuần tự).
         const [attRes, { data: ladders }, { data: nodeForGuide }, mem, chatRes, styleNote, matchedR] = await Promise.all([
-          supa.from("attempts").select("id, attempt_no, thinking_quality, created_at")
+          supa.from("attempts").select("id, attempt_no, thinking_quality, created_at, is_correct")
             .eq("session_id", s.id).eq("question_id", q.id)
             .order("attempt_no", { ascending: true }),
           // LẤY CẢ CHÙM THANG của node, KHÔNG `limit(1)` nữa (vá 13/08).
@@ -613,9 +613,31 @@ Deno.serve(async (req: Request) => {
           })().catch(() => null),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
-        const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null }>;
+        const attRows = (attRes.data ?? []) as Array<{ id: string; thinking_quality: number | null; is_correct: boolean | null }>;
         const attempts = attRows.length;
         const lastAtt = attRows[attRows.length - 1];
+
+        // ── CÂU ĐÃ ĐÚNG → KHOÁ ĐỐI THOẠI (chủ dự án chốt 19/08, lỗi #32) ────
+        // Trước đây nhánh này KHÔNG đọc `is_correct`, nên em vừa được xác nhận
+        // đúng mà gõ tiếp một câu là toàn bộ máy cổng-nỗ-lực chạy y như em đang
+        // KẸT: sư tử tra hỏi "chỗ nào trong câu đó…", rồi gieo nghi ngờ vào
+        // chính đáp án nó vừa khen. Quyết định sản phẩm: đúng rồi thì khen một
+        // câu là XONG — chat khoá, chỉ còn nút TIẾP TỤC. Client đã khoá ô nhập
+        // (verdict="ok"), đây là chốt thật phía server cho client cũ / gọi thẳng.
+        // Tất định, không gọi LLM: không có gì để dẫn dắt ở một câu đã giải xong.
+        if (lastAtt?.is_correct === true) {
+          return await speak({
+            envelope: { correct: false, gate: "reflect", graded: false },
+            fallback: en
+              ? "You've already solved this one! Hit CONTINUE and let's move on."
+              : "Câu này bạn giải xong rồi mà! Bấm TIẾP TỤC để mình qua câu mới nhé.",
+            llm: null,
+            map: {},
+            persistMeta: { gate: "reflect", stage: "done", questionId: q.id },
+            questionId: q.id,
+          });
+        }
+
         const best = Math.max(signal, Number(lastAtt?.thinking_quality ?? 0));
         if (lastAtt && best > Number(lastAtt.thinking_quality ?? 0)) {
           await supa.from("attempts").update({ thinking_quality: best }).eq("id", lastAtt.id);

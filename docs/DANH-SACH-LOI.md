@@ -1124,6 +1124,62 @@ phía học sinh; có thể ô nhập lời nhắn của giáo viên chưa hỗ 
 Nhiều khả năng chỉ là **chép lại mô tả trên phiếu**, không phải báo lỗi. Trước đây em
 để là mục 13 "cần hỏi lại" — nay hạ xuống đây, **không cần xử lý** trừ khi họ nói thêm.
 
+# ĐỢT BỔ SUNG — chủ dự án tự thử đối thoại (19/08)
+
+## 32. ✅ ĐÃ SỬA (19/08, chờ deploy web + `chat-turn`) — Trả lời ĐÚNG xong mà sư tử vẫn tra hỏi như đang SAI, rồi dỗi "tôi không muốn nói gì thêm"
+
+> ### Quyết định chủ dự án (19/08): **đúng thì khen MỘT câu rồi KHOÁ chat** — chỉ chờ nút TIẾP TỤC.
+> Đã code hai lớp, cùng ngày:
+> - **Web** ([TutorApp.tsx](apps/web/components/TutorApp.tsx)): `verdict === "ok"` → ô nhập
+>   chat thay bằng khung khoá "Câu này xong rồi! Bấm TIẾP TỤC…" (tái dùng `chat-locked`
+>   của cổng nỗ lực); phụ đề khung chat đổi theo; `sendReflect` chặn thêm một lớp
+>   phòng Enter đang bay đúng lúc verdict đổi.
+> - **Server** ([chat-turn/index.ts](supabase/functions/chat-turn/index.ts), nhánh reflect):
+>   SELECT thêm `is_correct`; attempt cuối đã đúng → trả câu tất định "Câu này bạn giải
+>   xong rồi mà! Bấm TIẾP TỤC…" qua `speak` với `llm: null` — KHÔNG gọi LLM, máy
+>   cổng-nỗ-lực không chạy. Chốt thật cho client cũ / gọi thẳng API.
+> Giải quyết trọn vế (a) và triệt tiêu vế (b) trong kịch bản này (sau khi đúng, LLM
+> không bao giờ được gọi nữa). Kiểm: `goiy-matrix` 63 · `stream-matrix` 19 ·
+> `memory-matrix` 28 — đạt hết, 0 hồi quy; `tsc --noEmit` web sạch.
+> **CÒN NỢ vế (c)**: câu khen khuôn vẫn "thấy rõ nỗ lực" cả khi đúng ngay lần đầu —
+> chưa có lệnh sửa, giữ nguyên.
+
+**Triệu chứng (hội thoại thật 19/08, chủ dự án dán nguyên văn).** Học sinh chọn C,
+sư tử báo *"Chính xác — làm tốt lắm! Mình thấy rõ nỗ lực của bạn."* Học sinh hỏi lại
+("nỗ lực ở đâu mà thấy?", "trả lời đúng rồi còn hỏi làm gì") thì sư tử:
+1. Quay ra tra hỏi như thể em CHƯA làm: *"Bạn vừa chọn C. Chỗ nào trong câu đó…"*
+2. Gieo nghi ngờ vào chính đáp án nó vừa xác nhận đúng: *"nếu bạn đã nghĩ C là đúng
+   thì thử nhìn lại: mệnh đề phủ định của nó…"*
+3. Chốt bằng câu DỖI, sai cả xưng hô: *"**tôi** không muốn nói gì thêm, bạn tự đánh giá"*
+   (quy ước là "mình", không bao giờ "tôi"; giọng hờn dỗi phá thẳng growth mindset).
+
+**Gốc rễ (đã đọc mã, chưa sửa).** Nhánh đối thoại tự do (reflect) trong
+[chat-turn/index.ts](supabase/functions/chat-turn/index.ts) **không hề biết câu vừa
+rồi ĐÃ ĐƯỢC CHẤM ĐÚNG**:
+- `attRows` chỉ SELECT `id, thinking_quality` ([index.ts:616](supabase/functions/chat-turn/index.ts:616)) —
+  không lấy `is_correct`, nên toàn bộ máy trạng thái (cổng nỗ lực, thang, stage
+  must_try/need_think/guide) chạy y như em đang KẸT ở câu chưa giải xong.
+- Envelope trả về cố định `{ correct: false, gate: "reflect" }` ([index.ts:786](supabase/functions/chat-turn/index.ts:786)).
+- `buildGuideSystem` nhận `dangChon: "C"` + đề bài + misconception nhưng KHÔNG có
+  tín hiệu "em đã đúng rồi" → mô hình (tier cheap) diễn vai gỡ-kẹt: hỏi ngược, gợi
+  "nhìn lại đáp án" — với học sinh đọc ra là "chắc mình sai rồi".
+
+Ba vế con, sửa phải đủ:
+- (a) **Trạng thái**: sau khi câu đã đúng, chat tiếp theo phải vào chế độ khác
+  (chúc mừng/giải đáp thắc mắc/mời câu tiếp), KHÔNG vào máy cổng-nỗ-lực. Cần đọc
+  `is_correct` của attempt cuối trong nhánh reflect.
+- (b) **Giọng dỗi + xưng "tôi"**: LLM guide ở temperature 0,65 buột ra ngoài khuôn;
+  cần luật cấm trong system prompt (xưng hô, không phủi tay "tự đánh giá") — cùng họ
+  với lỗi 21 (giọng robot) nhưng là mặt ngược: lần này quá "người" theo kiểu xấu.
+- (c) **Khen nỗ lực rỗng**: câu khuôn ở [index.ts:1057](supabase/functions/chat-turn/index.ts:1057)
+  khen "thấy rõ nỗ lực" cả khi em chỉ bấm 1 click đúng ngay lần đầu — học sinh bắt
+  bài liền ("nỗ lực ở đâu mà thấy?"). Khen nỗ lực chỉ khi CÓ nỗ lực đo được
+  (attemptNo ≥ 2, có kể suy nghĩ…); đúng ngay lần đầu thì khen đúng cái đã xảy ra.
+
+**Trạng thái: CHỈ GHI NHẬN — chưa sửa dòng nào, chờ lệnh.**
+
+---
+
 ## Việc kèm theo khi sửa (đừng quên)
 
 - Lỗi 1 · 2 · 4 · 6 · 7 → **chỉ deploy web** (`git push origin HEAD:main`).
