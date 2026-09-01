@@ -6882,6 +6882,7 @@ html[data-motion="reduce"] .think-dots::after {
 .node-treasure svg {
   width: 16px;
   height: 16px;
+  flex: none;
   color: var(--gold-ink, #8a6d00);
 }
 .node-treasure:hover { border-color: var(--navy); box-shadow: 0 2px 0 var(--navy); }
