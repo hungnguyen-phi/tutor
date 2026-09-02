@@ -376,20 +376,41 @@ export function parseInteractive(
  *  cộng chuỗi đáp án tổng ("a:dung,b:sai,…") mà không tách theo ý, nên hay lẫn
  *  ý này sang ý khác hoặc lạc sang câu khác khi hội thoại kéo dài nhiều lượt.
  *  Trả null nếu không phải checklist / không chấm được / không có ý nào sai. */
+export interface WrongChecklistItem extends OrderItem {
+  /** Giá trị (đúng/sai) mà HỌC SINH vừa chọn cho ý này — sai so với đáp án. */
+  given: boolean;
+}
+
 export function wrongChecklistItems(
   noiDung: string,
   dapAn: string,
   student: string,
-): OrderItem[] | null {
+): WrongChecklistItem[] | null {
   const inter = parseInteractive("mcq", noiDung, dapAn);
   if (!inter?.checklist) return null;
   const correct = checklistMap(dapAn);
   const given = checklistAnswerMap(student);
   if (!correct || !given) return null;
-  const wrong = inter.checklist.items.filter((it) => {
+  const wrong = inter.checklist.items.flatMap((it) => {
     const c = correct.get(it.key);
     const g = given.get(it.key);
-    return c !== undefined && g !== undefined && c !== g;
+    return c !== undefined && g !== undefined && c !== g ? [{ ...it, given: g }] : [];
   });
   return wrong.length > 0 ? wrong : null;
+}
+
+/** Nhãn "c) Đúng" khớp với `distractors[].phuong_an` của câu checklist — dùng
+ *  để tra ĐÚNG misconception (và qua đó ĐÚNG thang Socratic) của Ý học sinh
+ *  vừa sai, thay vì chấm cả khối bằng CAS (không bao giờ khớp một nhãn đơn
+ *  ý với chuỗi đáp án tổng "a:dung,b:sai,…"). Trả item ĐẦU TIÊN sai (một
+ *  turn chỉ mang được một misconception) hoặc null nếu không phải checklist. */
+export function firstWrongChecklistLabel(
+  noiDung: string,
+  dapAn: string,
+  student: string,
+): string | null {
+  const wrong = wrongChecklistItems(noiDung, dapAn, student);
+  if (!wrong || wrong.length === 0) return null;
+  const first = wrong[0]!;
+  return `${first.key}) ${first.given ? "Đúng" : "Sai"}`;
 }

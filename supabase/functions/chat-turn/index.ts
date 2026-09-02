@@ -11,7 +11,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer, type CasResult } from "../_shared/cas.ts";
-import { gradeInteractive, parseInteractive, wrongChecklistItems, type InteractiveStruct } from "../_shared/interactive.ts";
+import { gradeInteractive, parseInteractive, wrongChecklistItems, firstWrongChecklistLabel, type InteractiveStruct } from "../_shared/interactive.ts";
 import { evaluateEffortGate, chonBacGoiY, tinhVanNoLuc } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
@@ -80,6 +80,43 @@ function questionContextFor(q: { noi_dung: string; dap_an: string | null }, stud
   const ten = wrong.length === 1 ? "Ý học sinh vừa trả sai" : "Các ý học sinh vừa trả sai";
   const list = wrong.map((it) => `(${it.key}) ${it.text}`).join(" · ");
   return `${ten}: ${list}`.slice(0, 600);
+}
+
+/**
+ * Quan niệm sai (`quan_niem_sai`) khớp với câu trả lời SAI — dùng để chọn ĐÚNG
+ * thang Socratic (mỗi thang gỡ một quan niệm sai, xem `socratic_ladders`).
+ *
+ * Câu "Đúng/Sai chùm ý" (checklist) THỬ TRƯỚC: `distractors[].phuong_an` của
+ * dạng này là nhãn MỘT Ý ("c) Đúng"), không phải chuỗi đáp án tổng — so bằng
+ * CAS (checkAnswer) không bao giờ khớp một nhãn đơn ý với chuỗi tổng dạng
+ * "a:dung,b:sai,…", nên rơi về thang ĐẦU TIÊN của node bất kể em sai ý nào.
+ * Đo trên 10 phiên thử độc lập (9/2026): đây là nguyên nhân AI "lạc đề" —
+ * không phải AI mà là chọn NHẦM thang, thang thật soạn đúng cho ý sai nhưng
+ * không bao giờ được chọn tới. So NHÃN (đúng/sai chính xác), không phải CAS.
+ *
+ * Không phải checklist / không tách được ý sai → lùi về đường cũ: so từng
+ * distractor bằng CAS (checkAnswer) như trước, cho mọi dạng câu khác.
+ */
+async function resolveMisconception(
+  q: { noi_dung: string; dap_an: string | null; distractors: unknown },
+  answer: string,
+  qParams: Record<string, unknown>,
+): Promise<string | null> {
+  const distractors = (Array.isArray(q.distractors) ? q.distractors : []) as
+    Array<{ phuong_an: string; quan_niem_sai: string }>;
+  if (!distractors.length) return null;
+  const label = firstWrongChecklistLabel(q.noi_dung ?? "", String(q.dap_an ?? ""), answer);
+  if (label) {
+    const hit = distractors.find((d) => d.phuong_an === label);
+    if (hit) return hit.quan_niem_sai ?? null;
+    // Checklist nhưng KHÔNG có distractor khớp nhãn ý (dữ liệu thiếu) → đừng
+    // lùi về CAS: chuỗi tổng "a:dung,…" so CAS với "c) Đúng" cũng không khớp,
+    // chỉ tổ chờ vô ích. Rơi về null là đúng, ladder chọn thang đầu như cũ.
+    return null;
+  }
+  const hits = await Promise.all(distractors.map((d) => checkAnswer(answer, d.phuong_an, qParams)));
+  const idx = hits.findIndex((r) => r.correct);
+  return idx >= 0 ? (distractors[idx]!.quan_niem_sai ?? null) : null;
 }
 
 interface Session {
@@ -621,13 +658,7 @@ Deno.serve(async (req: Request) => {
           // Đi chung chuyến Promise.all nên không thêm vòng chờ nào cho em.
           (async () => {
             if (!daChon) return null;
-            const ds = (Array.isArray(q.distractors) ? q.distractors : []) as Array<
-              { phuong_an: string; quan_niem_sai: string }
-            >;
-            if (!ds.length) return null;
-            const hits = await Promise.all(ds.map((d) => checkAnswer(daChon, d.phuong_an, qParams)));
-            const idx = hits.findIndex((r) => r.correct);
-            return idx >= 0 ? (ds[idx]!.quan_niem_sai ?? null) : null;
+            return await resolveMisconception(q, daChon, qParams);
           })().catch(() => null),
         ]);
         const nodeLabelForGuide = String(nodeForGuide?.label ?? q.node_key);
@@ -998,14 +1029,7 @@ Deno.serve(async (req: Request) => {
       // vòng lặp. Còn cần thì chạy SONG SONG (checkAnswer có thể nạp mathjs).
       let matched: string | null = null;
       if (!verdict.correct) {
-        // `?? []` KHÔNG đủ: distractors là jsonb không ràng buộc kiểu, `?? []`
-        // chỉ bắt null/undefined còn một object/chuỗi vẫn lọt xuống `.map` rồi ném.
-        const distractors = (
-          Array.isArray(q.distractors) ? q.distractors : []
-        ) as Array<{ phuong_an: string; quan_niem_sai: string }>;
-        const hits = await Promise.all(distractors.map((d) => checkAnswer(studentAnswer, d.phuong_an, qParams)));
-        const idx = hits.findIndex((r) => r.correct);
-        if (idx >= 0) matched = distractors[idx]!.quan_niem_sai;
+        matched = await resolveMisconception(q, studentAnswer, qParams);
       }
 
       // do_tu_tin (1..3) là TỰ ĐÁNH GIÁ của HS — hợp lệ thì nhận, sai khoảng → null.
