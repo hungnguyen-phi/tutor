@@ -11,7 +11,7 @@ import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
 import { checkAnswer, type CasResult } from "../_shared/cas.ts";
-import { gradeInteractive, parseInteractive, type InteractiveStruct } from "../_shared/interactive.ts";
+import { gradeInteractive, parseInteractive, wrongChecklistItems, type InteractiveStruct } from "../_shared/interactive.ts";
 import { evaluateEffortGate, chonBacGoiY, tinhVanNoLuc } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
@@ -62,6 +62,24 @@ async function fetchStyleNote(supa: any, studentId: string): Promise<string | un
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Nội dung câu hỏi đưa vào prompt AI — SCOPE ĐÚNG MỘT Ý cho câu "Đúng/Sai chùm
+ * ý" thay vì cả khối. Đo trên 10 phiên thử độc lập (9/2026): đưa nguyên
+ * `noi_dung` (mọi ý gộp chung, cắt 600 ký tự) cho AI khi học sinh trả lời sai
+ * một ý trong nhiều ý khiến AI lẫn ý này sang ý khác, có lúc lạc hẳn sang nội
+ * dung câu khác — không phải lỗi model, mà do prompt không nói AI đang bàn ý
+ * NÀO. Không phải checklist hoặc không tách được ý sai → lùi về hành vi cũ
+ * (nguyên `noi_dung`, cắt 600).
+ */
+function questionContextFor(q: { noi_dung: string; dap_an: string | null }, studentAnswer: string): string {
+  const full = String(q.noi_dung ?? "").slice(0, 600);
+  const wrong = wrongChecklistItems(q.noi_dung ?? "", String(q.dap_an ?? ""), studentAnswer);
+  if (!wrong) return full;
+  const ten = wrong.length === 1 ? "Ý học sinh vừa trả sai" : "Các ý học sinh vừa trả sai";
+  const list = wrong.map((it) => `(${it.key}) ${it.text}`).join(" · ");
+  return `${ten}: ${list}`.slice(0, 600);
 }
 
 interface Session {
@@ -1422,7 +1440,7 @@ Deno.serve(async (req: Request) => {
                 grade: String(grade),
                 language,
                 nodeLabel: String(nodeRowAsk?.label ?? q.node_key),
-                question: String(q.noi_dung ?? "").slice(0, 600),
+                question: questionContextFor(q, studentAnswer),
                 ...(matched ? { misconception: safeMisconception(matched, q.dap_an) } : {}),
                 attempts: attemptNo,
                 // `need_think` = mời em nói rõ thêm MỘT nhịp. KHÔNG truyền
@@ -1625,7 +1643,7 @@ Deno.serve(async (req: Request) => {
             grade: String(grade),
             language,
             nodeLabel: String(nodeRowRung?.label ?? q.node_key),
-            question: String(q.noi_dung ?? "").slice(0, 600),
+            question: questionContextFor(q, studentAnswer),
             ...(chanDoanRung ? { misconception: chanDoanRung } : {}),
             rungQuestion: rungText,
             attempts: attemptNo,

@@ -369,3 +369,27 @@ export function parseInteractive(
   }
   return null;
 }
+
+/** Ý nào trong "Đúng/Sai chùm ý" mà học sinh vừa trả SAI — để đưa AI đúng NGỮ
+ *  CẢNH của MỘT ý, thay vì cả khối nhiều ý gộp chung. Đo trên hội thoại thật
+ *  (9/2026, 10 phiên thử độc lập): AI được đưa nguyên `noi_dung` (mọi ý gộp)
+ *  cộng chuỗi đáp án tổng ("a:dung,b:sai,…") mà không tách theo ý, nên hay lẫn
+ *  ý này sang ý khác hoặc lạc sang câu khác khi hội thoại kéo dài nhiều lượt.
+ *  Trả null nếu không phải checklist / không chấm được / không có ý nào sai. */
+export function wrongChecklistItems(
+  noiDung: string,
+  dapAn: string,
+  student: string,
+): OrderItem[] | null {
+  const inter = parseInteractive("mcq", noiDung, dapAn);
+  if (!inter?.checklist) return null;
+  const correct = checklistMap(dapAn);
+  const given = checklistAnswerMap(student);
+  if (!correct || !given) return null;
+  const wrong = inter.checklist.items.filter((it) => {
+    const c = correct.get(it.key);
+    const g = given.get(it.key);
+    return c !== undefined && g !== undefined && c !== g;
+  });
+  return wrong.length > 0 ? wrong : null;
+}
