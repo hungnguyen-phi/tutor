@@ -325,6 +325,10 @@ button {
   background: none;
   border: none;
   padding: 0;
+  /* Double-click nhanh (đo được ở người thử nóng vội) bôi đen cả trang thay vì
+     chỉ kích hoạt nút — trình duyệt coi double-click là lệnh chọn văn bản mặc
+     định, nút bấm không tự miễn trừ. */
+  user-select: none;
 }
 :where(button, a, input, textarea, [tabindex]):focus-visible {
   outline: 3px solid var(--navy);
