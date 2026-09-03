@@ -33,6 +33,7 @@ import LearningPath, { type PathNode } from "./LearningPath";
 import CameraShot from "./CameraShot";
 import Lion from "./Lion";
 import KhoBauView from "./KhoBauView";
+import RailOnLuyen from "./RailOnLuyen";
 import ReviewView from "./ReviewView";
 import QuestsView from "./QuestsView";
 import ProfileView from "./ProfileView";
@@ -1877,15 +1878,14 @@ export default function TutorApp() {
         </div>
       )}
 
-      {/* MỘT CỘT, CANH GIỮA. Học liệu đã RỜI KHỎI màn làm bài (chủ dự án chốt
-          10/08): nó sống ở Kho báu, không nằm cạnh câu hỏi nữa.
-          Bố cục ba cột trước đây (đệm rỗng · đề bài · học liệu, ngưỡng 1360px)
-          tồn tại CHỈ để giữ đề bài ở chính giữa trong khi vẫn bày được cột học
-          liệu bên phải. Không còn cột đó thì cả bộ khung ấy hết lý do tồn tại —
-          gỡ luôn thay vì để một cột rỗng và một mớ rule bù trừ quanh nó.
-          `.lsn-grid` giữ lại vì nó là DẤU nhận màn làm bài (nền trắng qua
-          `body:has(.lsn-grid)`), không còn là lưới. */}
+      {/* CANH GIỮA, một dải icon MẢNH bên trái (09/2026) — KHÔNG phải cột học
+          liệu đầy đủ đã gỡ 10/08 (chủ dự án: "rối, nhiều món rời"). Rail chỉ
+          3 icon tròn audio/video/ảnh (RailOnLuyen.tsx), không nhãn dài, không
+          mô tả — bấm mới mở popup, không choán chỗ khi không cần. Node không
+          có học liệu loại này thì rail tự ẩn (trả về null), `.lsn-grid` không
+          đổi layout gì cả. */}
       <div className="lsn-grid">
+        {q && <RailOnLuyen subject={subject} nodeKey={q.nodeKey} onXp={grant} />}
         <div className="lsn-main">
       {q && (
         <>

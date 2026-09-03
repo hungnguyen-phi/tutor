@@ -12070,6 +12070,124 @@ textarea {
 .lsn-grid { display: contents; }
 .lsn-main { min-width: 0; }
 
+/* ═══ THANH ÔN LẠI — dải icon audio/video/ảnh cạnh câu hỏi (09/2026) ══════════
+   `position: fixed` neo mép trái VIEWPORT, KHÔNG dựa vào `.lsn-grid` (khung đó
+   đổi display theo breakpoint, ghép rail vào sẽ tranh cột với đề bài). Nổi độc
+   lập là cách chắc nhất để "bên trái" đúng nghĩa ở MỌI cỡ màn hình. Ẩn hẳn dưới
+   860px (đề bài đã chật, rail đè lên chữ) — quy mô nhỏ dùng Kho báu là đủ. */
+.rol-rail {
+  position: fixed;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (max-width: 859.98px) {
+  .rol-rail { display: none; }
+}
+.rol-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 2px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 16px -8px rgb(10 12 40 / 35%);
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.rol-btn svg { width: 20px; height: 20px; }
+.rol-btn:hover { transform: scale(1.08); border-color: var(--sky); color: var(--sky); }
+/* Đã bấm mở = viền vàng đặc + tích nhỏ — cùng ngôn ngữ "đã lấy" với Kho báu
+   (chip Kho báu cũng đổi sang viền/nền khi mucDaQua đủ), không bịa quy tắc mới. */
+.rol-btn[data-xem] {
+  border-color: var(--gold);
+  color: var(--gold-ink, #8a6d00);
+}
+.rol-btn[data-xem]::after {
+  content: "✓";
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--on-gold);
+  font-size: 0.625rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.rol-toast {
+  position: fixed;
+  left: 18px;
+  bottom: 24px;
+  z-index: 21;
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  box-shadow: 0 12px 28px -14px rgb(10 12 40 / 55%);
+  animation: rol-toast-in 220ms var(--ease) both;
+}
+@keyframes rol-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+/* Popup xem/nghe — nổi giữa màn, không rời khỏi câu hỏi phía sau (backdrop mờ,
+   bấm ra ngoài đóng luôn). Kích thước gần bằng màn Kho báu để phim/PDF đủ rộng
+   đọc được, nhưng vẫn là MỘT hộp thoại, không điều hướng sang màn khác. */
+.rol-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.rol-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(10 12 40 / 62%);
+  cursor: pointer;
+}
+.rol-popup-card {
+  position: relative;
+  width: min(920px, 100%);
+  height: min(80vh, 720px);
+  background: var(--surface);
+  border-radius: var(--r);
+  box-shadow: 0 30px 70px -24px rgb(10 12 40 / 60%);
+  overflow: hidden;
+  display: flex;
+}
+.rol-popup-card > .lsv-stage { flex: 1 1 auto; min-width: 0; }
+.rol-popup-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgb(10 12 40 / 55%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.rol-popup-x:hover { background: rgb(10 12 40 / 75%); }
+.rol-popup-loi { margin: auto; padding: 24px; text-align: center; }
+
 /* NỀN BÀI TẬP = TRẮNG (chủ dự án chốt 30/07).
    Canvas xanh nhạt là không khí của tab Học/lộ trình; lúc ĐANG LÀM BÀI thì mọi
    thứ phải lùi lại cho đề bài và đáp án. Chỉ đổi ĐÚNG màn có .lsn-grid — các

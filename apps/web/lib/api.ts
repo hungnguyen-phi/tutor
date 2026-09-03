@@ -867,6 +867,37 @@ export const nodeResources = (subject: Subject, nodeKey: string) =>
 export const khoBauXong = (subject: Subject, nodeKey: string, muc: number) =>
   callFn<KhoBauResult>("resources", { subject, node_key: nodeKey, action: "done", muc });
 
+/** Một mục trong THANH ÔN LẠI cạnh câu hỏi — chỉ 3 định dạng audio/video/ảnh
+ *  (xem RAIL_FORMATS ở resources/index.ts), không theo luật "ba mức mở dần". */
+export interface RailResource {
+  id: string;
+  resourceKey?: string;
+  tieuDe: string | null;
+  format: ResourceFormat;
+  uri: string | null;
+  lyDoChonFormat?: string | null;
+  /** Học sinh đã bấm mở mục này chưa. */
+  daXem: boolean;
+}
+
+export interface RailResult {
+  resources: RailResource[];
+  /** Đã mở HẾT mọi mục trong thanh — client dùng để tô trạng thái "xong". */
+  daXemHet: boolean;
+}
+
+export const nodeRail = (subject: Subject, nodeKey: string) =>
+  callFn<RailResult>("resources", { subject, node_key: nodeKey, action: "rail" });
+
+/** Ghi "đã mở" MỘT mục trong thanh. Xem hết cả thanh (lần đầu) thì server tự
+ *  cộng XP `resource_review` và trả kèm `xp` — vắng field này = chưa xong hết
+ *  hoặc đã ăn thưởng từ trước (chống farm ở DB, không phải lỗi). */
+export const markResourceViewed = (subject: Subject, nodeKey: string, resourceId: string) =>
+  callFn<{ ok: boolean; xp?: { total: number; streak: number; gained: number } }>(
+    "resources",
+    { subject, node_key: nodeKey, action: "markViewed", resourceId },
+  );
+
 // ── Học liệu: phía GIÁO VIÊN ────────────────────────────────────────────────
 export interface TeacherNode {
   key: string;
