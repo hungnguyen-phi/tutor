@@ -2152,7 +2152,9 @@ ul {
 .path-lion {
   position: absolute;
   top: 24px;
-  right: calc(50% + 70px);
+  /* 100px chứ không 70px (chủ dự án 09/2026: "sư tử sát node quá") — lùi thêm
+     30px cho thoáng, không đụng cỡ 132px hay layout node xung quanh. */
+  right: calc(50% + 100px);
   z-index: -1;
   display: grid;
   justify-items: center;
@@ -2162,7 +2164,7 @@ ul {
 }
 .path-lion-r {
   right: auto;
-  left: calc(50% + 70px);
+  left: calc(50% + 100px);
 }
 .path-lion::before {
   content: "";
