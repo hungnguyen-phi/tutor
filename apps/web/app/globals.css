@@ -6861,42 +6861,55 @@ html[data-motion="reduce"] .think-dots::after {
 .hl-hint { font-size: 0.75rem; line-height: 1.5; margin: 0; }
 
 /* ── KHO BÁU: học liệu đứng CẠNH dấu chân bài, không nằm trong bài ────────── */
+/* Nền TRẮNG + viền vàng mảnh trước đây (bản cũ) đọ hệt các chip trung tính
+   khác cạnh đó (".node-pending" "chờ chấm" cũng trắng-viền-nhạt) — đo được
+   09/2026: người thao tác nhanh bấm nhầm giữa dấu chân bài và nút này vì cả
+   hai đứng cạnh nhau mà nút Kho báu không đủ "khác hẳn" để mắt bắt được ngay.
+   Đổi sang NỀN VÀNG ĐẶC (đúng quy ước sẵn có: vàng làm NỀN chip, chữ navy —
+   xem HocLieu.tsx) để đây đọc ra ngay là một NÚT MỜI GỌI, không phải một chip
+   thông tin trung tính như các badge lân cận. */
 .node-treasure {
   position: absolute;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 10px;
+  padding: 7px 11px;
   border: 2px solid var(--gold);
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--gold);
+  color: var(--on-gold);
   font-size: 0.75rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 0 var(--gold);
+  box-shadow: 0 2px 0 var(--gold-press, #b88900);
 }
 /* Đặt HẲN RA NGOÀI đĩa dấu chân (đĩa rộng 74–86px, nửa đĩa ~43px) — neo theo
    tâm <li> chứ không theo mép, vì mép <li> co theo nội dung nên trước đây hộp
    quà nằm ĐÈ LÊN bàn chân. Neo đỉnh theo đĩa, không theo cả ô (ô của bài đang
-   học còn chứa cờ BẮT ĐẦU + nhãn nên cao hơn hẳn). */
-.node-treasure[data-side="l"] { right: calc(50% + 58px); }
-.node-treasure[data-side="r"] { left: calc(50% + 58px); }
+   học còn chứa cờ BẮT ĐẦU + nhãn nên cao hơn hẳn). Đẩy xa thêm 6px (58→64) để
+   tay bấm nhanh không quẹt trúng đĩa dấu chân ngay cạnh. */
+.node-treasure[data-side="l"] { right: calc(50% + 64px); }
+.node-treasure[data-side="r"] { left: calc(50% + 64px); }
 .node-treasure { top: 34px; transform: none; }
 .node-treasure svg {
   width: 16px;
   height: 16px;
   flex: none;
-  color: var(--gold-ink, #8a6d00);
+  color: var(--on-gold);
 }
 .node-treasure:hover { border-color: var(--navy); box-shadow: 0 2px 0 var(--navy); }
 .node-treasure:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
-/* Mở hết mức thì thôi nhấp nháy mời gọi — đổi sang dáng "đã lấy". */
+/* Mở hết mức thì thôi nhấp nháy mời gọi — đổi sang dáng "đã lấy", NHẠT lại
+   thành chip trung tính (đúng — lúc này nó chỉ còn là thông tin, không còn gì
+   để mời). */
 .node-treasure[data-done] {
   border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
   box-shadow: none;
   opacity: 0.75;
 }
+.node-treasure[data-done] svg { color: var(--gold-ink, #8a6d00); }
 /* Bài chưa mở → kho báu cũng chưa mở. Vẫn HIỆN (để em biết phía trước có gì đợi)
    nhưng xám và không bấm được — không mời gọi rồi từ chối. */
 .node-treasure[data-locked] {
