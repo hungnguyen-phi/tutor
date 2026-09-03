@@ -25,7 +25,7 @@
 import { useState } from "react";
 import { usePrePaintEffect } from "./anim";
 
-export type NudgeKind = "tucngu" | "cadao" | "dongdao" | "nguyngon" | "chamngon";
+export type NudgeKind = "tucngu" | "cadao" | "dongdao" | "chamngon";
 
 export type Nudge = {
   text: string;
@@ -37,21 +37,23 @@ export const KIND_LABEL: Record<NudgeKind, string> = {
   tucngu: "Tục ngữ Việt Nam",
   cadao: "Ca dao",
   dongdao: "Đồng dao",
-  nguyngon: "Ngụ ngôn Ê-dốp",
   chamngon: "Châm ngôn học hành",
 };
 
 /**
  * Kho câu nhắc ở thẻ sư tử (cột phải màn Học).
  * Giữ MỖI CÂU ≤ 2 dòng ở khung 300px — dài hơn là em không đọc.
+ *
+ * ⚠️ tucngu/cadao/dongdao PHẢI đúng NGUYÊN VĂN — không tự thêm chữ vào rồi
+ * gắn mác dân gian (đã trả giá 03/09: bịa đuôi câu, chủ dự án bắt lỗi ngay).
+ * Muốn thêm lời khuyên tự viết thì dùng "chamngon".
  */
 export const TIPS: Nudge[] = [
   // ── Dân gian: kiên trì, tích tiểu thành đại ───────────────────────────────
-  { kind: "tucngu", text: "Có công mài sắt, có ngày nên kim. Hôm nay em mài thêm một đường." },
-  { kind: "tucngu", text: "Nước chảy đá mòn — không phải nhờ mạnh, mà nhờ đều." },
+  { kind: "tucngu", text: "Có công mài sắt, có ngày nên kim." },
+  { kind: "tucngu", text: "Nước chảy đá mòn." },
   { kind: "tucngu", text: "Đi một ngày đàng, học một sàng khôn." },
-  { kind: "tucngu", text: "Học ăn, học nói, học gói, học mở — việc gì cũng phải học mới nên." },
-  { kind: "tucngu", text: "Dao sắc không gọt được chuôi. Bí chỗ nào thì hỏi, đừng ngồi im." },
+  { kind: "tucngu", text: "Học ăn, học nói, học gói, học mở." },
   { kind: "tucngu", text: "Muốn biết phải hỏi, muốn giỏi phải học." },
   { kind: "tucngu", text: "Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao." },
   { kind: "cadao", text: "Ai ơi giữ chí cho bền\nDù ai xoay hướng đổi nền mặc ai." },
@@ -60,28 +62,6 @@ export const TIPS: Nudge[] = [
     text: "Non cao cũng có đường trèo\nĐường dù hiểm nghèo cũng có lối đi.",
   },
   { kind: "dongdao", text: "Lúa ngô là cô đậu nành, đậu nành là anh dưa chuột, dưa chuột là ruột dưa gang." },
-
-  // ── Ngụ ngôn Ê-dốp: kể lại bằng lời mình, giữ đúng bài học ────────────────
-  {
-    kind: "nguyngon",
-    text: "Con quạ khát nước thả từng viên sỏi vào bình cho nước dâng lên. Từng viên nhỏ, nhưng đủ để uống.",
-  },
-  {
-    kind: "nguyngon",
-    text: "Rùa và thỏ: thỏ chạy nhanh rồi ngủ, rùa đi chậm mà không dừng — về đích là rùa.",
-  },
-  {
-    kind: "nguyngon",
-    text: "Con cáo khen chùm nho xanh là chua vì với không tới. Bài khó không xấu — bỏ ngang mới đáng tiếc.",
-  },
-  {
-    kind: "nguyngon",
-    text: "Người cha bảo các con bó những cây roi lại: một cây thì gãy, cả bó thì không. Kiến thức cũng vậy — buộc lại mới chắc.",
-  },
-  {
-    kind: "nguyngon",
-    text: "Con lừa chở muối qua sông tưởng ngã là nhẹ gánh, lần sau chở bông thì ướt nặng gấp đôi. Mẹo tắt không thay được hiểu bài.",
-  },
 
   // ── Châm ngôn học hành (diễn đạt trung tính, không gán tác giả) ───────────
   { kind: "chamngon", text: "Sai một câu là biết thêm một chỗ mình chưa vững — đó là lãi, không phải lỗ." },
