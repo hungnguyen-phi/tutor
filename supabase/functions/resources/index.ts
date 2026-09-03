@@ -11,6 +11,12 @@
 import { handleOptions, json } from "../_shared/cors.ts";
 import { admin } from "../_shared/supa.ts";
 import { authenticate, can } from "../_shared/auth.ts";
+import { awardXp } from "../_shared/xp.ts";
+
+/** 3 định dạng "ôn lại" trong thanh cạnh câu hỏi (chủ dự án 09/2026) — audio/
+ *  video/ảnh, KHÔNG gồm quiz/flashcard (thứ luyện SAU khi đã hiểu, không giúp
+ *  được lúc đang bí) hay mindmap/slide (ở lại Kho báu, không nhân đôi chỗ hiện). */
+const RAIL_FORMATS = ["video", "podcast", "infographic"] as const;
 
 const BUCKET = "learning-assets";
 const SIGNED_URL_TTL = 3600; // giây — đủ một buổi học; hết hạn thì client xin lại
@@ -62,6 +68,78 @@ Deno.serve(async (req: Request) => {
     const thieu = (canh ?? []).map((e) => String(e.from_key)).filter((k) => !xong.has(k));
     if (thieu.length > 0 && !xong.has(String(node_key))) {
       return json({ resources: [], mucDaQua: 0, mucDangMo: 0, mucCoSan: [], conMucSau: false, khoa: true });
+    }
+
+    // ── THANH ÔN LẠI cạnh câu hỏi (audio/video/ảnh) + thưởng XP xem hết ─────
+    // KHÔNG theo luật "ba mức mở dần" của Kho báu (đó là cơ chế MỜI QUAY LẠI
+    // nhiều lần; đây là tài liệu ôn TRƯỚC KHI làm bài, nên hiện hết ngay, không
+    // khoá theo tier). "Xem" = học sinh BẤM MỞ popup — trình duyệt không bắt
+    // được sự kiện "phát xong" qua iframe YouTube/Drive khác tên miền, nên đây
+    // là tín hiệu chắc chắn nhất đo được, không giả vờ đo "xem hết thật".
+    if (action === "rail") {
+      const { data: rows } = await supa
+        .from("resources")
+        .select("id, resource_key, tieu_de, format, uri, ly_do_chon_format")
+        .eq("kg_version_id", version.id)
+        .eq("node_key", node_key)
+        .eq("status", "active")
+        .eq("hien_thi", true)
+        .in("format", RAIL_FORMATS as unknown as string[]);
+      const all = rows ?? [];
+      const ids = all.map((r) => r.id);
+      const { data: viewedRows } = ids.length
+        ? await supa.from("resource_views").select("resource_id").eq("student_id", ctx.userId).in("resource_id", ids)
+        : { data: [] as { resource_id: string }[] };
+      const daXemSet = new Set((viewedRows ?? []).map((v) => v.resource_id));
+      const resources = await Promise.all(
+        all.map(async (r) => {
+          let uri: string | null = r.uri ?? null;
+          if (uri && !/^https?:\/\//i.test(uri)) {
+            const { data: signed } = await supa.storage.from(BUCKET).createSignedUrl(uri, SIGNED_URL_TTL);
+            uri = signed?.signedUrl ?? null;
+          }
+          return {
+            id: r.id,
+            resourceKey: r.resource_key,
+            tieuDe: r.tieu_de ?? null,
+            format: r.format,
+            uri,
+            lyDoChonFormat: r.ly_do_chon_format,
+            daXem: daXemSet.has(r.id),
+          };
+        }),
+      );
+      return json({ resources, daXemHet: resources.length > 0 && resources.every((r) => r.daXem) });
+    }
+
+    if (action === "markViewed") {
+      const resourceId = String(body.resourceId ?? "");
+      if (!resourceId) return json({ error: "resourceId required" }, 400);
+      await supa.from("resource_views").upsert(
+        { tenant_id: ctx.tenantId, student_id: ctx.userId, kg_version_id: version.id, node_key, resource_id: resourceId },
+        { onConflict: "student_id,resource_id" },
+      );
+      const { data: rows } = await supa
+        .from("resources")
+        .select("id")
+        .eq("kg_version_id", version.id)
+        .eq("node_key", node_key)
+        .eq("status", "active")
+        .eq("hien_thi", true)
+        .in("format", RAIL_FORMATS as unknown as string[]);
+      const ids = (rows ?? []).map((r) => r.id);
+      let xp: Awaited<ReturnType<typeof awardXp>> = null;
+      if (ids.length > 0) {
+        const { data: viewedRows } = await supa.from("resource_views").select("resource_id").eq("student_id", ctx.userId).in("resource_id", ids);
+        const daXemSet = new Set((viewedRows ?? []).map((v) => v.resource_id));
+        const daXemHet = ids.every((id) => daXemSet.has(id));
+        if (daXemHet) {
+          xp = await awardXp(supa, ctx.tenantId, ctx.userId, [
+            { kind: "resource_review", nodeId: String(node_key), kgVersionId: version.id },
+          ]);
+        }
+      }
+      return json({ ok: true, ...(xp ? { xp } : {}) });
     }
 
     const { data: prog } = await supa

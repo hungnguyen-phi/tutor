@@ -13,6 +13,7 @@ export const XP_AMOUNT = {
   persistence: 5, // thử lại sau khi sai — thưởng cho việc không bỏ cuộc
   lesson_done: 20, // hoàn thành buổi học (một lần mỗi phiên)
   node_mastered: 30, // làm chủ một điểm kiến thức (một lần mỗi node × KG version)
+  resource_review: 5, // xem hết thanh học liệu ôn lại của một node (một lần mỗi node × KG version)
 } as const;
 
 export type XpKind = keyof typeof XP_AMOUNT;
