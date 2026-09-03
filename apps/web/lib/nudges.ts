@@ -25,7 +25,7 @@
 import { useState } from "react";
 import { usePrePaintEffect } from "./anim";
 
-export type NudgeKind = "tucngu" | "cadao" | "dongdao" | "chamngon";
+export type NudgeKind = "tucngu" | "cadao" | "dongdao";
 
 export type Nudge = {
   text: string;
@@ -37,16 +37,17 @@ export const KIND_LABEL: Record<NudgeKind, string> = {
   tucngu: "Tục ngữ Việt Nam",
   cadao: "Ca dao",
   dongdao: "Đồng dao",
-  chamngon: "Châm ngôn học hành",
 };
 
 /**
  * Kho câu nhắc ở thẻ sư tử (cột phải màn Học).
  * Giữ MỖI CÂU ≤ 2 dòng ở khung 300px — dài hơn là em không đọc.
  *
- * ⚠️ tucngu/cadao/dongdao PHẢI đúng NGUYÊN VĂN — không tự thêm chữ vào rồi
- * gắn mác dân gian (đã trả giá 03/09: bịa đuôi câu, chủ dự án bắt lỗi ngay).
- * Muốn thêm lời khuyên tự viết thì dùng "chamngon".
+ * ⚠️ TOÀN BỘ PHẢI đúng NGUYÊN VĂN, KHÔNG TỰ VIẾT — kể cả một câu (chủ dự án
+ * 03/09: đã trả giá 2 lần, lần đầu vì bịa đuôi câu, lần hai vì tự viết cả
+ * mảng rồi gắn nhãn trung tính "chamngon" — vẫn bị bác, không có ngoại lệ
+ * "tự viết nhưng ghi nhãn thật"). Trước khi thêm câu mới, PHẢI tra nguồn qua
+ * WebSearch/WebFetch, không gõ theo trí nhớ.
  */
 export const TIPS: Nudge[] = [
   // ── Tục ngữ (nguyên văn — nguồn: quantrimang.com, appongtho.com) ──────────
@@ -120,63 +121,52 @@ export const TIPS: Nudge[] = [
   { kind: "dongdao", text: "Kéo cưa lừa xẻ\nÔng thợ nào khỏe." },
   { kind: "dongdao", text: "Chi chi chành chành\nCái đanh thổi lửa." },
 
-  // ── Châm ngôn học hành (tự viết, diễn đạt trung tính, không gán tác giả) ──
-  { kind: "chamngon", text: "Sai một câu là biết thêm một chỗ mình chưa vững — đó là lãi, không phải lỗ." },
-  { kind: "chamngon", text: "Não em lớn lên đúng lúc em thấy khó. Dễ quá thì chẳng có gì mọc thêm." },
-  { kind: "chamngon", text: "Mỗi ngày một bài ngắn — đều đặn thắng dốc sức." },
-  { kind: "chamngon", text: "Chưa hiểu không giống là không hiểu được. Thêm một lượt nữa thôi." },
-  { kind: "chamngon", text: "Người hỏi câu ngốc nghếch trong năm phút, hơn người giả vờ hiểu suốt cả năm." },
-  { kind: "chamngon", text: "Đừng so với bạn bên cạnh — so với chính em hôm qua." },
-  { kind: "chamngon", text: "Học là bắc thang: đứng bậc dưới cho vững rồi bậc trên tự tới." },
-  { kind: "chamngon", text: "Bài khó thì chia nhỏ ra mà đi — tay đếm miệng đọc, từng bước một rồi cũng xong." },
-  { kind: "chamngon", text: "Dốc lòng học hôm nay khó, để ngày sau đỡ vất hơn." },
-  { kind: "chamngon", text: "Làm sai không phải làm dở — chỉ là chưa xong thôi." },
-  { kind: "chamngon", text: "Một bước nhỏ hôm nay hơn một quyết tâm to để mai." },
-  { kind: "chamngon", text: "Câu hỏi ngốc nhất là câu không dám hỏi." },
-  { kind: "chamngon", text: "Hiểu chậm không sao — miễn là hiểu thật, không phải nhớ tạm." },
-  { kind: "chamngon", text: "Sai ba lần không phải là dừng — là biết thêm ba chỗ cần sửa." },
-  { kind: "chamngon", text: "Không ai giỏi ngay từ câu đầu tiên." },
-  { kind: "chamngon", text: "Chăm một chút mỗi ngày hơn hẳn một đêm thức trắng." },
-  { kind: "chamngon", text: "Đọc lại lần hai thường hiểu hơn đọc vội lần một." },
-  { kind: "chamngon", text: "Đừng vội nản — hiểu bài là một hành trình, không phải một cú nhảy." },
-  { kind: "chamngon", text: "Tự hỏi \"vì sao\" trước khi hỏi người khác — có khi tự trả lời được." },
-  { kind: "chamngon", text: "Mỗi lỗi sai là một manh mối, không phải một bản án." },
-  { kind: "chamngon", text: "Chững lại một lúc để nghĩ, còn hơn đoán bừa cho nhanh." },
-  { kind: "chamngon", text: "Việc khó chia nhỏ ra thì việc nào cũng làm được." },
-  { kind: "chamngon", text: "Không hiểu ngay không có nghĩa là không hiểu được." },
-  { kind: "chamngon", text: "Cứ thử đã — sai thì sửa, còn hơn không thử." },
-  { kind: "chamngon", text: "Kiên nhẫn với chính mình cũng là một kỹ năng cần luyện." },
-  { kind: "chamngon", text: "Nắm chắc cái cũ thì cái mới học nhanh hơn hẳn." },
-  { kind: "chamngon", text: "Một câu hỏi rõ ràng thường mở ra một câu trả lời rõ ràng." },
-  { kind: "chamngon", text: "Nghỉ một chút để đầu óc lắng lại, rồi quay lại vẫn kịp." },
-  { kind: "chamngon", text: "Học là quá trình sửa dần, không phải cuộc thi một lần đúng ngay." },
-  { kind: "chamngon", text: "Cẩn thận hơn một chút cũng đủ tránh được nửa số lỗi sai." },
-  { kind: "chamngon", text: "Chỗ nào còn ngập ngừng là chỗ cần luyện thêm, không phải chỗ để né." },
-  { kind: "chamngon", text: "Làm được một bài khó hôm nay, bài tương tự mai sẽ nhẹ hơn." },
-  { kind: "chamngon", text: "Nhớ bằng hiểu thì lâu quên hơn nhớ bằng học vẹt." },
-  { kind: "chamngon", text: "Sai chỗ nào, sửa đúng chỗ đó — đừng làm lại từ đầu cho chắc." },
-  { kind: "chamngon", text: "Tự tin không phải là luôn đúng, mà là dám thử dù chưa chắc." },
-  { kind: "chamngon", text: "Một bài làm chắc còn hơn ba bài làm ẩu." },
-  { kind: "chamngon", text: "Cứ hỏi khi chưa rõ — im lặng không giúp bài dễ hơn." },
-  { kind: "chamngon", text: "Chậm mà chắc vẫn về đích, vội mà sai phải làm lại từ đầu." },
-  { kind: "chamngon", text: "Lỗi tìm ra hôm nay là lỗi không còn gặp lại lúc kiểm tra." },
-  { kind: "chamngon", text: "Đọc kỹ đề bài một lần nữa trước khi vội làm." },
-  { kind: "chamngon", text: "Không có ai nhớ hết ngay lần đầu — nhắc lại vài lần là nhớ." },
-  { kind: "chamngon", text: "Cứ làm hết sức mình, phần còn lại để lúc khác tiếp tục." },
-  { kind: "chamngon", text: "Hỏi \"vì sao đúng\" cũng quan trọng như hỏi \"vì sao sai\"." },
-  { kind: "chamngon", text: "Một buổi học chắc tay hơn ba buổi học đối phó." },
-  { kind: "chamngon", text: "Khi bí, thử đổi cách nhìn bài toán — có khi lối ra ở góc khác." },
-  { kind: "chamngon", text: "Cứ đi chậm cũng được, miễn đừng đứng yên." },
-  { kind: "chamngon", text: "Càng luyện nhiều dạng bài, càng ít bất ngờ khi gặp bài lạ." },
-  { kind: "chamngon", text: "Một điểm kiến thức nắm chắc quý hơn mười điểm học loáng thoáng." },
-  { kind: "chamngon", text: "Bình tĩnh đọc lại đề — nhiều lỗi sai vì đọc vội, không phải vì không biết." },
-  { kind: "chamngon", text: "Không hiểu bài không phải vì kém, chỉ là bài đó cần thêm thời gian." },
-  { kind: "chamngon", text: "Học cùng bạn bè khi bí cũng là một cách học rất hay." },
-  { kind: "chamngon", text: "Nghỉ tay uống nước rồi quay lại — đầu óc cũng cần thở." },
-  { kind: "chamngon", text: "Một chút cố gắng thêm mỗi ngày, cộng dồn lại là một quãng đường dài." },
-  { kind: "chamngon", text: "Nhìn lại bài đã làm đúng cũng đáng để hiểu, không chỉ bài làm sai." },
-  { kind: "chamngon", text: "Đề khó thường chỉ khó ở một bước — tìm đúng bước đó là xong cả bài." },
-  { kind: "chamngon", text: "Buổi học hôm nay chưa xong thì mai học tiếp, không cần dồn hết vào một lần." },
+  { kind: "dongdao", text: "Rồng rắn lên mây\nCó cây xúc sắc." },
+  { kind: "dongdao", text: "Tập tầm vông\nTay nào không." },
+  { kind: "dongdao", text: "Thả đỉa ba ba\nChớ bắt đàn bà." },
+
+  // ── Tục ngữ, đợt 2: đoàn kết, trung thực, khiêm tốn, ý chí (nguyên văn —
+  //    nguồn: quantrimang.com, farmvietnguyen.com, rdsic.edu.vn) ────────────
+  { kind: "tucngu", text: "Ăn quả nhớ kẻ trồng cây." },
+  { kind: "tucngu", text: "Đói cho sạch, rách cho thơm." },
+  { kind: "tucngu", text: "Lá lành đùm lá rách." },
+  { kind: "tucngu", text: "Một con ngựa đau, cả tàu bỏ cỏ." },
+  { kind: "tucngu", text: "Bẻ đũa chẳng bẻ được cả nắm." },
+  { kind: "tucngu", text: "Quân tử nhất ngôn, tứ mã nan truy." },
+  { kind: "tucngu", text: "Giấy rách phải giữ lấy lề." },
+  { kind: "tucngu", text: "Thương nhau như thể tay chân." },
+  { kind: "tucngu", text: "Một giọt máu đào hơn ao nước lã." },
+  { kind: "tucngu", text: "Tấc đất tấc vàng." },
+  { kind: "tucngu", text: "Biết người biết ta, trăm trận trăm thắng." },
+  { kind: "tucngu", text: "Núi cao còn có núi cao hơn." },
+  { kind: "tucngu", text: "Ăn nói cho có đầu có đũa." },
+  { kind: "tucngu", text: "Mưu cao chẳng bằng chí dày." },
+
+  // ── Ca dao, đợt 2 (nguyên văn — nguồn: quantrimang.com, rdsic.edu.vn) ─────
+  {
+    kind: "cadao",
+    text: "Nhiễu điều phủ lấy giá gương\nNgười trong một nước phải thương nhau cùng.",
+  },
+  {
+    kind: "cadao",
+    text: "Bầu ơi thương lấy bí cùng\nTuy rằng khác giống nhưng chung một giàn.",
+  },
+  {
+    kind: "cadao",
+    text: "Lời nói chẳng mất tiền mua\nLựa lời mà nói cho vừa lòng nhau.",
+  },
+  {
+    kind: "cadao",
+    text: "Những người tính nết thật thà\nĐi đâu cũng được người ta tin dùng.",
+  },
+  {
+    kind: "cadao",
+    text: "Công cha như núi Thái Sơn\nNghĩa mẹ như nước trong nguồn chảy ra.",
+  },
+  {
+    kind: "cadao",
+    text: "Khôn ngoan đối đáp người ngoài\nGà cùng một mẹ chớ hoài đá nhau.",
+  },
 ];
 
 /**
