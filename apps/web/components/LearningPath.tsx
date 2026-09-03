@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Check, ChevronDown, Flag, Gift, Hourglass, LocateFixed, Lock, Paperclip, Play, RotateCcw, Undo2 } from "lucide-react";
+import { Award, BookOpen, Check, ChevronDown, Flag, Gift, LocateFixed, Lock, Paperclip, Play, RotateCcw, Undo2 } from "lucide-react";
 import Lion, { type LionMood } from "./Lion";
 import PawNode from "./PawNode";
 import { MathText } from "../lib/mathrender";
@@ -291,16 +291,13 @@ export default function LearningPath({
     // Sư tử mascot đứng bên nào: theo dấu chân đang lệch trái hay phải.
     const shiftedLeft = g.dx < 0;
     const Icon = n.state === "available" ? null : ICON[n.state];
-    // Thẻ bài đang học gom SẴN tiến trình + chờ chấm (xem .node-card): các badge
-    // rời chỉ còn dùng cho node KHÁC.
+    // Thẻ bài đang học gom SẴN tiến trình (xem .node-card).
     const isCurrent = n.state === "current";
     const showProg = isCurrent && (n.progress ?? 0) > 0;
-    const waiting = (n.pending ?? 0) > 0 && n.state !== "mastered";
     // Máy đọc: thẻ trên đầu node là aria-hidden (chữ trang trí trùng nhãn nút),
-    // nên số dang dở / chờ chấm phải nhập vào aria-label của chính cái nút.
+    // nên số dang dở phải nhập vào aria-label của chính cái nút.
     const extra = [
       showProg ? `đã làm ${n.doneCount ?? 0} trên ${n.totalCount ?? 0} câu` : null,
-      waiting ? `${n.pending} bài đang chờ chấm` : null,
     ].filter(Boolean);
     return (
       <li
@@ -335,19 +332,11 @@ export default function LearningPath({
             <span className="node-card" data-preview={preview || undefined} aria-hidden>
               <span className="node-card-kicker">{preview ? "XEM TRƯỚC" : "BẮT ĐẦU"}</span>
               <span className="node-card-name">{shortLabel(n.label)}</span>
-              {(showProg || waiting) && (
+              {showProg && (
                 <span className="node-card-meta">
-                  {showProg && (
-                    <span className="node-card-prog num">
-                      {n.doneCount ?? 0}/{n.totalCount ?? 0} câu
-                    </span>
-                  )}
-                  {waiting && (
-                    <span className="node-card-wait">
-                      <Hourglass aria-hidden strokeWidth={2.25} />
-                      chờ chấm
-                    </span>
-                  )}
+                  <span className="node-card-prog num">
+                    {n.doneCount ?? 0}/{n.totalCount ?? 0} câu
+                  </span>
                 </span>
               )}
             </span>
@@ -366,15 +355,6 @@ export default function LearningPath({
             )}
           </span>
         </button>
-        {/* Bài đang chờ chấm. Từ 01/08 AI chấm ngay lúc nộp nên badge này gần
-            như không còn xuất hiện — nó chỉ còn cho bản nộp cũ chưa chạy lại và
-            cho lúc AI tạm hỏng. Vẫn phải nói ra, kẻo em tưởng app nuốt bài. */}
-        {waiting && !isCurrent && (
-          <span className="node-pending" aria-hidden title={`${n.pending} bài đang chờ chấm`}>
-            <Hourglass aria-hidden strokeWidth={2.25} />
-            chờ chấm
-          </span>
-        )}
         {/* KHO BÁU: học liệu đứng CẠNH bài, không nằm trong bài. KHOÁ THEO BÀI —
             bài chưa mở thì kho báu cũng chưa mở, đúng lối đi tuần tự của lộ
             trình; mở trước thì em nhảy cóc bằng đường học liệu. Ngả về phía đối
