@@ -48,6 +48,7 @@ import {
   Image as ImageIcon,
   Layers,
   ListChecks,
+  Loader2,
   Maximize2,
   Minimize2,
   MousePointerClick,
@@ -271,14 +272,23 @@ export function HocLieuStage({
   // để không ai biến kho thành nơi chạy web lạ. Cách đi được: tự tải nội dung
   // rồi dựng vào khung bằng srcDoc. Tải hỏng (link ngoài chặn CORS) → giữ src
   // như cũ, không làm hỏng đường đang chạy được.
+  //
+  // `loiTaiHtml` TÁCH RIÊNG khỏi "chưa tải xong" (đo được 09/2026, người thử
+  // "vẫn là html"): trước đây MỘT state `noiDung===null` gánh cả hai nghĩa
+  // "đang chờ fetch" VÀ "fetch hỏng", nên khung RƠI THẲNG vào src={uri} (mã
+  // nguồn thô) suốt khoảng chờ — không phải chỉ lúc hỏng. Nay khoảng chờ hiện
+  // vòng xoay, KHÔNG đụng iframe cho tới khi biết chắc kết quả (xong hoặc hỏng).
   const [noiDung, setNoiDung] = useState<string | null>(null);
+  const [loiTaiHtml, setLoiTaiHtml] = useState(false);
   useEffect(() => {
     if (kind !== "html") return;
     let alive = true;
+    setNoiDung(null);
+    setLoiTaiHtml(false);
     fetch(uri)
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))))
       .then((t) => { if (alive) setNoiDung(t); })
-      .catch(() => { if (alive) setNoiDung(null); });
+      .catch(() => { if (alive) setLoiTaiHtml(true); });
     return () => { alive = false; };
   }, [uri, kind]);
 
@@ -363,6 +373,14 @@ export function HocLieuStage({
           src={`${uri}${uri.includes("#") ? "&" : "#"}view=FitH&toolbar=1`}
           title={label}
         />
+      ) : kind === "html" && noiDung == null && !loiTaiHtml ? (
+        // ĐANG CHỜ TẢI: chưa biết xong hay hỏng — TUYỆT ĐỐI không nhúng src={uri}
+        // lúc này. Kho trả file .html dưới dạng text/plain (chặn XSS qua file tự
+        // đăng), nên nhúng thẳng lúc chưa có srcDoc là "chớp" ra mã nguồn thô một
+        // nhịp trước khi kịp thay — đúng lỗi người thử báo "vẫn là html".
+        <div className="lsv-frame lsv-frame-loading" role="status">
+          <Loader2 className="spin" aria-hidden strokeWidth={2} />
+        </div>
       ) : (
         // HTML tự chứa (quiz, flashcard, mindmap tương tác, slide dạng web) —
         // chạy trong hộp cách ly. `allow-same-origin` chỉ cấp khi nội dung nằm ở

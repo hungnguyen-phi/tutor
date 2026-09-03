@@ -4285,6 +4285,11 @@ html[data-motion="reduce"] .spin {
   border-radius: 12px;
   background: var(--canvas-flat);
 }
+/* Khoảng chờ tải học liệu HTML tự chứa (quiz/thẻ ghi nhớ/sơ đồ tư duy) — đứng
+   TRƯỚC khi srcDoc dựng xong, thay vì nhúng thẳng mã nguồn thô (xem ghi chú
+   ở HocLieu.tsx). display:grid để vòng xoay luôn nằm giữa khung. */
+.lsv-frame-loading { display: grid; place-items: center; color: var(--muted); }
+.lsv-frame-loading .spin { color: var(--sky); }
 .lsv-img-wrap {
   display: block;
   border: 1px solid var(--line);

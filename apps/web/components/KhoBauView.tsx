@@ -304,14 +304,16 @@ export default function KhoBauView({
         </div>
       </div>
 
-      <footer className="kb-foot">
-        <Sparkles aria-hidden strokeWidth={2} />
-        <span>
-          Học liệu do thầy cô của trường chọn cho đúng bài này — phần này không tính điểm,
-          cứ thoải mái khám phá.
-          {!daXongHet && " Mỗi lần vào kho báu bạn mở thêm được MỘT mức."}
-        </span>
-      </footer>
+      {/* Câu giải thích chung ("Học liệu do thầy cô chọn...") đã bỏ theo yêu cầu
+          chủ dự án (09/2026) — nhường thêm không gian cho rãnh học liệu. Chỉ
+          giữ lại gợi ý MỚI-mở-mức khi còn mức để mở, vì đó là thông tin em
+          cần biết để quay lại, không phải chữ trang trí. */}
+      {!daXongHet && (
+        <footer className="kb-foot">
+          <Sparkles aria-hidden strokeWidth={2} />
+          <span>Mỗi lần vào kho báu bạn mở thêm được MỘT mức.</span>
+        </footer>
+      )}
 
       {/* CÓ phiếu nhưng bài này KHÔNG có câu nộp → phải NÓI RA (lỗi #1). Đường
           nộp bám vào một câu mang nhãn [NOPBAI] cùng node, mà 85/204 node không
