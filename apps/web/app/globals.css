@@ -4111,7 +4111,12 @@ html[data-motion="reduce"] .spin {
 .lsv-stage-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* Chật (màn Kho báu hẹp, 3 nút hành động + tiêu đề) → XUỐNG DÒNG thay vì đè
+     lên nhau. Đo được 09/2026: dưới ~420px, tiêu đề "Phiếu bài tập" và nút
+     "Toàn màn hình" chữ chồng thẳng lên nhau — không co, không xuống dòng,
+     chỉ ép chật tới mức chữ tràn ra ngoài khung của chính nó. */
+  flex-wrap: wrap;
+  gap: 6px 12px;
   margin-bottom: 8px;
 }
 .lsv-stage-title {
@@ -4122,6 +4127,11 @@ html[data-motion="reduce"] .spin {
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--ink);
+  /* Không đủ chỗ thì CẮT GỌN bằng "…" — không bao giờ tràn chữ đè lên nút bên
+     cạnh (xem ghi chú ở .lsv-stage-bar). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .lsv-stage-act {
   display: inline-flex;
@@ -4137,6 +4147,10 @@ html[data-motion="reduce"] .spin {
   font-weight: 600;
   color: var(--sky);
   text-decoration: none;
+  /* Không bao giờ co nhỏ tới mức nhãn nút bị cắt/đè — thà xuống dòng (flex-wrap
+     ở .lsv-stage-bar) còn hơn một nút không đọc được nó nói gì. */
+  flex: none;
+  white-space: nowrap;
 }
 .lsv-stage-act:hover { text-decoration: underline; }
 /* Toàn màn hình: khung chiếm trọn màn, nền tối dịu để nội dung nổi lên. */
