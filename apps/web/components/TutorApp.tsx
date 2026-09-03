@@ -58,6 +58,7 @@ import { MathText } from "../lib/mathrender";
 import "katex/dist/katex.min.css";
 import {
   diagnose,
+  diagnoseWrong,
   answer,
   answerReflect,
   writing,
@@ -711,7 +712,7 @@ export default function TutorApp() {
   /** `node`: bài học sinh vừa bấm trên lộ trình. PHẢI gửi lên server — thiếu nó
    *  thì diagnose rơi về chế độ chẩn đoán và trả 20 câu đầu của CẢ MÔN (rải trên
    *  19 bài khác nhau), tức bấm bài nào cũng ra cùng một rổ. */
-  async function start(node?: PathNode, questionId?: string) {
+  async function start(node?: PathNode, questionId?: string, wrongMode?: boolean) {
     if (busy) return; // double-tap: tap 2 tới trước khi disabled kịp commit
     // Môn XEM TRƯỚC (chưa live): lộ trình hiện đầy đủ nhưng chưa có ngân hàng
     // câu hỏi → KHÔNG gọi diagnose (tránh buổi học rỗng). Lời sư tử đã báo.
@@ -719,11 +720,16 @@ export default function TutorApp() {
     setError(null);
     setBusy(true);
     try {
-      const d = await diagnose(subject, node?.key, questionId);
+      // BỘ ÔN SAI (chốt 03/09): gom câu từng sai của CẢ MÔN, không phải một node.
+      const d = wrongMode ? await diagnoseWrong(subject) : await diagnose(subject, node?.key, questionId);
       // Bài chưa có câu hỏi (đang cắm nội dung) → KHÔNG vào buổi rỗng/kẹt; giữ học
       // sinh ở lộ trình + báo nhẹ nhàng.
       if (!d.questions || d.questions.length === 0) {
-        setError("Bài này chưa có câu hỏi — nhà trường đang bổ sung nội dung. Bạn chọn bài khác nhé!");
+        setError(
+          wrongMode
+            ? "Chưa có câu nào cần ôn — bạn đang làm tốt lắm, cứ tiếp tục nhé!"
+            : "Bài này chưa có câu hỏi — nhà trường đang bổ sung nội dung. Bạn chọn bài khác nhé!",
+        );
         setBusy(false);
         return;
       }
@@ -1513,6 +1519,11 @@ export default function TutorApp() {
                 onReview={(nodeKey, label) => {
                   switchView("learn");
                   void start({ key: nodeKey, label, state: "available" });
+                }}
+                /* Bộ ôn sai tổng hợp — không gắn với một node cụ thể. */
+                onReviewWrong={() => {
+                  switchView("learn");
+                  void start(undefined, undefined, true);
                 }}
               />
             )}

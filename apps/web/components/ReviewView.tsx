@@ -15,11 +15,13 @@
  *   NHỚ BỀN  — đã leo tới hộp cao nhất (21 ngày)
  *
  * `onGoLearn`: trong chế độ một trang → chuyển view tại chỗ; `onReview` mở thẳng
- * một buổi ôn cho đúng bài (TutorApp gọi diagnose theo nodeKey).
+ * một buổi ôn cho đúng bài (TutorApp gọi diagnose theo nodeKey). `onReviewWrong`
+ * (chốt 03/09) mở BỘ ÔN SAI TỔNG HỢP — không phải một bài, mà đúng các CÂU học
+ * sinh từng làm sai (mọi bài của môn), gom lại cho làm lại một lượt.
  */
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowRight, BookOpenCheck, Flame, RotateCcw, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, ArrowRight, BookOpenCheck, Flame, ListChecks, RotateCcw, Sparkles, Target } from "lucide-react";
 import Lion from "./Lion";
 import * as G from "../lib/gamify";
 import { reviewQueue, type ReviewItem, type ReviewQueue, type Subject } from "../lib/api";
@@ -45,11 +47,14 @@ export default function ReviewView({
   subject,
   onGoLearn,
   onReview,
+  onReviewWrong,
 }: {
   subject?: Subject;
   onGoLearn?: () => void;
   /** Ôn một bài cụ thể — mở buổi học đúng node đó. */
   onReview?: (nodeKey: string, label: string) => void;
+  /** Bộ ôn sai tổng hợp — không gắn với một node cụ thể. */
+  onReviewWrong?: () => void;
 }) {
   const [queue, setQueue] = useState<ReviewQueue | null>(null);
   const [progress, setProgress] = useState<G.Progress | null>(null);
@@ -200,6 +205,21 @@ export default function ReviewView({
           <span>ngày liên tiếp</span>
         </div>
       </div>
+
+      {/* Bộ ôn sai tổng hợp — độc lập với hộp Leitner ở dưới (đó ôn theo NODE
+          tới hạn, đây ôn đúng các CÂU từng sai, không chờ tới hạn). */}
+      {onReviewWrong && (
+        <button type="button" className="rv-wrongpack" onClick={onReviewWrong}>
+          <span className="rv-wrongpack-ico" aria-hidden>
+            <ListChecks strokeWidth={2.25} />
+          </span>
+          <span className="rv-wrongpack-body">
+            <b>Làm lại các câu từng sai</b>
+            <small>Gom một bộ tổng hợp — làm ĐÚNG câu nào, câu đó biến mất khỏi lần sau.</small>
+          </span>
+          <ArrowRight aria-hidden strokeWidth={2} />
+        </button>
+      )}
 
       {!queue ? (
         /* Không đọc được lịch (mạng/hàm chưa deploy) — banner lỗi ở trên đã nói.

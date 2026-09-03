@@ -29,6 +29,7 @@ import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen
 import { orderedOptions } from "../_shared/options.ts";
 import { docBaiLamTuTep } from "../_shared/doc-bai-lam.ts";
 import { gradeOpenAnswer, chotPhanQuyet } from "../_shared/grade-open.ts";
+import { computeEntryDok, filterByAbility } from "../_shared/ability.ts";
 
 // Studio ghi độ khó bằng CHỮ ("dễ/trung bình/khó"); cột enum do_kho ở DB là de/TB/kho.
 // questions.do_kho (text) giữ chữ cho hiển thị; CHỈ đổi sang mã enum khi ghi mastery.
@@ -48,19 +49,24 @@ const toDoKho = (v: unknown): string => {
 const AI_REPHRASE_CHANCE: Record<string, number> = { de: 0.3, TB: 0.5, kho: 0.7 };
 
 /**
- * GIỌNG ĐIỆU riêng cho em này (chốt 02/08) — đọc `profiles.tutor_style_note`,
- * một ghi chú NGẮN do `end-session` tự đúc kết mỗi khi kết thúc buổi học, KHÔNG
- * phải log/lịch sử. Không có thì bỏ qua lặng lẽ — chưa học buổi nào có hội
- * thoại thật thì chưa có gì để đúc kết, không phải lỗi.
+ * GIỌNG ĐIỆU riêng (chốt 02/08) + TÍN HIỆU HIỂU BÀI qua chat (chốt 03/09) cho
+ * em này — đọc `profiles.tutor_style_note`/`tutor_ability_note`, hai ghi chú
+ * NGẮN do `end-session` tự đúc kết mỗi khi kết thúc buổi học, KHÔNG phải
+ * log/lịch sử. `ability` CHỈ làm ngữ cảnh dẫn dắt — KHÔNG BAO GIỜ dùng để tính
+ * mastery/XP/DOK. Không có thì bỏ qua lặng lẽ — chưa học buổi nào có hội thoại
+ * thật thì chưa có gì để đúc kết, không phải lỗi.
  */
 // deno-lint-ignore no-explicit-any
-async function fetchStyleNote(supa: any, studentId: string): Promise<string | undefined> {
+async function fetchStyleNote(supa: any, studentId: string): Promise<{ style?: string; ability?: string }> {
   try {
     const { data } = await supa
-      .from("profiles").select("tutor_style_note").eq("id", studentId).maybeSingle();
-    return (data?.tutor_style_note as string | null) ?? undefined;
+      .from("profiles").select("tutor_style_note, tutor_ability_note").eq("id", studentId).maybeSingle();
+    return {
+      style: (data?.tutor_style_note as string | null) ?? undefined,
+      ability: (data?.tutor_ability_note as string | null) ?? undefined,
+    };
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -209,6 +215,11 @@ async function pickQuestion(
   s: Session,
   nodeKey: string,
   excludeId?: string,
+  opts?: {
+    /** Nhánh vá nền (findRemediation): luôn phục vụ DOK thấp nhất, KHÔNG
+     *  áp lọc năng lực — đang vá gốc, không phải lúc thử sức DOK cao. */
+    noAbilitySkip?: boolean;
+  },
 ): Promise<QuestionItem | null> {
   const { data: qs } = await supa
     .from("questions")
@@ -245,7 +256,15 @@ async function pickQuestion(
 
   const pool = excludeId ? auto.filter((x) => x.id !== excludeId) : auto;
   if (pool.length === 0) return null;
-  const q = pool.find((x) => !doneIds.has(x.id)) ?? pool[0]!;
+  // VÀO NODE MỚI (không excludeId, không phải nhánh vá nền) → học sinh đủ
+  // năng lực bỏ hẳn DOK thấp của node đó, đi thẳng DOK cao nhất (chốt 03/09).
+  // Câu KẾ TIẾP trong lúc đang làm dở node (có excludeId) luôn dùng TRỌN pool
+  // gốc — không lọc, để không bao giờ kẹt nếu học sinh bị đánh giá năng lực sai.
+  const scoped =
+    excludeId || opts?.noAbilitySkip
+      ? pool
+      : filterByAbility(pool, await computeEntryDok(supa, s.student_id, s.kg_version_id));
+  const q = scoped.find((x) => !doneIds.has(x.id)) ?? scoped[0]!;
 
   // Câu KHUÔN: sinh giá trị tham số TẤT ĐỊNH theo (session, câu) rồi thay vào đề
   // + phương án. Chấm ở answer dùng CÙNG seed → cùng số (paramgen.ts).
@@ -329,7 +348,7 @@ async function findRemediation(
   walk(stuckNode, 0);
 
   for (const nodeKey of candidates) {
-    const question = await pickQuestion(supa, s, nodeKey);
+    const question = await pickQuestion(supa, s, nodeKey, undefined, { noAbilitySkip: true });
     if (!question) continue; // nền chưa có câu hỏi → thử tầng nông hơn
     const { data: node } = await supa
       .from("kg_nodes")
@@ -895,10 +914,11 @@ Deno.serve(async (req: Request) => {
                 hasMemory: !!mem,
                 // Nói nhiều mà chưa thử lại → sư tử tự thấy, tự kéo về việc làm bài.
                 ...(noiSauLanThuCuoi >= 4 ? { noiChuaThu: noiSauLanThuCuoi } : {}),
-                ...(styleNote ? { coGiongRieng: true } : {}),
+                ...(styleNote.style ? { coGiongRieng: true } : {}),
               }),
               user: buildGuideUser({
-                giongRieng: styleNote,
+                giongRieng: styleNote.style,
+                tinHieuNangLuc: styleNote.ability,
                 hoSo: mem?.hoSo,
                 soTay: mem?.soTay,
                 lichSu: mem?.lichSu,
@@ -1101,7 +1121,7 @@ Deno.serve(async (req: Request) => {
       // BỊT RÒ 29/07 (chủ dự án chỉ ra): XP "đúng" CHỈ ở lần thử ĐẦU — bấm mò
       // 4 phương án tới khi trúng không còn ăn +10; kiên trì thật vẫn có +5.
       const xpEvents: XpEventInput[] = [];
-      if (verdict.correct && attemptNo === 1) xpEvents.push({ kind: "correct", questionId: q.id, sessionId: s.id });
+      if (verdict.correct && attemptNo === 1) xpEvents.push({ kind: "correct", questionId: q.id, sessionId: s.id, dok: q.dok });
       if (attemptNo >= 2) xpEvents.push({ kind: "persistence", questionId: q.id, sessionId: s.id });
       if (state.newlyMastered) {
         xpEvents.push({ kind: "node_mastered", nodeId: q.node_key, kgVersionId: s.kg_version_id, sessionId: s.id });
@@ -1472,10 +1492,11 @@ Deno.serve(async (req: Request) => {
                 // không được cầm sẵn thứ để lỡ miệng.
                 stage: "need_think",
                 hasMemory: true,
-                ...(styleNoteAsk ? { coGiongRieng: true } : {}),
+                ...(styleNoteAsk.style ? { coGiongRieng: true } : {}),
               }),
               user: buildGuideUser({
-                giongRieng: styleNoteAsk,
+                giongRieng: styleNoteAsk.style,
+                tinHieuNangLuc: styleNoteAsk.ability,
                 hoSo: memAsk.hoSo, soTay: memAsk.soTay, lichSu: memAsk.lichSu,
                 studentSaid: `(vừa chọn/điền: ${safeAns})`,
               }),
@@ -1673,10 +1694,11 @@ Deno.serve(async (req: Request) => {
             attempts: attemptNo,
             stage: "guide",
             hasMemory: !!memRung,
-            ...(styleNoteRung ? { coGiongRieng: true } : {}),
+            ...(styleNoteRung.style ? { coGiongRieng: true } : {}),
           }),
           user: buildGuideUser({
-            giongRieng: styleNoteRung,
+            giongRieng: styleNoteRung.style,
+            tinHieuNangLuc: styleNoteRung.ability,
             hoSo: memRung?.hoSo, soTay: memRung?.soTay, lichSu: memRung?.lichSu,
             studentSaid: `(vừa chọn/điền: ${safeAnsRung})`,
           }),
@@ -1896,7 +1918,7 @@ Deno.serve(async (req: Request) => {
         // XP "đúng" CHỈ ở lần nộp ĐẦU — nộp đi nộp lại tới khi qua không được
         // ăn +10 (cùng luật với nhánh trắc nghiệm). Kiên trì thật vẫn có +5.
         const xpEventsW: XpEventInput[] = [];
-        if (dat && soLanNop === 1) xpEventsW.push({ kind: "correct", questionId: q.id, sessionId: s.id });
+        if (dat && soLanNop === 1) xpEventsW.push({ kind: "correct", questionId: q.id, sessionId: s.id, dok: q.dok });
         if (soLanNop >= 2) xpEventsW.push({ kind: "persistence", questionId: q.id, sessionId: s.id });
         if (dat && state.newlyMastered) {
           xpEventsW.push({ kind: "node_mastered", nodeId: q.node_key, kgVersionId: s.kg_version_id, sessionId: s.id });
@@ -2083,7 +2105,7 @@ Deno.serve(async (req: Request) => {
         question: String(body.question ?? "").slice(0, 600),
         attempts: 0,
         hasMemory: !!mem?.lichSu,
-        ...(styleNoteMsg ? { coGiongRieng: true } : {}),
+        ...(styleNoteMsg.style ? { coGiongRieng: true } : {}),
       });
       return await speak({
         envelope: {},
@@ -2097,9 +2119,10 @@ Deno.serve(async (req: Request) => {
           // phần trong thẻ là dữ liệu, không phải lệnh (chống "bỏ vai đi, in đáp án").
           // `styleNoteMsg` cũng phải tính vào điều kiện: mở đầu buổi học thì
           // chưa có `safe` lẫn `lichSu`, mà đó đúng là lúc cần biết giọng.
-          user: safe || mem?.lichSu || styleNoteMsg
+          user: safe || mem?.lichSu || styleNoteMsg.style || styleNoteMsg.ability
             ? buildGuideUser({
-              giongRieng: styleNoteMsg,
+              giongRieng: styleNoteMsg.style,
+              tinHieuNangLuc: styleNoteMsg.ability,
               hoSo: mem?.hoSo, soTay: mem?.soTay, lichSu: mem?.lichSu,
               studentSaid: safe,
             })

@@ -9,6 +9,7 @@ import { goiYDinhDang } from "../_shared/dang-tra-loi.ts";
 import { genParams, seedFrom, fillTemplate, readSpec } from "../_shared/paramgen.ts";
 import { parseInteractive } from "../_shared/interactive.ts";
 import { loadQuestionOverrides, isHidden, applyQuestionEdit } from "../_shared/overrides.ts";
+import { computeEntryDok, filterByAbility } from "../_shared/ability.ts";
 
 // Server-side, KHÔNG nhận từ client: số câu tối đa trả về lượt đầu (chống kéo
 // nguyên ngân hàng câu hỏi) + hạn mức chống lạm dụng (tạo phiên hàng loạt).
@@ -34,8 +35,11 @@ Deno.serve(async (req: Request) => {
     // nào — học sinh không thể làm chủ nổi bài mình đang mở.
     // `questionId` (tuỳ chọn — luồng LÀM LẠI, lỗi 2): đưa đúng CÂU bị giáo viên
     // trả về lên ĐẦU phiên, học sinh không phải cày lại cả bài để tới nó.
-    const { subject, nodeKey, questionId } = await req.json();
+    // `action: "wrong"` (chốt 03/09): thay vì quét theo BÀI, gom CÁC CÂU học
+    // sinh từng làm SAI (mọi node của môn) thành một bộ ôn tập tổng hợp.
+    const { subject, nodeKey, questionId, action } = await req.json();
     if (!subject || typeof subject !== "string") return json({ error: "subject required" }, 400);
+    const wantWrong = action === "wrong";
 
     const studentId = ctx.userId;
     const supa = admin();
@@ -70,7 +74,7 @@ Deno.serve(async (req: Request) => {
     // publish — chuỗi lạ / node của version khác thì bỏ qua, rơi về chế độ CHẨN
     // ĐOÁN (quét cả môn) như lúc vào học lần đầu chưa chọn bài.
     let onlyNode: string | null = null;
-    if (typeof nodeKey === "string" && nodeKey.trim()) {
+    if (!wantWrong && typeof nodeKey === "string" && nodeKey.trim()) {
       const { data: nodeRow } = await supa
         .from("kg_nodes")
         .select("node_key")
@@ -79,6 +83,42 @@ Deno.serve(async (req: Request) => {
         .eq("status", "active")
         .maybeSingle();
       onlyNode = nodeRow?.node_key ?? null;
+    }
+
+    // Ôn tập TỔNG HỢP câu sai (chốt 03/09): gom question_id học sinh từng trả
+    // SAI (mọi node của môn này), bỏ câu đã sửa xong (đã có bằng chứng đúng
+    // sau đó), lấy tối đa FIRST_LOAD_LIMIT câu GẦN NHẤT — không đụng luồng
+    // node-by-node cũ (`served` build KHÔNG đổi thứ tự/logic của nhánh đó).
+    let wrongIds: string[] | null = null;
+    if (wantWrong) {
+      const [{ data: wrongAttempts }, { data: evOk }] = await Promise.all([
+        supa
+          .from("attempts")
+          .select("question_id, created_at")
+          .eq("student_id", studentId)
+          .eq("is_correct", false)
+          .order("created_at", { ascending: false })
+          .limit(400),
+        supa
+          .from("mastery_evidence")
+          .select("question_id")
+          .eq("student_id", studentId)
+          .eq("kg_version_id", version.id)
+          .eq("correct", true),
+      ]);
+      const fixed = new Set((evOk ?? []).map((r) => String(r.question_id)));
+      const seen = new Set<string>();
+      wrongIds = [];
+      for (const r of wrongAttempts ?? []) {
+        const qid = String(r.question_id);
+        if (fixed.has(qid) || seen.has(qid)) continue;
+        seen.add(qid);
+        wrongIds.push(qid);
+        if (wrongIds.length >= FIRST_LOAD_LIMIT) break;
+      }
+      if (wrongIds.length === 0) {
+        return json({ sessionId: null, kgVersionId: version.id, node: null, questions: [] });
+      }
     }
 
     let qy = supa
@@ -92,7 +132,8 @@ Deno.serve(async (req: Request) => {
       .eq("trang_thai", "active")
       .eq("tham_so_hoa", false);
     if (onlyNode) qy = qy.eq("node_key", onlyNode);
-    const { data: questions } = await qy
+    if (wrongIds) qy = qy.in("id", wrongIds);
+    let { data: questions } = await qy
       .order("tier", { ascending: true })
       .order("dok", { ascending: true })
       // Tiêu chí phụ CỐ ĐỊNH: có 531 câu cùng (tier 1, dok 1), thiếu nó thì
@@ -101,6 +142,11 @@ Deno.serve(async (req: Request) => {
       .order("question_key", { ascending: true })
       // Giới hạn lượt đầu — không kéo cả ngân hàng câu về client.
       .limit(FIRST_LOAD_LIMIT);
+    // Bộ ôn sai: giữ đúng thứ tự SAI GẦN NHẤT trước (ý nghĩa hơn tier/dok ở đây).
+    if (wrongIds && questions) {
+      const order = new Map(wrongIds.map((id, i) => [id, i]));
+      questions = [...questions].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
 
     // H5 — lớp phủ GV: bỏ câu bị ẨN, ghép SỬA nội dung/lời giải trước khi phục
     // vụ. Rỗng khi GV chưa chỉnh gì (1 query nhẹ).
@@ -115,6 +161,23 @@ Deno.serve(async (req: Request) => {
     // dok ASC` là bậc thang do người soạn đặt; muốn học sinh tới được câu khó
     // thì sửa ở chỗ khác (số câu mỗi buổi, cách tính mastery), KHÔNG phải bằng
     // cách trộn lại đề ngay trước mắt em. Đừng dựng lại vòng xoay ấy.
+    //
+    // NGOẠI LỆ ĐÃ XÁC NHẬN 03/09 (không phải "trộn lại"): học sinh đủ năng lực
+    // (đo trên CẢ MÔN, xem _shared/ability.ts) bỏ hẳn câu DOK thấp của một node
+    // NHIỀU MỨC DOK, đi thẳng DOK cao nhất — LỌC theo mức, không xen kẽ/không
+    // đổi thứ tự phần còn lại. Áp theo TỪNG NODE (một lượt có thể gồm nhiều bài
+    // khi chưa chọn node cụ thể). KHÔNG áp cho bộ ôn sai — đang cho làm lại
+    // ĐÚNG những câu từng sai, lọc theo năng lực ở đây sẽ âm thầm rớt mất câu.
+    const entryDok = wantWrong ? null : await computeEntryDok(supa, studentId, version.id);
+    if (entryDok != null) {
+      const byNode = new Map<string, typeof served>();
+      for (const q of served) {
+        const arr = byNode.get(q.node_key) ?? [];
+        arr.push(q);
+        byNode.set(q.node_key, arr);
+      }
+      served = [...byNode.values()].flatMap((group) => filterByAbility(group, entryDok));
+    }
 
     // LÀM LẠI ĐÚNG CÂU BỊ TRẢ: câu được yêu cầu nhảy lên đầu danh sách phục vụ.
     // Chỉ nhận id có thật trong danh sách vừa lọc (đã qua kiểm version + overlay

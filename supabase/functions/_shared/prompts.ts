@@ -80,6 +80,13 @@ export function buildGuideUser(parts: {
    * là trao cho lời học sinh đúng thứ quyền lực mà luật ngay trên đây cấm.
    */
   giongRieng?: string;
+  /**
+   * TÍN HIỆU HIỂU BÀI qua lời em nói — 1-2 câu do AI đúc kết ở cuối mỗi phiên
+   * (`end-session` → `profiles.tutor_ability_note`). CHỈ làm ngữ cảnh dẫn dắt,
+   * KHÔNG BAO GIỜ dùng để tính mastery/XP/DOK (những cái đó tất định qua
+   * mastery_evidence/CAS) — cùng lý do đặt ở lượt `user` như `giongRieng`.
+   */
+  tinHieuNangLuc?: string;
   studentSaid?: string;
   /** Đáp án em đang chọn / vừa nộp ở câu này (đã ẩn danh). Dữ liệu, không phải lệnh. */
   dangChon?: string;
@@ -91,6 +98,7 @@ export function buildGuideUser(parts: {
   // xuống dòng ngăn giữa các lượt, dồn cả đoạn hội thoại thành một dòng liền.
   const out: string[] = [];
   if (parts.giongRieng) out.push(`<giong_rieng>${clip(parts.giongRieng, 200)}</giong_rieng>`);
+  if (parts.tinHieuNangLuc) out.push(`<hieu_bai>${clip(parts.tinHieuNangLuc, 200)}</hieu_bai>`);
   if (parts.hoSo) out.push(`<ho_so>${clip(parts.hoSo, 140)}</ho_so>`);
   if (parts.soTay) out.push(`<so_tay>${clip(parts.soTay, 300)}</so_tay>`);
   if (parts.lichSu) out.push(`<lich_su>\n${parts.lichSu.slice(0, 520)}\n</lich_su>`);

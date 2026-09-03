@@ -8686,6 +8686,69 @@ body:has(.lfoot-says) .lesson-pad {
   transform: translateY(1px);
 }
 
+/* Bộ ôn sai tổng hợp — MỘT thẻ hành động riêng, đứng giữa dải chỉ số và hộp
+   Leitner (chốt 03/09). Cùng ngôn ngữ .rv-card (thẻ hàng, icon chip, viền
+   nhấn vàng khi hover) nhưng full-width và cả khối bấm được, không chỉ nút. */
+.rv-wrongpack {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  margin: 4px 0 20px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.rv-wrongpack:hover {
+  box-shadow: var(--shadow-row);
+  border-color: var(--gold);
+}
+.rv-wrongpack:active {
+  transform: translateY(1px);
+}
+.rv-wrongpack-ico {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--gold-tint);
+  color: var(--navy);
+}
+.rv-wrongpack-ico svg {
+  width: 20px;
+  height: 20px;
+}
+.rv-wrongpack-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rv-wrongpack-body b {
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+.rv-wrongpack-body small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.rv-wrongpack > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
+
 .rv-leitner-lead {
   margin: 6px 0 16px;
   font-size: 0.875rem;

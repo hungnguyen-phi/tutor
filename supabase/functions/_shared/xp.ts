@@ -18,12 +18,25 @@ export const XP_AMOUNT = {
 
 export type XpKind = keyof typeof XP_AMOUNT;
 
+/** Hệ số nhân XP "đúng" theo DOK câu vừa làm (chốt 03/09: "DOK cao thì điểm
+ *  cộng cao hơn"). DOK 1 = hệ số gốc, không đổi hành vi cũ khi thiếu `dok`. */
+const DOK_XP_MULT: Record<number, number> = { 1: 1, 2: 1.5, 3: 2 };
+
 export interface XpEventInput {
   kind: XpKind;
   sessionId?: string;
   questionId?: string;
   nodeId?: string;
   kgVersionId?: string;
+  /** DOK của câu vừa làm — chỉ tác động tới `kind: "correct"`, các kind khác bỏ qua. */
+  dok?: number | null;
+}
+
+function xpAmount(e: XpEventInput): number {
+  const base = XP_AMOUNT[e.kind];
+  if (e.kind !== "correct" || !e.dok) return base;
+  const mult = DOK_XP_MULT[e.dok] ?? (e.dok >= 3 ? DOK_XP_MULT[3]! : 1);
+  return Math.round(base * mult);
 }
 
 export interface XpResult {
@@ -47,7 +60,7 @@ export async function awardXp(
   try {
     const payload = events.map((e) => ({
       kind: e.kind,
-      amount: XP_AMOUNT[e.kind],
+      amount: xpAmount(e),
       session_id: e.sessionId ?? "",
       question_id: e.questionId ?? "",
       node_id: e.nodeId ?? "",

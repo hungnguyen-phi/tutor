@@ -9,14 +9,20 @@ import { awardXp } from "../_shared/xp.ts";
 import { anonymize, callLLM } from "../_shared/llm.ts";
 
 /**
- * GIỌNG ĐIỆU RIÊNG CHO TỪNG EM (chốt 02/08, chủ dự án).
+ * GIỌNG ĐIỆU RIÊNG CHO TỪNG EM (chốt 02/08) + TÍN HIỆU NĂNG LỰC QUA CHAT
+ * (chốt 03/09) — cùng MỘT lệnh gọi mô hình, đỡ nhân đôi độ trễ/chi phí.
  *
  * Không phải học sinh nào cũng học hiệu quả với cùng một giọng — có em cần
- * nghiêm túc ít đùa, có em cần vui vẻ khích lệ nhiều mới không nản. Thay vì
+ * nghiêm túc ít đùa, có em cần vui vẻ khích lệ nhiều mới không nản. Ngoài ra,
+ * CÁCH em diễn đạt lý do trong chat (không phải chỉ đúng/sai) cũng là tín hiệu
+ * — hiểu sâu hay đoán mò, lý luận có ăn khớp với đáp án chọn hay không. Thay vì
  * lưu NGUYÊN VĂN lịch sử hội thoại (tốn, và không cần thiết), ở CUỐI mỗi buổi
- * học AI tự đúc kết lại thành MỘT ghi chú NGẮN (1-2 câu), ghi đè lên bản cũ
- * (không phải log cộng dồn) — đọc lại ở chat-turn qua `profiles.tutor_style_note`
- * để dẫn dắt đúng chất với riêng em đó.
+ * học AI tự đúc kết lại thành HAI ghi chú NGẮN (1-2 câu mỗi ghi chú), ghi đè
+ * lên bản cũ (không phải log cộng dồn):
+ *   · `profiles.tutor_style_note`  — CÁCH NÓI (đọc ở chat-turn, dẫn giọng).
+ *   · `profiles.tutor_ability_note` — TÍN HIỆU HIỂU BÀI qua lời nói (đọc ở
+ *     chat-turn, CHỈ làm ngữ cảnh dẫn dắt — KHÔNG BAO GIỜ dùng để tính
+ *     mastery/XP/DOK, những cái đó vẫn tất định qua mastery_evidence/CAS).
  *
  * BEST-EFFORT, không chặn việc đóng phiên: lỗi ở đây tuyệt đối không được làm
  * hỏng luồng chính (mastery + XP + đóng phiên) — đây là gia vị, không phải
@@ -35,11 +41,11 @@ async function updateStyleNote(
         .eq("session_id", s.id)
         .order("created_at", { ascending: true })
         .limit(80),
-      supa.from("profiles").select("full_name, tutor_style_note").eq("id", s.student_id).single(),
+      supa.from("profiles").select("full_name, tutor_style_note, tutor_ability_note").eq("id", s.student_id).single(),
     ]);
     const rows = (turns ?? []) as Array<{ role: string; content: string }>;
     // Đủ lời để đúc kết chưa? Buổi chỉ toàn bấm đáp án (không gõ chữ) thì
-    // không có gì để suy giọng điệu — bỏ qua lặng lẽ, không phải lỗi.
+    // không có gì để suy giọng điệu/năng lực — bỏ qua lặng lẽ, không phải lỗi.
     const spoken = rows.filter((r) => r.role === "student" && String(r.content ?? "").trim().length >= 12);
     if (spoken.length < 2 || !Deno.env.get("OPENROUTER_API_KEY")) return;
 
@@ -52,29 +58,43 @@ async function updateStyleNote(
     void map; // không cần hoàn nguyên — ghi chú lưu lại KHÔNG được chứa tên thật.
 
     const system = `Bạn đọc một đoạn hội thoại giữa gia sư AI và một học sinh lớp 10, rồi đúc kết
-CÁCH NÓI CHUYỆN phù hợp nhất với RIÊNG em này cho các buổi sau — KHÔNG phải nội
-dung em hay sai (đã có chỗ khác lo việc đó).
+HAI ghi chú NGẮN cho các buổi sau. KHÔNG được dùng để chấm điểm/xếp mức khó —
+chỉ là ngữ cảnh dẫn dắt.
+(1) "giong": CÁCH NÓI CHUYỆN phù hợp nhất với RIÊNG em này — cần nghiêm túc
+    hay vui vẻ, cần khích lệ nhiều hay ít, thích ngắn gọn hay thích giải thích
+    kỹ, dễ nản hay kiên trì, thích đùa hay không...
+(2) "hieu": CÁCH em HIỂU BÀI qua lời em nói (không phải điểm đúng/sai — đã có
+    chỗ khác lo việc đó) — lý luận có mạch lạc không, diễn đạt lý do có ăn
+    khớp với đáp án hay đoán mò, hiểu khái niệm hay chỉ nhớ máy móc...
 QUY TẮC BẮT BUỘC:
-- Chỉ nói về GIỌNG ĐIỆU/PHONG CÁCH tương tác: cần nghiêm túc hay vui vẻ, cần
-  khích lệ nhiều hay ít, thích ngắn gọn hay thích giải thích kỹ, dễ nản hay
-  kiên trì, thích đùa hay không...
-- ĐÚNG 1-2 CÂU, tiếng Việt, ngắn gọn, không lặp lại nguyên văn lời học sinh.
+- Mỗi trường ĐÚNG 1-2 CÂU, tiếng Việt, ngắn gọn, không lặp lại nguyên văn lời học sinh.
 - KHÔNG nêu tên riêng, không suy đoán thông tin cá nhân ngoài cách học.
-- Nếu hội thoại quá ngắn/không đủ tín hiệu rõ ràng, trả về CHUỖI RỖNG.
-- Nếu đã có ghi chú cũ, XEM XÉT giữ lại phần vẫn đúng, chỉ cập nhật phần đổi.`;
-    const user = `${profile?.tutor_style_note ? `<ghi_chu_cu>${String(profile.tutor_style_note).slice(0, 200)}</ghi_chu_cu>\n` : ""}<hoi_thoai>\n${transcript}\n</hoi_thoai>`;
+- Nếu hội thoại quá ngắn/không đủ tín hiệu rõ ràng cho một trường, để trường đó là CHUỖI RỖNG.
+- Nếu đã có ghi chú cũ, XEM XÉT giữ lại phần vẫn đúng, chỉ cập nhật phần đổi.
+- CHỈ trả JSON, không thêm lời nào khác: {"giong": "...", "hieu": "..."}`;
+    const user =
+      `${profile?.tutor_style_note ? `<giong_cu>${String(profile.tutor_style_note).slice(0, 200)}</giong_cu>\n` : ""}` +
+      `${profile?.tutor_ability_note ? `<hieu_cu>${String(profile.tutor_ability_note).slice(0, 200)}</hieu_cu>\n` : ""}` +
+      `<hoi_thoai>\n${transcript}\n</hoi_thoai>`;
 
     const res = await callLLM({
       system, user, agent: "style-note", tier: "cheap",
-      maxTokens: 120, temperature: 0.3,
+      maxTokens: 200, temperature: 0.3,
       studentId: s.student_id, tenantId: s.tenant_id, supa,
     });
-    // Trần 200 — khớp ĐÚNG trần `clip(giongRieng, 200)` ở buildGuideUser. Lưu
-    // 300 như bản đầu thì 100 ký tự cuối không bao giờ tới được mô hình, mà đọc
-    // trong DB lại tưởng nó đang có tác dụng.
-    const note = res.text.trim().slice(0, 200);
-    if (!note) return;
-    await supa.from("profiles").update({ tutor_style_note: note }).eq("id", s.student_id);
+    const hit = res.text.match(/\{[\s\S]*\}/);
+    if (!hit) return;
+    const j = JSON.parse(hit[0]) as { giong?: unknown; hieu?: unknown };
+    // Trần 200 — khớp ĐÚNG trần `clip(giongRieng/tinHieuNangLuc, 200)` ở
+    // buildGuideUser. Lưu dài hơn thì phần cuối không bao giờ tới được mô
+    // hình, mà đọc trong DB lại tưởng nó đang có tác dụng.
+    const giong = typeof j.giong === "string" ? j.giong.trim().slice(0, 200) : "";
+    const hieu = typeof j.hieu === "string" ? j.hieu.trim().slice(0, 200) : "";
+    const patch: Record<string, string> = {};
+    if (giong) patch.tutor_style_note = giong;
+    if (hieu) patch.tutor_ability_note = hieu;
+    if (Object.keys(patch).length === 0) return;
+    await supa.from("profiles").update(patch).eq("id", s.student_id);
   } catch {
     // Gia vị, không phải xương sống — lỗi ở đây không được lộ ra cho học sinh
     // hay chặn việc đóng phiên.

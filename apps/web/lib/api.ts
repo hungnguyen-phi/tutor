@@ -283,6 +283,11 @@ export const diagnose = (subject: Subject, nodeKey?: string, questionId?: string
     ...(questionId ? { questionId } : {}),
   });
 
+/** Bộ ôn tập TỔNG HỢP — gom các câu học sinh từng làm SAI (mọi bài của môn),
+ *  bỏ câu đã sửa xong, cho làm lại. `questions: []` = không còn câu nào cần ôn. */
+export const diagnoseWrong = (subject: Subject) =>
+  callFn<DiagnoseResult>("diagnose", { subject, action: "wrong" });
+
 /**
  * PHÁT CHỮ DẦN cho lượt trò chuyện (29/07).
  *
