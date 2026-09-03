@@ -59,15 +59,7 @@ export const TIPS: Nudge[] = [
     kind: "cadao",
     text: "Non cao cũng có đường trèo\nĐường dù hiểm nghèo cũng có lối đi.",
   },
-  {
-    kind: "cadao",
-    text: "Dốc lòng học tập trước sau\nNgày nay ta khó, ngày sau ta nhàn.",
-  },
-  { kind: "dongdao", text: "Chi chi chành chành — tay đếm miệng đọc. Bài khó cũng chia nhỏ ra mà đi." },
-  {
-    kind: "dongdao",
-    text: "Lúa ngô là cô đậu nành, đậu nành là anh dưa chuột. Nhớ được nhờ nối lại thành chuỗi đấy!",
-  },
+  { kind: "dongdao", text: "Lúa ngô là cô đậu nành, đậu nành là anh dưa chuột, dưa chuột là ruột dưa gang." },
 
   // ── Ngụ ngôn Ê-dốp: kể lại bằng lời mình, giữ đúng bài học ────────────────
   {
@@ -99,6 +91,8 @@ export const TIPS: Nudge[] = [
   { kind: "chamngon", text: "Người hỏi câu ngốc nghếch trong năm phút, hơn người giả vờ hiểu suốt cả năm." },
   { kind: "chamngon", text: "Đừng so với bạn bên cạnh — so với chính em hôm qua." },
   { kind: "chamngon", text: "Học là bắc thang: đứng bậc dưới cho vững rồi bậc trên tự tới." },
+  { kind: "chamngon", text: "Bài khó thì chia nhỏ ra mà đi — tay đếm miệng đọc, từng bước một rồi cũng xong." },
+  { kind: "chamngon", text: "Dốc lòng học hôm nay khó, để ngày sau đỡ vất hơn." },
 ];
 
 /**
