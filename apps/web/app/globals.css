@@ -12129,7 +12129,7 @@ textarea {
   position: fixed;
   left: 18px;
   bottom: 24px;
-  z-index: 21;
+  z-index: var(--z-modal);
   background: var(--navy);
   color: #fff;
   padding: 10px 16px;
@@ -12149,7 +12149,7 @@ textarea {
 .rol-popup {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   padding: 24px;
