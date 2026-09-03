@@ -7102,16 +7102,12 @@ html[data-motion="reduce"] .think-dots::after {
    roi thi roi, gop thanh MOT vat the luon thang.
    Nay tieu de nhom la CHU tren nen the. Mau ho van con, nhung o cho no mang
    nghia: chip icon cua tung muc (`--fam-tint`) va trang thai dang mo. */
-.kb-group-head {
-  display: flex; flex-direction: column; gap: 1px;
-  margin: 0;
-  padding: 14px 12px 6px;
-  background: none;
-  color: var(--ink);
-}
-.kb-group + .kb-group .kb-group-head { border-top: 1px solid var(--hairline); margin-top: 4px; }
-.kb-group-head b { font-size: 0.84375rem; font-weight: 800; letter-spacing: 0.01em; color: var(--navy); }
-.kb-group-head span { font-size: 0.71875rem; line-height: 1.35; color: var(--muted); }
+/* Nhãn+mô tả nhóm ("Xem — Phim và hoạt hình"...) ĐÃ BỎ (09/2026, phản hồi chủ
+   dự án): từ khi nạp học liệu NotebookLM, mỗi bài có tới 5 nhóm × nhiều mục —
+   hai dòng chữ mở đầu mỗi nhóm cộng dồn thành một mảng chữ chật, trong khi tên
+   từng học liệu mới là thứ em cần đọc. Đường viền mảnh phân nhóm nay gắn thẳng
+   vào khung nhóm (không cần cái tiêu đề để "treo" nó lên nữa). */
+.kb-group + .kb-group { border-top: 1px solid var(--hairline); margin-top: 4px; }
 .kb-items { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 6px; gap: 4px; }
 
 /* Họ màu. Nhóm "Nhìn" dùng GOLD nên đảo chữ sang navy — gold không bao giờ là

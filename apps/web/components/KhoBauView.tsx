@@ -225,10 +225,12 @@ export default function KhoBauView({
         <nav className="kb-rail" aria-label="Học liệu của bài">
           {nhomList.map(({ nhom, muc }) => (
             <section key={nhom.id} className="kb-group" data-nhom={nhom.id}>
-              <h3 className="kb-group-head">
-                <b>{nhom.nhan}</b>
-                <span>{nhom.moTa}</span>
-              </h3>
+              {/* Bỏ nhãn+mô tả nhóm ("Xem — Phim và hoạt hình"...) theo phản hồi
+                  chủ dự án (09/2026): rãnh có nhiều mục hơn hẳn từ khi nạp học
+                  liệu NotebookLM, hai dòng chữ mở đầu mỗi nhóm cộng dồn thành
+                  chật — TÊN từng học liệu mới là thứ em cần đọc, tên nhóm chỉ
+                  là phụ. Icon riêng của từng mục vẫn đủ phân biệt "xem" khác
+                  "nghe" khác "đọc" mà không cần nhãn chữ dẫn trước. */}
               <ul className="kb-items">
                 {muc.map((r) => {
                   const Icon = ICON[r.format] ?? FileText;
@@ -264,10 +266,6 @@ export default function KhoBauView({
               xem. Chỉ hiện khi có phiếu bài tập ĐANG MỞ và bài có câu nộp. */}
           {coDuongNop && (
             <section className="kb-group kb-group-nop">
-              <h3 className="kb-group-head">
-                <b>Làm xong rồi?</b>
-                <span>Nộp bài để được chấm ngay</span>
-              </h3>
               <ul className="kb-items">
                 <li>
                   <button
