@@ -13926,7 +13926,10 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 10px;
+  /* ≥44px vùng chạm (audit lượt 2, luật Touch Target — High): nút 26px cao là
+     tự vi phạm ngay trong bản vá lượt 1. Giữ cỡ chữ, nới đệm dọc. */
+  min-height: 44px;
+  padding: 10px 14px;
   border-radius: var(--r-pill);
   background: var(--navy);
   color: #fff;
@@ -14009,8 +14012,8 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 /* #22 Cài đặt: mũi tên Quay lại không đè chip tiêu đề. */
 .st-hero .ws-hero-text { padding-left: 52px; }
 
-/* #25 Đổi môn: nút Đóng tường minh. */
-.subj-close { margin-top: 10px; }
+/* #25 Đổi môn: nút Đóng tường minh — ≥44px vùng chạm (audit lượt 2). */
+.subj-close { margin-top: 10px; min-height: 44px; }
 
 /* #14 Nhãn chế độ "Ôn lại câu sai" trên thanh tiến trình bài. */
 .lesson-mode {
