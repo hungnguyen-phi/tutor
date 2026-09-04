@@ -112,18 +112,24 @@ const isExpired = (e: unknown) => e instanceof ApiError && e.code === SESSION_EX
  * Bọc try/catch vì chế độ riêng tư của trình duyệt chặn localStorage — mất chỗ
  * lưu nháp thì tiếc, chứ không được phép làm hỏng buổi học.
  */
-const KHOA_NHAP = (qid: string) => `tutor:nhap:${qid}`;
-const docNhap = (qid: string): string => {
-  try { return localStorage.getItem(KHOA_NHAP(qid)) ?? ""; } catch { return ""; }
+// LỖI NGHIÊM TRỌNG vá 04/09 (10 agent đóng vai học sinh phát hiện, 2 agent ĐỘC
+// LẬP cùng thấy chữ lạ chèn vào ô bài làm của mình): khoá cũ chỉ theo MÃ CÂU,
+// không theo HỌC SINH — máy dùng chung (phòng máy trường, hay chỉ đơn giản hai
+// tài khoản cùng một trình duyệt) thì học sinh SAU mở đúng câu học sinh TRƯỚC
+// đang gõ dở sẽ thấy NGUYÊN VĂN bài nháp của người kia tự điền vào, có thể vô
+// tình nộp luôn — vừa lộ bài làm người khác, vừa làm sai lệch bằng chứng chấm.
+const KHOA_NHAP = (studentId: string, qid: string) => `tutor:nhap:${studentId}:${qid}`;
+const docNhap = (studentId: string, qid: string): string => {
+  try { return localStorage.getItem(KHOA_NHAP(studentId, qid)) ?? ""; } catch { return ""; }
 };
-const luuNhap = (qid: string, v: string): void => {
+const luuNhap = (studentId: string, qid: string, v: string): void => {
   try {
-    if (v.trim()) localStorage.setItem(KHOA_NHAP(qid), v);
-    else localStorage.removeItem(KHOA_NHAP(qid));
+    if (v.trim()) localStorage.setItem(KHOA_NHAP(studentId, qid), v);
+    else localStorage.removeItem(KHOA_NHAP(studentId, qid));
   } catch { /* riêng tư chặn — bỏ qua */ }
 };
-const xoaNhap = (qid: string): void => {
-  try { localStorage.removeItem(KHOA_NHAP(qid)); } catch { /* như trên */ }
+const xoaNhap = (studentId: string, qid: string): void => {
+  try { localStorage.removeItem(KHOA_NHAP(studentId, qid)); } catch { /* như trên */ }
 };
 
 type Msg =
@@ -685,9 +691,11 @@ export default function TutorApp() {
     const id = q?.id;
     if (!id || idCauDaNap.current === id) return;
     idCauDaNap.current = id;
-    const nhap = docNhap(id);
+    const uid = session?.user.id;
+    if (!uid) return;
+    const nhap = docNhap(uid, id);
     if (nhap) setText(nhap);
-  }, [q?.id]);
+  }, [q?.id, session?.user.id]);
 
   // Node đang học — còn dùng để chọn BẦU TRỜI cho sân khấu bài (worldOfLesson).
   const currentNodeKey = ses ? (q?.nodeKey ?? ses.node ?? null) : null;
@@ -883,7 +891,7 @@ export default function TutorApp() {
 
     if (res.correct) {
       setVerdict("ok");
-      if (q) xoaNhap(q.id); // xong câu → không còn nháp để giữ (lỗi #26)
+      if (q && session?.user.id) xoaNhap(session.user.id, q.id); // xong câu → không còn nháp để giữ (lỗi #26)
       // Đúng ở lần thứ nhất hay lần thứ tư đều cộng như nhau — không phạt số lần thử.
       if (!serverXp) grant(G.XP.correct);
       // Quyết định nút TIẾP TỤC sẽ đưa đi đâu. CHỈ xử lý climb/continue KHI đang
@@ -1062,7 +1070,7 @@ export default function TutorApp() {
         setProgress(G.syncFromServer(res.xp));
       }
       if (res.feedback) setMsgs((m) => [...m, { role: "tutor", text: res.feedback! }]);
-      xoaNhap(q.id);
+      if (session?.user.id) xoaNhap(session.user.id, q.id);
       setVerdict("submitted");
     } catch (e) {
       { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
@@ -2137,7 +2145,7 @@ export default function TutorApp() {
           autoFocus
           onChange={(e) => {
             setText(e.target.value);
-            luuNhap(q.id, e.target.value); // sống qua cả lần văng/tải lại trang
+            if (session?.user.id) luuNhap(session.user.id, q.id, e.target.value); // sống qua cả lần văng/tải lại trang
             const el = e.currentTarget;
             el.style.height = "auto";
             el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
@@ -2189,7 +2197,7 @@ export default function TutorApp() {
           <BaiLamEditor
             key={q.id} /* câu mới → ô mới, xoá chiều cao đã nới của câu trước */
             value={text}
-            onChange={(v) => { setText(v); luuNhap(q.id, v); }}
+            onChange={(v) => { setText(v); if (session?.user.id) luuNhap(session.user.id, q.id, v); }}
             disabled={busy}
           />
           <div className="submit-row">
