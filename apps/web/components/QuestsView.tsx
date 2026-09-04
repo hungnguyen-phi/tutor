@@ -19,6 +19,7 @@ import {
   BookOpen,
   CalendarDays,
   Check,
+  Flag,
   Flame,
   Medal,
   RotateCcw,
@@ -28,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import Lion from "./Lion";
+import Num from "./Num";
 import * as G from "../lib/gamify";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -129,7 +131,7 @@ export default function QuestsView({
 
   if (!progress) {
     return (
-      <div className="ws">
+      <div className="ws" data-world="5">
         <div className="skel ws-skel-hero" />
         <div className="ws-skel-stats" aria-hidden>
           <div className="skel" />
@@ -192,9 +194,23 @@ export default function QuestsView({
   const longer = quests.filter((q) => q.key !== "today");
   const TINTS = ["gold", "sky", "ok"] as const;
 
+  // LỐI MÒN TUẦN (04/09 — "một thế giới"): 7 điểm trên một đường mòn lượn
+  // sóng, lá cờ ở cuối = chỉ tiêu 5 buổi. Toạ độ tính trong viewBox 800×100
+  // rồi chuyển sang % để dấu chân (HTML) và đường (SVG) khớp nhau ở mọi bề ngang.
+  const TRAIL_PTS = DAY_LABELS.map((_, i) => ({ x: (i + 0.5) * 100, y: i % 2 === 0 ? 34 : 66 }));
+  const TRAIL_GOAL = { x: 760, y: 36 };
+  const trailPath = [...TRAIL_PTS, TRAIL_GOAL]
+    .map((p, i, arr) => {
+      if (i === 0) return `M${p.x} ${p.y}`;
+      const q = arr[i - 1]!;
+      const c = (p.x - q.x) / 2;
+      return `C${q.x + c} ${q.y} ${p.x - c} ${p.y} ${p.x} ${p.y}`;
+    })
+    .join(" ");
+
   return (
-    <div className="ws">
-      {/* HERO navy nhấn vàng — mục tiêu lớn nhất, NÓI BẰNG TIẾNG CỦA HỌC SINH.
+    <div className="ws" data-world="5">
+      {/* HERO — mục tiêu lớn nhất, NÓI BẰNG TIẾNG CỦA HỌC SINH.
           Chữ "WIG" (Wildly Important Goal, khung 4DX) đã gỡ 13/08 theo yêu cầu
           chủ dự án: đó là từ vựng quản trị của nhà trường, một em lớp 10 đọc vào
           không hiểu và cũng không cần hiểu. Bản thân mục tiêu + thanh tiến độ
@@ -229,7 +245,7 @@ export default function QuestsView({
         </div>
         <span className="ws-hero-lion" aria-hidden>
           {/* Nhân vật hoá: có học hôm nay thì hãnh diện, chưa thì mời gọi */}
-          <Lion mood={studied ? "proud" : "point"} size={132} variant="full" decorative />
+          <Lion mood={studied ? "proud" : "point"} size={132} variant="full" decorative eager />
         </span>
       </header>
 
@@ -248,14 +264,14 @@ export default function QuestsView({
           <span className="ws-stat-ico" aria-hidden>
             <Flame strokeWidth={2.25} />
           </span>
-          <b className="num">{progress.streak}</b>
+          <Num value={progress.streak} delay={120} />
           <span>ngày liên tiếp</span>
         </div>
         <div className="ws-stat" data-tone="plain" data-zero={progress.xp === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <Zap strokeWidth={2.25} />
           </span>
-          <b className="num">{progress.xp.toLocaleString("vi-VN")}</b>
+          <Num value={progress.xp} delay={240} />
           <span>tổng XP · hạng {league.name}</span>
         </div>
       </div>
@@ -267,22 +283,39 @@ export default function QuestsView({
             <CalendarDays aria-hidden strokeWidth={2.25} />
             Nhịp tuần này
           </h2>
-          <div className="week-days gl-week">
+          <div className="trail" role="list" aria-label="Các ngày đã học trong tuần">
+            <svg className="trail-path" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden>
+              <path d={trailPath} />
+            </svg>
             {DAY_LABELS.map((label, i) => {
               const st = doneDays.has(i) ? "done" : i === todayIdx ? "today" : "rest";
+              const p = TRAIL_PTS[i]!;
               return (
-                <div className="week-day" key={label} data-today={i === todayIdx || undefined}>
-                  <span className="week-lbl">{label}</span>
+                <div
+                  className="trail-day"
+                  role="listitem"
+                  key={label}
+                  data-today={i === todayIdx || undefined}
+                  style={{ "--x": `${p.x / 8}%`, "--y": `${p.y}%`, "--i": i } as React.CSSProperties}
+                >
                   <span className="day-dot" data-state={st}>
-                    {st === "done" && <Check aria-hidden strokeWidth={3} />}
-                    {st === "today" && <i aria-hidden />}
                     <span className="sr-only">
                       {st === "done" ? "đã học" : st === "today" ? "hôm nay, chưa học" : "chưa học"}
                     </span>
                   </span>
+                  <span className="week-lbl">{label}</span>
                 </div>
               );
             })}
+            <span
+              className="trail-goal"
+              data-reached={doneDays.size >= WEEK_TARGET || undefined}
+              style={{ "--x": `${TRAIL_GOAL.x / 8}%`, "--y": `${TRAIL_GOAL.y}%` } as React.CSSProperties}
+              title={`Chỉ tiêu ${WEEK_TARGET} buổi/tuần`}
+            >
+              <Flag aria-hidden strokeWidth={2.25} />
+              {doneDays.size}/{WEEK_TARGET} buổi
+            </span>
           </div>
 
           <div className="goals-group">

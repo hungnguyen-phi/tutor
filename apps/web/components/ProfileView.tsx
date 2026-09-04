@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Award, BadgeCheck, Flame, Lock, LogOut, Medal, Settings, Users, Zap } from "lucide-react";
 import Lion from "./Lion";
+import Num from "./Num";
 import { useAuth, signOut } from "../lib/auth";
 import { getScoreboard, type Scoreboard } from "../lib/api";
 import { supabase } from "../lib/supabase";
@@ -104,7 +105,7 @@ export default function ProfileView({
   // roi thay - chua biet thi cho, dung ve mot cai ten khong phai cua em.
   if (!progress || !ready) {
     return (
-      <div className="ws">
+      <div className="ws" data-world="2">
         <div className="skel ws-skel-hero" />
         <div className="ws-skel-stats" aria-hidden>
           <div className="skel" />
@@ -131,10 +132,13 @@ export default function ProfileView({
   /** Mốc kế tiếp chưa đạt — để nói rõ "còn mấy điểm nữa", thay vì để em đoán. */
   const nextBadge = BADGE_MILESTONES.find((m) => masteredCount < m) ?? null;
   const subjects = sb?.subjectProgress ?? [];
+  // Năm gia nhập — từ tài khoản (auth.users.created_at), không bịa.
+  const sinceYear = session?.user.created_at ? new Date(session.user.created_at).getFullYear() : null;
 
   return (
-    <div className="ws">
-      {/* HERO navy — danh tính: avatar + tên + hạng, sư tử */}
+    <div className="ws" data-world="2">
+      {/* HERO = THẺ HÀNH TRÌNH (04/09 — "một thế giới"): một tấm thẻ học sinh
+          thật (dải navy, vạch vàng-navy) thay cho khối navy; sư tử đứng cạnh. */}
       <header className="ws-hero pf-hero">
         {/* Bánh răng hi-fi 4d — giờ có trang Cài đặt thật để trỏ tới */}
         {onOpenSettings ? (
@@ -146,16 +150,33 @@ export default function ProfileView({
             <Settings strokeWidth={2.25} aria-hidden />
           </a>
         )}
-        <span className="ws-hero-ava" data-tone={ava.tone} aria-hidden>
-          {ava.kind === "lion" ? <Lion mood="idle" size={44} decorative /> : initial}
-        </span>
-        <div className="ws-hero-text">
-          <span className="ws-kicker">
-            <Medal aria-hidden strokeWidth={2.5} />
-            Hạng {league.name}
-          </span>
-          <h1 className="ws-title">{name}</h1>
-          <p className="ws-lead">{roleLabel(profile?.role)} · Trường Liên cấp Việt Anh</p>
+        <div className="pf-card">
+          <div className="pf-card-top">
+            <img src="/brand/logo-crest-80.webp" alt="" width={22} height={22} />
+            Thẻ hành trình
+            <span>Trường Việt Anh</span>
+          </div>
+          <div className="pf-card-body">
+            <span className="ws-hero-ava" data-tone={ava.tone} aria-hidden>
+              {ava.kind === "lion" ? <Lion mood="idle" size={44} decorative /> : initial}
+            </span>
+            <div className="ws-hero-text">
+              <span className="ws-kicker">
+                <Medal aria-hidden strokeWidth={2.5} />
+                Hạng {league.name}
+              </span>
+              <h1 className="ws-title">{name}</h1>
+              <p className="ws-lead">{roleLabel(profile?.role)} · Trường Liên cấp Việt Anh</p>
+            </div>
+          </div>
+          <div className="pf-card-foot">
+            <span>
+              {sinceYear ? <>Đồng hành từ <b>{sinceYear}</b></> : "Đang đồng hành"}
+              {" · "}
+              <b>{progress.xp.toLocaleString("vi-VN")} XP</b> nỗ lực
+            </span>
+            <span className="pf-card-paw" aria-hidden />
+          </div>
         </div>
         <span className="ws-hero-lion" aria-hidden>
           <Lion
@@ -163,6 +184,7 @@ export default function ProfileView({
             size={132}
             variant="full"
             decorative
+            eager
           />
         </span>
       </header>
@@ -178,21 +200,21 @@ export default function ProfileView({
           <span className="ws-stat-ico" aria-hidden>
             <Flame strokeWidth={2.25} />
           </span>
-          <b className="num">{progress.streak}</b>
+          <Num value={progress.streak} />
           <span>ngày liên tiếp</span>
         </div>
         <div className="ws-stat" data-tone="gold" data-zero={progress.xp === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <Zap strokeWidth={2.25} />
           </span>
-          <b className="num">{progress.xp.toLocaleString("vi-VN")}</b>
+          <Num value={progress.xp} delay={120} />
           <span>tổng XP</span>
         </div>
         <div className="ws-stat" data-tone="plain" data-zero={masteredCount === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <BadgeCheck strokeWidth={2.25} />
           </span>
-          <b className="num">{masteredCount}</b>
+          <Num value={masteredCount} delay={240} />
           <span>điểm thành thạo</span>
         </div>
         <div
@@ -204,7 +226,7 @@ export default function ProfileView({
           <span className="ws-stat-ico" aria-hidden>
             <Award strokeWidth={2.25} />
           </span>
-          <b className="num">{badgeCount}</b>
+          <Num value={badgeCount} delay={360} />
           <span>huy hiệu chương</span>
         </div>
       </div>

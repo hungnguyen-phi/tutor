@@ -23,6 +23,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, BookOpenCheck, Flame, ListChecks, RotateCcw, Sparkles, Target } from "lucide-react";
 import Lion from "./Lion";
+import Num from "./Num";
 import * as G from "../lib/gamify";
 import { reviewQueue, type ReviewItem, type ReviewQueue, type Subject } from "../lib/api";
 
@@ -88,7 +89,7 @@ export default function ReviewView({
 
   if ((queue === null && !error) || progress === null) {
     return (
-      <div className="ws">
+      <div className="ws" data-world="1">
         <div className="skel ws-skel-hero" />
         <div className="ws-skel-stats" aria-hidden>
           <div className="skel" />
@@ -145,8 +146,8 @@ export default function ReviewView({
   );
 
   return (
-    <div className="ws">
-      {/* HERO navy — khối màu lớn, chữ trắng, nhấn vàng */}
+    <div className="ws" data-world="1">
+      {/* HERO — chữ navy trên trời, sư tử trên cỏ (04/09) */}
       <header className="ws-hero">
         <div className="ws-hero-text">
           <span className="ws-kicker">
@@ -160,7 +161,7 @@ export default function ReviewView({
           </p>
         </div>
         <span className="ws-hero-lion" aria-hidden>
-          <Lion mood={nothingYet ? "sleepy" : due.length > 0 ? "point" : "proud"} size={132} variant="full" decorative />
+          <Lion mood={nothingYet ? "sleepy" : due.length > 0 ? "point" : "proud"} size={132} variant="full" decorative eager />
         </span>
       </header>
 
@@ -187,21 +188,21 @@ export default function ReviewView({
           <span className="ws-stat-ico" aria-hidden>
             <Target strokeWidth={2.25} />
           </span>
-          <b className="num">{due.length}</b>
+          <Num value={due.length} />
           <span>cần ôn hôm nay</span>
         </div>
         <div className="ws-stat" data-tone="navy" data-zero={total === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <BookOpenCheck strokeWidth={2.25} />
           </span>
-          <b className="num">{total}</b>
+          <Num value={total} delay={120} />
           <span>đã thành thạo</span>
         </div>
         <div className="ws-stat" data-tone="plain" data-zero={progress.streak === 0 || undefined}>
           <span className="ws-stat-ico" aria-hidden>
             <Flame strokeWidth={2.25} />
           </span>
-          <b className="num">{progress.streak}</b>
+          <Num value={progress.streak} delay={240} />
           <span>ngày liên tiếp</span>
         </div>
       </div>
@@ -241,7 +242,7 @@ export default function ReviewView({
             <div className="ws-panel-head">
               <h2 className="ws-panel-title">
                 <Sparkles aria-hidden strokeWidth={2.25} />
-                {due.length > 0 ? `Đến hạn ôn (${due.length})` : "Hôm nay bạn được nghỉ ôn"}
+                {due.length > 0 ? "Kệ ôn tập của bạn" : "Hôm nay bạn được nghỉ ôn"}
               </h2>
               {due.length > 0 && onReview && (
                 <button
@@ -255,8 +256,17 @@ export default function ReviewView({
               )}
             </div>
 
+            {/* KỆ (04/09 — "một thế giới"): mỗi rổ Leitner là một tấm ván gỗ, bài
+                là thẻ đứng trên ván. Kệ trên cùng = đến hạn (gần tay nhất). */}
             {due.length > 0 ? (
-              <ul className="rv-cards">{due.map((it) => card(it, true))}</ul>
+              <div className="rv-shelf" data-tone="due">
+                <div className="rv-shelf-head">
+                  <b>Đến hạn ôn</b>
+                  <Num value={due.length} duration={500} />
+                </div>
+                <ul className="rv-cards">{due.map((it) => card(it, true))}</ul>
+                <i className="rv-shelf-board" aria-hidden />
+              </div>
             ) : (
               /* KHÔNG nói "chưa có gì" khi em đã học: nói rõ ngày hẹn kế tiếp —
                  đây chính là chỗ màn hình cũ nói dối (lỗi 3). */
@@ -268,22 +278,24 @@ export default function ReviewView({
             )}
 
             {soon.length > 0 && (
-              <div className="rv-group">
-                <div className="rv-group-head">
-                  <span className="rv-group-name">Sắp tới hạn</span>
-                  <span className="rv-group-count num">{soon.length}</span>
+              <div className="rv-shelf" data-tone="soon">
+                <div className="rv-shelf-head">
+                  <b>Sắp tới hạn</b>
+                  <Num value={soon.length} duration={500} />
                 </div>
                 <ul className="rv-cards">{soon.slice(0, 8).map((it) => card(it, false))}</ul>
+                <i className="rv-shelf-board" aria-hidden />
               </div>
             )}
 
             {strong.length > 0 && (
-              <div className="rv-group">
-                <div className="rv-group-head">
-                  <span className="rv-group-name">Đã nhớ bền</span>
-                  <span className="rv-group-count num">{strong.length}</span>
+              <div className="rv-shelf" data-tone="strong">
+                <div className="rv-shelf-head">
+                  <b>Đã nhớ bền</b>
+                  <Num value={strong.length} duration={500} />
                 </div>
                 <ul className="rv-cards">{strong.slice(0, 8).map((it) => card(it, false))}</ul>
+                <i className="rv-shelf-board" aria-hidden />
               </div>
             )}
           </section>

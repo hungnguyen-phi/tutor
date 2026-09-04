@@ -16,14 +16,14 @@ const FEATURES = [
   {
     Icon: Target,
     hue: "ok",
-    t: "Mục tiêu lớn (4DX)",
-    d: "Bảng tuần của lớp, xếp hạng theo nỗ lực chứ không theo điểm số.",
+    t: "Bảng tuần theo nỗ lực",
+    d: "Xếp hạng lớp theo số buổi bạn quay lại, không theo điểm số — ai đều đặn đều lên hạng được.",
   },
   {
     Icon: Handshake,
     hue: "mane",
-    t: "Coach & Buddy",
-    d: "Đồng hành cùng giáo viên chủ nhiệm và bạn học mỗi tuần.",
+    t: "Thầy cô và bạn đồng hành",
+    d: "Giáo viên chủ nhiệm và một bạn cùng lớp theo dõi hành trình của bạn mỗi tuần.",
   },
   {
     Icon: ShieldCheck,

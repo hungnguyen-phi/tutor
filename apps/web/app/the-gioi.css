@@ -1,0 +1,917 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MỘT THẾ GIỚI (04/09) — các màn NGOÀI trang Học sống trong cùng đồng cỏ.
+
+   Vì sao có: chủ dự án nhìn bốn tab Ôn tập / Hạng / Mục tiêu / Tôi và bảo
+   "cực kỳ xấu, không mang tinh thần khơi gợi sự học". Nhìn thẳng thì đúng: màn
+   Học là một thế giới vẽ tay (đồng cỏ, trời, thác, sư tử đứng trong cảnh), còn
+   bốn tab kia là bảng điều khiển văn phòng — khối navy chữ nhật, ba ô số,
+   panel trắng. Bước từ Học sang Hạng là bước từ sân trường vào phòng kế toán.
+   "Luật" kìm nó lại nằm ngay trong mã: comment bốn component đều ghi "nền
+   trắng, hero navy nhấn vàng" theo hi-fi handoff cũ. Đợt này bỏ luật đó.
+
+   Nguyên tắc: bốn tab = bốn ĐỊA ĐIỂM trong cùng thế giới (cùng tranh savanna,
+   khác giờ trong ngày), navy/vàng làm CHỮ và NÚT chứ không làm khối lớn, mỗi
+   tab có một VẬT THỂ chữ ký có hình (bục đồi, lối mòn, kệ, thẻ), và mọi thứ
+   phải SỐNG (số chảy, mây trôi, sư tử thở). File nạp SAU globals.css nên thắng
+   mọi rule cũ cùng độ ưu tiên — cố ý không sửa các khối cũ để còn đường lui.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 0. Nền cảnh theo tab — cùng một thế giới, khác giờ trong ngày ──────────
+   Đặt trên .viewport (phần tử CUỘN): nền của vùng cuộn neo theo border-box,
+   không trôi theo nội dung → trang dài bao nhiêu cảnh cũng đứng yên, không
+   cần background-attachment:fixed (thứ sẽ hỏng vì transform của .view-in). */
+.viewport:has(.ws) {
+  --tg-scene: url("/scenes/world-0.webp");
+  background-color: #efe2bd;
+  background-image:
+    linear-gradient(180deg, rgb(255 255 255 / 0%) 0%, rgb(255 253 246 / 22%) 46%, rgb(250 246 234 / 48%) 100%),
+    var(--tg-scene);
+  background-size: cover;
+  background-position: center 28%;
+  background-repeat: no-repeat;
+}
+.viewport:has(.ws[data-world="1"]) { --tg-scene: url("/scenes/world-1.webp"); background-color: #cfe8f6; }
+.viewport:has(.ws[data-world="2"]) { --tg-scene: url("/scenes/world-2.webp"); background-color: #f2dfb6; }
+.viewport:has(.ws[data-world="3"]) { --tg-scene: url("/scenes/world-3.webp"); background-color: #e6ecf3; }
+.viewport:has(.ws[data-world="5"]) { --tg-scene: url("/scenes/world-5.webp"); background-color: #f6d3a8; }
+.shell-main:has(.ws) {
+  background: transparent;
+  position: relative;
+}
+.viewport:has(.ws) .ws {
+  position: relative;
+  z-index: 1;
+}
+/* (Đã thử hai đám mây CSS trôi ở nền — chụp thử 04/09 thấy chúng lọt sau tiêu
+   đề như một viên pill trắng lạc. Tranh đã có mây; chuyển động để sư tử thở,
+   số chảy, bục nhô, dấu chân nảy lo — không cần mây giả.) */
+
+/* ── 1. Hero: hết khối navy — chữ navy đứng trên TRỜI, sư tử đứng trên CỎ ── */
+.viewport:has(.ws) .ws-hero {
+  background: none;
+  color: var(--ink);
+  padding: 10px 8px 0;
+  border-radius: 0;
+  overflow: visible;
+  gap: 32px;
+  min-height: 176px;
+  align-items: flex-end;
+}
+.viewport:has(.ws) .ws-hero::after { display: none; }
+.viewport:has(.ws) .ws-hero-text {
+  align-self: center;
+  padding-bottom: 10px;
+}
+.viewport:has(.ws) .ws-kicker {
+  background: rgb(255 255 255 / 80%);
+  color: var(--navy);
+  border: 1px solid rgb(38 39 93 / 10%);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  font-size: 0.8125rem;
+}
+.viewport:has(.ws) .ws-kicker svg { color: var(--gold-icon); }
+.viewport:has(.ws) .ws-title {
+  color: var(--navy);
+  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 75%), 0 10px 30px rgb(255 255 255 / 55%);
+}
+.viewport:has(.ws) .ws-title .ws-title-skel { background: rgb(38 39 93 / 12%); }
+.viewport:has(.ws) .ws-lead {
+  color: var(--ink-2);
+  font-size: 1rem;
+  font-weight: 500;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 65%);
+}
+.viewport:has(.ws) .ws-lead b { color: var(--navy); }
+.viewport:has(.ws) .ws-hero-chip {
+  background: rgb(255 255 255 / 82%);
+  color: var(--navy);
+  border: 1px solid rgb(38 39 93 / 10%);
+  box-shadow: var(--shadow-sm);
+}
+.viewport:has(.ws) .ws-hero-chip svg { color: var(--gold-icon); }
+.viewport:has(.ws) .gl-hero-meter .meter-onnavy {
+  background: rgb(255 255 255 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(38 39 93 / 10%);
+}
+.viewport:has(.ws) .gl-hero-meter .meter-onnavy > i { background: var(--gold); }
+.viewport:has(.ws) .gl-hero-meter .num { color: var(--navy); }
+/* Sư tử đứng trên bệ cỏ, thở nhẹ — cùng bệ với màn đăng nhập */
+.viewport:has(.ws) .ws-hero-lion {
+  position: relative;
+  z-index: 1;
+  align-self: flex-end;
+  margin: 0 28px -4px 0;
+  padding-bottom: 20px;
+}
+.viewport:has(.ws) .ws-hero-lion::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  translate: -50% 0;
+  width: 175%;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 38%, #98cc70 0%, #74b04e 55%, #5f9e42 100%);
+  box-shadow: 0 12px 24px -10px rgb(20 40 10 / 50%);
+  z-index: -1;
+}
+.viewport:has(.ws) .ws-hero-lion .lion { animation: hero-float 5s var(--ease) infinite; }
+/* Nút bánh răng / quay lại trong hero giờ đứng trên trời sáng → đĩa trắng */
+.viewport:has(.ws) .pf-gear,
+.viewport:has(.ws) .st-back {
+  background: rgb(255 255 255 / 86%);
+  color: var(--navy);
+  box-shadow: var(--shadow-sm);
+}
+.viewport:has(.ws) .pf-gear:hover,
+.viewport:has(.ws) .st-back:hover { background: #fff; }
+.viewport:has(.ws) .st-hero .ws-hero-text { padding-left: 0; padding-top: 44px; }
+.viewport:has(.ws) .st-back { top: 8px; left: 8px; }
+
+/* ── 2. Dải chỉ số = MỘT vật thể (gu chủ dự án: nhiều món rời = rối) ─────── */
+.viewport:has(.ws) .ws-stats {
+  display: flex;
+  gap: 0;
+  padding: 8px;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 86%);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 44px -24px rgb(20 22 60 / 45%), inset 0 1px 0 #fff;
+}
+.viewport:has(.ws) .ws-stat {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 84px;
+  padding: 12px 22px;
+  border-radius: 18px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  column-gap: 16px;
+  position: relative;
+}
+.viewport:has(.ws) .ws-stat + .ws-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: rgb(38 39 93 / 12%);
+}
+.viewport:has(.ws) .ws-stat-ico {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+.viewport:has(.ws) .ws-stat[data-tone="navy"] .ws-stat-ico { background: var(--navy); color: var(--gold); }
+.viewport:has(.ws) .ws-stat[data-tone="gold"] .ws-stat-ico { background: var(--gold); color: var(--navy); }
+.viewport:has(.ws) .ws-stat[data-tone="plain"] .ws-stat-ico { background: var(--sky-tint); color: var(--sky); }
+.viewport:has(.ws) .ws-stat .num {
+  color: var(--navy);
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+.viewport:has(.ws) .ws-stat span:last-child {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.viewport:has(.ws) .ws-stat[data-zero] .num { color: var(--muted); }
+.viewport:has(.ws) .ws-stats .ws-stat:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgb(38 39 93 / 5%);
+}
+@media (max-width: 620px) {
+  .viewport:has(.ws) .ws-stats { flex-direction: column; padding: 4px; }
+  .viewport:has(.ws) .ws-stat { min-height: 66px; padding: 10px 18px; }
+  .viewport:has(.ws) .ws-stat + .ws-stat::before {
+    left: 20px; right: 20px; top: 0; bottom: auto; width: auto; height: 1px;
+  }
+}
+
+/* ── 3. Panel = vùng sáng nổi trên cảnh ────────────────────────────────────── */
+.viewport:has(.ws) .ws-panel {
+  background: rgb(255 255 255 / 90%);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 20px 48px -28px rgb(20 22 60 / 50%), inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 22px 26px;
+}
+.viewport:has(.ws) .ws-panel-title { font-size: 1.25rem; }
+.viewport:has(.ws) .ws-panel-title svg { color: var(--gold-icon); }
+.viewport:has(.ws) .rv-wrongpack {
+  border: 0;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 90%);
+  box-shadow: 0 16px 40px -26px rgb(20 22 60 / 50%), inset 0 1px 0 #fff;
+}
+.viewport:has(.ws) .banner.err { border-radius: 18px; }
+
+/* ── 4. HẠNG — bục top 3 đứng trên đồi cỏ ──────────────────────────────────── */
+.sb-podium {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  padding: 28px 6% 14px;
+  margin: 2px 0 20px;
+  min-height: 250px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+/* Đồi cỏ: vòm THẤP, đỉnh nằm dưới tên các bạn — khối bục cắm vào đồi, tên và
+   avatar đứng trên trời (chụp thử 04/09: vòm cao 118px cắt ngang tên). */
+.sb-podium::before {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -30px;
+  height: 120px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: linear-gradient(180deg, #a3d27c 0%, #7fb95c 62%, #6aa54b 100%);
+  z-index: 0;
+}
+/* Vài nhánh cỏ + hoa tĩnh trên đồi — hoạ tiết, không phải nút */
+.sb-podium::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 60px;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 8% 60%, #fff6b0 3px, transparent 3.5px),
+    radial-gradient(circle at 14% 78%, #ffe27a 2.5px, transparent 3px),
+    radial-gradient(circle at 90% 62%, #fff6b0 3px, transparent 3.5px),
+    radial-gradient(circle at 84% 80%, #ffd0e0 2.5px, transparent 3px),
+    radial-gradient(circle at 50% 90%, #ffe27a 2px, transparent 2.5px);
+  background-repeat: no-repeat;
+}
+.sb-step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  animation: sb-rise 0.6s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
+.sb-step[data-rank="2"] { order: 1; }
+.sb-step[data-rank="1"] { order: 2; }
+.sb-step[data-rank="3"] { order: 3; }
+.sb-step-ava {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-weight: 700;
+  font-size: 1.375rem;
+  color: #fff;
+  background: var(--sky);
+  box-shadow: 0 0 0 4px #fff, var(--shadow-sm);
+}
+.sb-step-ava[data-tint="ok"] { background: var(--ok); }
+.sb-step-ava[data-tint="mane"] { background: var(--mane); }
+.sb-step-ava[data-tint="navy"] { background: var(--navy); }
+.sb-step-ava[data-tint="gold"] { background: var(--gold); color: var(--navy); }
+.sb-step[data-rank="1"] .sb-step-ava {
+  width: 70px;
+  height: 70px;
+  font-size: 1.75rem;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 8px rgb(249 221 14 / 55%), var(--shadow-sm);
+}
+.sb-step-crown {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  translate: -50% 0;
+  width: 30px;
+  height: 30px;
+  color: var(--gold-icon);
+  filter: drop-shadow(0 2px 0 #fff);
+  animation: crown-bob 2.4s ease-in-out infinite;
+}
+.sb-step-avawrap { position: relative; }
+.sb-step-name {
+  max-width: 100%;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 70%);
+}
+.sb-step-xp {
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 88%);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--navy);
+  box-shadow: var(--shadow-sm);
+}
+.sb-step-block {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  margin-top: 4px;
+  border-radius: 14px 14px 4px 4px;
+  background: linear-gradient(180deg, #ffffff 0%, #e9eef6 100%);
+  box-shadow: 0 6px 0 #c7d2e2, 0 16px 26px -14px rgb(20 22 60 / 45%);
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.sb-step[data-rank="1"] .sb-step-block {
+  height: 96px;
+  background: linear-gradient(180deg, #fff0a3 0%, var(--gold) 100%);
+  box-shadow: 0 6px 0 var(--gold-press), 0 16px 26px -14px rgb(20 22 60 / 45%);
+}
+.sb-step[data-rank="2"] .sb-step-block { height: 72px; }
+.sb-step[data-rank="3"] .sb-step-block {
+  height: 54px;
+  background: linear-gradient(180deg, #ffe6cf 0%, #f3c8a3 100%);
+  box-shadow: 0 6px 0 #d19a6c, 0 16px 26px -14px rgb(20 22 60 / 45%);
+  font-size: 1.5rem;
+}
+.sb-step[data-empty] .sb-step-ava {
+  background: rgb(255 255 255 / 70%);
+  color: var(--ink-faint);
+  border: 2px dashed rgb(38 39 93 / 25%);
+  box-shadow: none;
+}
+.sb-step[data-empty] .sb-step-name { color: var(--muted); font-weight: 600; }
+.sb-step[data-empty] .sb-step-block { opacity: 0.55; }
+@keyframes sb-rise { from { opacity: 0; transform: translateY(26px); } }
+@keyframes crown-bob { 50% { transform: translateY(-3px) rotate(-6deg); } }
+@media (max-width: 480px) {
+  .sb-podium { padding: 24px 2% 0; min-height: 210px; }
+  .sb-step-ava { width: 48px; height: 48px; font-size: 1.125rem; }
+  .sb-step[data-rank="1"] .sb-step-ava { width: 58px; height: 58px; }
+  .sb-step-name { font-size: 0.8125rem; }
+}
+/* Hàng của mình trong danh sách: viền vàng mềm, không hộp vàng đặc */
+.viewport:has(.ws) .sb-row {
+  border-radius: 16px;
+  border-color: rgb(38 39 93 / 8%);
+}
+.viewport:has(.ws) .sb-row.me {
+  background: linear-gradient(90deg, #fff8cf, #fffdf0);
+  border-color: rgb(249 221 14 / 90%);
+  box-shadow: 0 0 0 3px rgb(249 221 14 / 25%);
+}
+
+/* ── 5. MỤC TIÊU — lối mòn tuần: 7 dấu chân trên đường, lá cờ ở cuối ─────── */
+.trail {
+  position: relative;
+  height: 122px;
+  margin: 4px 0 6px;
+}
+.trail-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.trail-path path {
+  fill: none;
+  stroke: rgb(38 39 93 / 30%);
+  stroke-width: 3;
+  stroke-dasharray: 6 9;
+  stroke-linecap: round;
+}
+.trail-day {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  animation: trail-pop 0.5s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.trail-day .day-dot {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  box-shadow: none;
+  background: url("/brand/lion/paw-plain.webp") center / contain no-repeat;
+  opacity: 0.4;
+}
+.trail-day:nth-child(odd) .day-dot { rotate: -9deg; }
+.trail-day:nth-child(even) .day-dot { rotate: 9deg; }
+.trail-day .day-dot[data-state="done"] {
+  background-image: url("/brand/lion/paw-check.webp");
+  opacity: 1;
+  filter: drop-shadow(0 3px 4px rgb(20 22 60 / 28%));
+}
+.trail-day .day-dot[data-state="today"] {
+  opacity: 0.95;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--gold);
+  animation: trail-pulse 1.6s ease-in-out infinite;
+}
+.trail-day .day-dot > i { display: none; }
+.trail-day .day-dot svg { display: none; }
+.trail-day .week-lbl { font-size: 0.75rem; font-weight: 700; color: var(--muted); }
+.trail-day[data-today] .week-lbl { color: var(--navy); }
+.trail-goal {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--navy);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.trail-goal svg {
+  width: 30px;
+  height: 30px;
+  color: var(--gold-icon);
+  filter: drop-shadow(0 2px 0 #fff);
+  animation: crown-bob 2.8s ease-in-out infinite;
+}
+.trail-goal[data-reached] svg { color: var(--ok); }
+@keyframes trail-pop { from { opacity: 0; scale: 0.5; } }
+@keyframes trail-pulse { 50% { box-shadow: 0 0 0 3px #fff, 0 0 0 11px rgb(249 221 14 / 35%); } }
+@media (max-width: 560px) {
+  .trail { height: 104px; }
+  .trail-day .day-dot { width: 30px; height: 30px; }
+  .trail-goal svg { width: 24px; height: 24px; }
+}
+/* Hàng nhiệm vụ: bo mềm hơn, hết viền cứng */
+.viewport:has(.ws) .task-row {
+  border-radius: 16px;
+  border-color: rgb(38 39 93 / 8%);
+}
+
+/* ── 6. ÔN TẬP — kệ gỗ, mỗi bài là một thẻ đứng trên kệ ────────────────────── */
+.rv-shelf {
+  position: relative;
+  padding: 0 8px 26px;
+}
+.rv-shelf + .rv-shelf { margin-top: 22px; }
+.rv-shelf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rv-shelf-head b {
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-size: 1.0625rem;
+  color: var(--navy);
+}
+.rv-shelf-head .num {
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--gold-tint);
+  color: var(--navy);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.rv-shelf-head .btn { margin-left: auto; }
+/* Tấm ván nằm NGAY dưới hàng thẻ (khối tĩnh, không absolute): kệ dài, thẻ xếp
+   MỘT hàng và cuộn ngang dọc kệ — chụp thử 04/09: lưới 2 hàng làm hàng trên
+   "lơ lửng" không có ván đỡ. */
+.rv-shelf-board {
+  display: block;
+  margin: -2px -6px 0;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #dcae74 0%, #bb7f46 55%, #9c6434 100%);
+  box-shadow: 0 6px 0 #7b4b26, 0 16px 20px -10px rgb(60 30 5 / 50%);
+}
+.rv-shelf .rv-cards {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  overflow-x: auto;
+  padding: 6px 4px 0;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.rv-shelf .rv-cards > li {
+  flex: 0 0 250px;
+  scroll-snap-align: start;
+}
+.viewport:has(.ws) .rv-shelf .rv-card {
+  border: 0;
+  border-top: 6px solid var(--sky);
+  border-radius: 12px 12px 3px 3px;
+  background: #fff;
+  box-shadow: 0 4px 0 #dfe6f0, 0 12px 20px -12px rgb(20 22 60 / 40%);
+}
+.viewport:has(.ws) .rv-shelf .rv-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 0 #dfe6f0, 0 18px 26px -12px rgb(20 22 60 / 45%);
+}
+.viewport:has(.ws) .rv-shelf[data-tone="due"] .rv-card { border-top-color: var(--gold); }
+.viewport:has(.ws) .rv-shelf[data-tone="soon"] .rv-card { border-top-color: var(--sky); }
+.viewport:has(.ws) .rv-shelf[data-tone="strong"] .rv-card { border-top-color: var(--ok); }
+@media (max-width: 560px) {
+  .rv-shelf .rv-cards > li { flex-basis: 220px; }
+}
+.rv-shelf[data-tone="due"] .rv-shelf-head .num { background: var(--gold); }
+.rv-shelf[data-tone="strong"] .rv-shelf-head .num { background: var(--ok-tint); color: var(--ok); }
+.viewport:has(.ws) .rv-empty {
+  border: 0;
+  background: rgb(255 255 255 / 90%);
+}
+.viewport:has(.ws) .rv-step-n { border-radius: 50%; }
+
+/* ── 7. TÔI — thẻ hành trình + huy hiệu là sticker ─────────────────────────── */
+.pf-card {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 600px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #ffffff 0%, #f3f5fb 100%);
+  border: 1px solid rgb(38 39 93 / 8%);
+  box-shadow: 0 26px 54px -28px rgb(20 22 60 / 60%), inset 0 1px 0 #fff;
+  overflow: hidden;
+  animation: pf-card-in 0.6s var(--ease) both;
+}
+.pf-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 24px, var(--navy) 24px 48px);
+}
+.pf-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  background: var(--navy);
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.pf-card-top img { width: 22px; height: 22px; border-radius: 6px; background: #fff; padding: 2px; }
+.pf-card-top span:last-child { margin-left: auto; color: rgb(255 255 255 / 70%); letter-spacing: 0.06em; }
+.pf-card-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px 14px;
+}
+.pf-card-body .ws-hero-text { padding: 0; }
+.pf-card-body .ws-title {
+  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  margin: 8px 0 4px;
+  text-shadow: none;
+}
+.pf-card-body .ws-lead { font-size: 0.9rem; text-shadow: none; }
+.pf-card-body .ws-kicker { box-shadow: none; background: var(--gold-tint); border-color: transparent; }
+.pf-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px 16px;
+  border-top: 1px dashed rgb(38 39 93 / 16%);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.pf-card-foot b { color: var(--navy); }
+.pf-card-paw {
+  width: 28px;
+  height: 28px;
+  background: url("/brand/lion/paw-check.webp") center / contain no-repeat;
+  rotate: 12deg;
+}
+.viewport:has(.ws) .pf-hero .ws-hero-ava { rotate: 0deg; box-shadow: 0 0 0 4px #fff, 0 0 0 6px rgb(38 39 93 / 12%); }
+@keyframes pf-card-in { from { opacity: 0; transform: translateY(14px) rotate(-1.5deg); } }
+@media (max-width: 700px) {
+  .pf-card { max-width: none; }
+  .viewport:has(.ws) .pf-gear { top: 8px; right: 8px; }
+}
+/* Huy hiệu chương = sticker tròn: đạt = vàng bóng, chưa = viền chỉ may */
+.viewport:has(.ws) .pf-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 22px;
+  padding: 6px 0 2px;
+}
+.viewport:has(.ws) .pf-badge { flex: 0 0 auto; width: 98px; }
+.viewport:has(.ws) .pf-badge-tile {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px dashed rgb(38 39 93 / 25%);
+  background: rgb(38 39 93 / 4%);
+  color: var(--ink-faint);
+}
+.viewport:has(.ws) .pf-badge-tile svg { width: 26px; height: 26px; }
+.viewport:has(.ws) .pf-badge[data-got] .pf-badge-tile {
+  border: 0;
+  background: radial-gradient(circle at 35% 28%, #fff4a6 0%, var(--gold) 58%, #e0c300 100%);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 6px rgb(249 221 14 / 55%), 0 12px 20px -10px rgb(20 22 60 / 50%);
+  color: var(--navy);
+  animation: sticker-in 0.5s var(--ease) both;
+}
+.viewport:has(.ws) .pf-badge[data-got] .pf-badge-tile svg { width: 34px; height: 34px; }
+.viewport:has(.ws) .pf-badge-lbl { font-size: 0.75rem; }
+@keyframes sticker-in { from { scale: 0.4; rotate: -20deg; } 70% { scale: 1.08; } }
+/* Thang hạng = bốn bậc thang đi lên (thay danh sách phẳng) */
+.viewport:has(.ws) .gl-ladder {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.viewport:has(.ws) .gl-rung {
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  text-align: center;
+  padding: 12px 8px 12px;
+  border: 0;
+  border-radius: 16px 16px 6px 6px;
+  background: rgb(38 39 93 / 5%);
+  box-shadow: 0 4px 0 rgb(38 39 93 / 8%);
+  min-height: calc(92px + var(--step, 0px));
+}
+.viewport:has(.ws) .gl-rung:nth-child(1) { --step: 0px; }
+.viewport:has(.ws) .gl-rung:nth-child(2) { --step: 18px; }
+.viewport:has(.ws) .gl-rung:nth-child(3) { --step: 36px; }
+.viewport:has(.ws) .gl-rung:nth-child(4) { --step: 54px; }
+.viewport:has(.ws) .gl-rung-ico { width: 40px; height: 40px; border-radius: 50%; margin-bottom: 2px; }
+.viewport:has(.ws) .gl-rung-ico svg { width: 20px; height: 20px; }
+.viewport:has(.ws) .gl-rung-name { flex: 0 0 auto; font-family: var(--font-serif), var(--font-sans), sans-serif; font-size: 1rem; }
+.viewport:has(.ws) .gl-rung-min { font-size: 0.75rem; }
+.viewport:has(.ws) .gl-rung-you { margin: 4px 0 0; rotate: -4deg; }
+.viewport:has(.ws) .gl-rung[data-state="past"] {
+  background: var(--ok-tint);
+  box-shadow: 0 4px 0 var(--ok-border);
+}
+.viewport:has(.ws) .gl-rung[data-state="past"] .gl-rung-ico { background: var(--ok); color: #fff; }
+.viewport:has(.ws) .gl-rung[data-state="current"] {
+  background: linear-gradient(180deg, #fff3a3 0%, var(--gold) 100%);
+  box-shadow: 0 4px 0 var(--gold-press), 0 14px 26px -14px rgb(20 22 60 / 45%);
+  transform: none;
+}
+.viewport:has(.ws) .gl-rung[data-state="current"] .gl-rung-ico { background: var(--navy); color: var(--gold); }
+.viewport:has(.ws) .gl-rung[data-state="current"] .gl-rung-name { color: var(--navy); }
+.viewport:has(.ws) .gl-rung[data-state="current"] .gl-rung-min { color: var(--navy); }
+.viewport:has(.ws) .gl-rung[data-state="current"] .gl-rung-you { background: var(--navy); color: var(--gold); }
+.viewport:has(.ws) .gl-rung[data-state="future"] .gl-rung-name { color: var(--muted); }
+/* Dòng chân thang: rule cũ `.ws-panel > p.muted{margin-top:-4px}` kéo nó đè lên
+   đáy bậc thang → trả lại khoảng thở đúng. */
+.viewport:has(.ws) .ws-panel > p.gl-ladder-foot { margin-top: 16px; }
+@media (max-width: 420px) {
+  .viewport:has(.ws) .gl-rung-name { font-size: 0.875rem; }
+  .viewport:has(.ws) .gl-rung-min { font-size: 0.6875rem; }
+}
+/* Dòng "Hạng nỗ lực" gọn ở tab Mục tiêu dùng chung icon tròn */
+.viewport:has(.ws) .gl-ladder-line .gl-rung-ico { width: 34px; height: 34px; border-radius: 50%; }
+
+/* ── 8. CÀI ĐẶT — hậu trường, cùng thế giới nhưng dịu (world-3) ────────────── */
+.viewport:has(.ws) .st-seg,
+.viewport:has(.ws) .sb-scope { background: rgb(38 39 93 / 7%); }
+
+/* ── 9. TRANG GIỚI THIỆU + HUB + CONSOLE VAI TRÒ — cùng bầu trời ──────────── */
+.hero {
+  --hero-bg: transparent;
+  background-color: #f2e2b8;
+  background-image:
+    linear-gradient(180deg, rgb(255 255 255 / 0%) 0%, rgb(255 253 245 / 28%) 100%),
+    url("/scenes/world-0.webp");
+  background-size: cover;
+  background-position: center 42%;
+  color: var(--ink);
+}
+.hero-copy h1 {
+  color: var(--navy);
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 0 rgb(255 255 255 / 75%), 0 12px 30px rgb(255 255 255 / 60%);
+}
+.hero-copy .sub {
+  color: var(--ink-2);
+  font-weight: 500;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 70%);
+}
+.hero .btn-ghost {
+  --btn-fg: var(--navy);
+  background: rgb(255 255 255 / 82%);
+  border-color: rgb(38 39 93 / 16%);
+  box-shadow: var(--shadow-sm);
+}
+.hero .btn-ghost:hover:not(:disabled) { background: #fff; }
+.hero-logo { box-shadow: var(--shadow-sm); }
+.hero-lion::before { display: none; }
+.hero-lion::after {
+  bottom: -6px;
+  width: 150%;
+  height: 46px;
+  background: radial-gradient(ellipse at 50% 38%, #98cc70 0%, #74b04e 55%, #5f9e42 100%);
+  box-shadow: 0 14px 26px -10px rgb(20 40 10 / 50%);
+}
+.viewport:has(.land) { background: var(--sky-grad); background-attachment: scroll; }
+.land { max-width: 64rem; padding: 36px 20px 56px; }
+.land-features {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* 4 thẻ một hàng ở desktop, không mồ côi */
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.land-features li {
+  border: 0;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 16px 40px -28px rgb(20 22 60 / 45%), inset 0 1px 0 #fff;
+}
+.land-features b { font-family: var(--font-serif), var(--font-sans), sans-serif; font-size: 1.0625rem; color: var(--navy); }
+.land-foot { border-top: 0; text-align: center; }
+
+.viewport:has(.role-main),
+.viewport:has(.hub) {
+  background-color: var(--canvas-deep);
+  background-image: var(--sky-grad);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+.role-head { background: rgb(255 255 255 / 80%); border-bottom-color: rgb(38 39 93 / 8%); }
+.role-head-inner { max-width: 72rem; }
+.role-titles b {
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  font-size: 1.2rem;
+  color: var(--navy);
+}
+.role-main { max-width: 72rem; min-height: calc(100dvh - 60px); }
+.role-main .panel,
+.role-main .tdb-card,
+.hub .tiles a {
+  border: 0;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 16px 40px -28px rgb(20 22 60 / 45%), inset 0 1px 0 #fff;
+}
+.role-main .h3,
+.role-main .tdb-card-title,
+.role-main h1,
+.role-main h2 {
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
+  color: var(--navy);
+}
+.role-main .kpis .num { font-family: var(--font-serif), var(--font-sans), sans-serif; }
+.hub .tiles a:hover { background: #fff; box-shadow: 0 20px 44px -26px rgb(20 22 60 / 55%); }
+
+/* ── 9b. Console GIÁO VIÊN (.tdb có khung riêng, không qua RoleShell) ─────── */
+.tdb { background: transparent; }
+.viewport:has(.tdb) {
+  background-color: var(--canvas-deep);
+  background-image: var(--sky-grad);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+.tdb-top { background: rgb(255 255 255 / 82%); border-bottom-color: rgb(38 39 93 / 8%); }
+.tdb-brand b { font-family: var(--font-serif), var(--font-sans), sans-serif; font-size: 1.05rem; }
+.tdb .tdb-kpi,
+.tdb .tdb-card,
+.tdb .panel {
+  border: 0;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 16px 40px -28px rgb(20 22 60 / 45%), inset 0 1px 0 #fff;
+}
+.tdb .tdb-kpi b,
+.tdb .tdb-kpi .num { font-family: var(--font-serif), var(--font-sans), sans-serif; color: var(--navy); }
+.tdb .tdb-card-title,
+.tdb h1,
+.tdb h2 { font-family: var(--font-serif), var(--font-sans), sans-serif; color: var(--navy); }
+
+/* ── 9c. Sàn chữ 12px (đo mobile 04/09) ───────────────────────────────────── */
+.trail-goal { font-size: 0.75rem; }
+.viewport:has(.ws) .gl-rung-min { font-size: 0.75rem; }
+.pf-card-top { font-size: 0.75rem; letter-spacing: 0.1em; }
+.viewport:has(.ws) .task-meter b { font-size: 0.75rem; }
+
+/* ── 9d. MOBILE (<700px): hero xếp lại — chữ trọn bề ngang, sư tử nhỏ đứng
+   góc phải; thẻ hành trình tràn ngang, ẩn sư tử (thẻ đã có avatar). Dải chỉ
+   số thành một hàng 3–4 ô dọc-tâm thay vì chồng ba tầng cao 300px. ────────── */
+@media (max-width: 699.98px) {
+  .viewport:has(.ws) .ws-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+    min-height: 0;
+    padding: 6px 2px 0;
+  }
+  .viewport:has(.ws) .ws-hero-text { padding-bottom: 6px; }
+  .viewport:has(.ws) .ws-hero-lion {
+    display: block;
+    align-self: end;
+    margin: 0 4px 0 0;
+    padding-bottom: 12px;
+    zoom: 0.68;
+  }
+  .viewport:has(.ws) .ws-hero-lion::before { height: 30px; bottom: 2px; width: 160%; }
+  .viewport:has(.ws) .ws-title { font-size: 1.65rem; margin: 10px 0 6px; }
+  .viewport:has(.ws) .ws-kicker { font-size: 0.75rem; padding: 4px 10px 4px 8px; }
+  .viewport:has(.ws) .ws-lead { font-size: 0.9rem; line-height: 1.5; }
+  .viewport:has(.ws) .ws-hero-chip { margin-top: 10px; font-size: 0.75rem; }
+  /* Thẻ hành trình */
+  .viewport:has(.ws) .pf-hero { grid-template-columns: minmax(0, 1fr); padding-top: 50px; }
+  .viewport:has(.ws) .pf-hero .ws-hero-lion { display: none; }
+  /* Bánh răng đứng TRÊN thẻ (chụp 04/09: đặt góc thẻ thì đè lên dải navy) */
+  .viewport:has(.ws) .pf-hero .pf-gear { top: 0; right: 4px; z-index: 3; }
+  .pf-card { margin-top: 0; }
+  .pf-card-top { padding: 8px 14px; font-size: 0.75rem; letter-spacing: 0.08em; }
+  .pf-card-top span:last-child { display: none; }
+  .pf-card-body { gap: 14px; padding: 14px 16px 10px; }
+  .pf-card-body .ws-title { font-size: 1.4rem; margin: 6px 0 2px; }
+  .pf-card-foot { padding: 8px 14px 14px; font-size: 0.75rem; }
+  /* Cài đặt: nút quay lại nằm trên kicker */
+  .viewport:has(.ws) .st-hero .ws-hero-text { padding-top: 40px; }
+}
+@media (max-width: 620px) {
+  .viewport:has(.ws) .ws-stats { flex-direction: row; padding: 6px; }
+  .viewport:has(.ws) .ws-stat {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    justify-items: center;
+    text-align: center;
+    column-gap: 0;
+    row-gap: 2px;
+    padding: 10px 4px 8px;
+    min-height: 0;
+    border-radius: 14px;
+  }
+  .viewport:has(.ws) .ws-stat + .ws-stat::before {
+    left: 0; right: auto; top: 14px; bottom: 14px; width: 1px; height: auto;
+  }
+  .viewport:has(.ws) .ws-stat-ico { grid-row: 1; width: 36px; height: 36px; }
+  .viewport:has(.ws) .ws-stat-ico svg { width: 18px; height: 18px; }
+  .viewport:has(.ws) .ws-stat .num { font-size: 1.5rem; align-self: auto; }
+  .viewport:has(.ws) .ws-stat span:last-child { font-size: 0.75rem; line-height: 1.2; align-self: auto; }
+}
+
+/* ── 10. Giảm chuyển động: mọi thứ đứng yên, không mất gì ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .shell-main:has(.ws)::before,
+  .shell-main:has(.ws)::after,
+  .viewport:has(.ws) .ws-hero-lion .lion,
+  .sb-step,
+  .sb-step-crown,
+  .trail-day,
+  .trail-day .day-dot[data-state="today"],
+  .trail-goal svg,
+  .pf-card,
+  .viewport:has(.ws) .pf-badge[data-got] .pf-badge-tile {
+    animation: none;
+  }
+}
+html[data-motion="reduce"] .shell-main:has(.ws)::before,
+html[data-motion="reduce"] .shell-main:has(.ws)::after,
+html[data-motion="reduce"] .viewport:has(.ws) .ws-hero-lion .lion,
+html[data-motion="reduce"] .sb-step,
+html[data-motion="reduce"] .sb-step-crown,
+html[data-motion="reduce"] .trail-day,
+html[data-motion="reduce"] .trail-goal svg,
+html[data-motion="reduce"] .pf-card,
+html[data-motion="reduce"] .viewport:has(.ws) .pf-badge[data-got] .pf-badge-tile {
+  animation: none;
+}

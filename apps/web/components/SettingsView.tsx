@@ -41,6 +41,7 @@ import { useAuth, signOut } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import * as Prefs from "../lib/prefs";
 import { PRESENCE_ENABLED } from "../lib/presence";
+import { PILOT_PASSWORD_LOGIN } from "../lib/config";
 
 const TONES: { key: Prefs.AvatarTone; label: string }[] = [
   { key: "gold", label: "Vàng sư tử" },
@@ -207,8 +208,12 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
     setAskClear(false);
   }
 
+  // SSO-only (04/09): tài khoản Google không có mật khẩu để đổi — chỉ hiện ô
+  // đổi mật khẩu khi đăng nhập mật khẩu còn bật (pilot).
+  const coMatKhau = PILOT_PASSWORD_LOGIN && session?.user.app_metadata?.provider !== "google";
+
   return (
-    <div className="ws">
+    <div className="ws" data-world="3">
       {/* HERO gọn — cài đặt là "hậu trường", không cần sân khấu lớn */}
       <header className="ws-hero st-hero">
         {onBack && (
@@ -227,7 +232,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
           </p>
         </div>
         <span className="ws-hero-lion" aria-hidden>
-          <Lion mood="idle" size={120} variant="full" decorative />
+          <Lion mood="idle" size={120} variant="full" decorative eager />
         </span>
       </header>
 
@@ -321,6 +326,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* Đổi mật khẩu — thật qua supabase.auth */}
+          {coMatKhau && (
           <div className="st-row">
             <b className="st-row-title">
               <KeyRound aria-hidden strokeWidth={2.25} />
@@ -360,6 +366,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
               </p>
             )}
           </div>
+          )}
 
           {/* Thông tin chỉ đọc — trường quản lý */}
           <div className="st-row">

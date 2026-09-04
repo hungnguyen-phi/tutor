@@ -19,12 +19,13 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Flame, Hourglass, Medal, Sparkles, Trophy, Zap } from "lucide-react";
+import { AlertTriangle, Check, Crown, Flame, Hourglass, Medal, Sparkles, Trophy, Zap } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { getScoreboard, commitScoreboard, syncScoreboard, type BoardView, type Scoreboard } from "../lib/api";
 import AppShell from "./AppShell";
 import RedirectToLogin from "./RedirectToLogin";
 import Lion from "./Lion";
+import Num from "./Num";
 import * as G from "../lib/gamify";
 import * as Prefs from "../lib/prefs";
 
@@ -207,9 +208,17 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
     </>
   );
 
+  // BỤC TOP 3 trên đồi (04/09 — "một thế giới"): ba bậc theo hạng THẬT của
+  // bảng đang xem; chưa đủ ba người có XP thì bậc trống nói "còn trống",
+  // không bịa tên. Thứ tự vẽ 2-1-3 do CSS (order) lo.
+  const podium = [1, 2, 3].map((rank) => {
+    const r = boardRows.filter((x) => x.xp > 0)[rank - 1] ?? null;
+    return { rank, r };
+  });
+
   return (
-    <div className="ws">
-      {/* HERO navy — "Bảng tuần" + khung nỗ lực + sư tử; chip còn N ngày */}
+    <div className="ws" data-world="0">
+      {/* HERO — "Bảng tuần" + khung nỗ lực + sư tử; chip còn N ngày */}
       <header className="ws-hero">
         <div className="ws-hero-text">
           <span className="ws-kicker">
@@ -234,7 +243,7 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
           </span>
         </div>
         <span className="ws-hero-lion" aria-hidden>
-          <Lion mood="excited" size={132} variant="full" decorative />
+          <Lion mood="excited" size={132} variant="full" decorative eager />
         </span>
       </header>
 
@@ -287,14 +296,14 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
               <span className="ws-stat-ico" aria-hidden>
                 <Zap strokeWidth={2.25} />
               </span>
-              <b className="num">{myTotalXp}</b>
+              <Num value={myTotalXp} />
               <span>tổng XP</span>
             </div>
             <div className="ws-stat" data-tone="plain" data-zero={myStreak === 0 || undefined}>
               <span className="ws-stat-ico" aria-hidden>
                 <Flame strokeWidth={2.25} />
               </span>
-              <b className="num">{myStreak}</b>
+              <Num value={myStreak} delay={150} />
               <span>ngày liên tiếp</span>
             </div>
           </div>
@@ -302,6 +311,39 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
           <div className="ws-grid">
             {/* CỘT CHÍNH: bảng xếp hạng THẬT — hoặc lời mời khi chưa ai có XP */}
             <section className="ws-panel sb-board">
+              {!coldStart && (
+                <div className="sb-podium" aria-label={`Ba bạn dẫn đầu ${scopeWord} tuần này`}>
+                  {podium.map(({ rank, r }, i) => {
+                    const letter = r ? (r.name.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? "?") : "·";
+                    return (
+                      <div
+                        className="sb-step"
+                        key={rank}
+                        data-rank={rank}
+                        data-me={r?.me || undefined}
+                        data-empty={!r || undefined}
+                        style={{ "--i": i } as React.CSSProperties}
+                      >
+                        <span className="sb-step-avawrap">
+                          {rank === 1 && r && <Crown className="sb-step-crown" aria-hidden strokeWidth={2.25} />}
+                          <span className="sb-step-ava" data-tint={r?.me ? "gold" : AVA_TINTS[(rank + 1) % AVA_TINTS.length]} aria-hidden>
+                            {letter}
+                          </span>
+                        </span>
+                        <b className="sb-step-name">{r ? (r.me ? `${r.name} (bạn)` : r.name) : "còn trống"}</b>
+                        {r && (
+                          <span className="sb-step-xp num">
+                            {r.xp} XP
+                          </span>
+                        )}
+                        <span className="sb-step-block num" aria-hidden>
+                          {rank}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {coldStart ? (
                 /* MÀN RỖNG NÓI ĐÚNG LÝ DO (lỗi 5). Trước đây mọi trường hợp đều
                    hiện "chờ buổi học đầu tiên" — kể cả khi em đã có 640 XP tuần

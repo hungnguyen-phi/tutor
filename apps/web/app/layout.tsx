@@ -7,6 +7,9 @@ import "./globals.css";
 // Không dùng @import giữa globals.css: CSS spec chỉ cho @import ở đầu file,
 // css-loader sẽ lặng lẽ bỏ qua — import tại đây cho thứ tự tường minh.
 import "./lion-motion.css";
+// "Một thế giới" (04/09): các tab ngoài trang Học sống trong cùng đồng cỏ —
+// nạp SAU CÙNG để thắng các rule dashboard cũ trong globals.css.
+import "./the-gioi.css";
 
 // Bộ chữ "nhí nhảnh nhưng nghiêm túc" (chốt 18/08, thay hi-fi handoff cũ):
 // Baloo 2 (tròn, dày) cho display — tiêu đề trang, tên chương, số liệu lớn;

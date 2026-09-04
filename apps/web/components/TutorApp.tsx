@@ -1579,7 +1579,9 @@ export default function TutorApp() {
                    dùng câu mặc định thay vì bịa. */
                 wigTitle={(() => {
                   const chuong = nodes.find((n) => n.state === "current")?.chapter;
-                  return chuong ? `Thành thạo chương ${chuong}` : undefined;
+                  // "Chương I. Mệnh đề" đã có chữ Chương → không lặp "chương Chương" (04/09)
+                  if (!chuong) return undefined;
+                  return /^chương\b/i.test(chuong.trim()) ? `Thành thạo ${chuong.trim()}` : `Thành thạo chương ${chuong}`;
                 })()}
               />
             )}
