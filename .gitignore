@@ -35,3 +35,4 @@ npm-debug.log*
 .impeccable/hook.cache.json
 scratchpad/
 scratchpad-*.json
+tools/mobile-shots/
