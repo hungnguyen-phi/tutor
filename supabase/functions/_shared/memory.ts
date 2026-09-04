@@ -32,6 +32,7 @@
 
 import { anonymize } from "./llm.ts";
 import { isHelpRequest } from "./intent.ts";
+import { docTinhHuong, type TinhHuong } from "./tinh-huong.ts";
 
 /** TRẦN CỨNG cho cả khối trí nhớ (ký tự). Tiếng Việt ~3,2 ký tự/token ⇒ ~300
  *  token. Đây là con số vào ngân sách, không phải "thường thì khoảng". */
@@ -69,6 +70,8 @@ export interface TutorMemory {
   size: number;
   /** Em đang có chính kiến / tranh luận? null = không có dấu hiệu. */
   tranhLuan: TranhLuan | null;
+  /** Em đang ở KIỂU tương tác nào (đùa / thử máy / chính kiến / lặp / đuối / xuôi). */
+  tinhHuong: TinhHuong | null;
   /**
    * Số lượt XIN GIÚP LIÊN TIẾP ở cuối cuộc trò chuyện ("em chưa hiểu", "gợi ý
    * giúp mình với", hoặc lời cụt lủn).
@@ -360,6 +363,8 @@ export async function buildMemory(
   const tranhLuan = tranhLuanTho
     ? { ...tranhLuanTho, lyLe: anonymize(tranhLuanTho.lyLe, opts.names).text }
     : null;
+  const rowsHienTai = opts.omitContent ? [...rows, { role: "student", content: opts.omitContent }] : rows;
+  const tinhHuong = docTinhHuong(rowsHienTai, { tranhLuan: tranhLuanTho });
 
   return {
     soTay,
@@ -369,5 +374,6 @@ export async function buildMemory(
     size: soTay.length + safeHistory.length + hoSo.length,
     xinGiupLienTiep,
     tranhLuan,
+    tinhHuong,
   };
 }

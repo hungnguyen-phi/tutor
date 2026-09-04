@@ -1,6 +1,8 @@
 /** Tutor system prompts (PRD §24). The guide agent NEVER reveals the answer. */
 import type { SkillRubric } from "./rubrics.ts";
 
+import { loiDanTheoKieu, type TinhHuong } from "./tinh-huong.ts";
+
 export interface GuideCtx {
   subject: string;
   grade: string;
@@ -51,6 +53,8 @@ export interface GuideCtx {
    * lần. Có thì system bật quy trình xử lý bất đồng theo LOẠI điểm rẽ.
    */
   tranhLuan?: { lanGiuY: number; coLyLe: boolean; lyLe: string; hoiLap: number } | null;
+  /** KIỂU tương tác đọc được (tinh-huong.ts) — đùa / thử máy / chính kiến / lặp / đuối / xuôi. */
+  tinhHuong?: TinhHuong | null;
   /**
    * CÓ thẻ `<dang_chon>` ở lượt `user` — đáp án em ĐANG chọn trên màn (hoặc vừa
    * nộp) ở chính câu này. Chỉ là CÔNG TẮC, nội dung đi đường dữ liệu như mọi
@@ -351,6 +355,10 @@ Lượt này KHÔNG hỏi lại. Được tối đa 3 câu / 60 từ. Làm theo 
 6. Tôn trọng chính kiến: không "sai rồi", không "bạn phải", không dồn ba câu hỏi. Một bất
    đồng chưa xong vẫn là tiến bộ nếu bạn ấy nói được vì sao mình nghĩ vậy.`;
   }
+  // ── KIỂU TƯƠNG TÁC (04/09): đùa / thử máy / lặp / đuối / xuôi ──────────────
+  // Đặt SAU CÙNG: đây là "thái độ nền" của lượt, phải là thứ mô hình đọc cuối.
+  // "chinh_kien" chỉ trỏ về khối tranh luận ở trên, không lặp luật.
+  if (ctx.tinhHuong) s += `\n${loiDanTheoKieu(ctx.tinhHuong)}`;
   s += `\n${lang}`;
   return s;
 }

@@ -929,6 +929,7 @@ Deno.serve(async (req: Request) => {
                   : {}),
                 hasMemory: !!mem,
                 tranhLuan: mem?.tranhLuan ?? undefined,
+        tinhHuong: mem?.tinhHuong ?? undefined,
                 // Nói nhiều mà chưa thử lại → sư tử tự thấy, tự kéo về việc làm bài.
                 ...(noiSauLanThuCuoi >= 4 ? { noiChuaThu: noiSauLanThuCuoi } : {}),
                 ...(styleNote.style ? { coGiongRieng: true } : {}),
@@ -1510,6 +1511,7 @@ Deno.serve(async (req: Request) => {
                 stage: "need_think",
                 hasMemory: true,
                 tranhLuan: memAsk.tranhLuan ?? undefined,
+                tinhHuong: memAsk.tinhHuong ?? undefined,
                 ...(styleNoteAsk.style ? { coGiongRieng: true } : {}),
               }),
               user: buildGuideUser({
@@ -1713,6 +1715,7 @@ Deno.serve(async (req: Request) => {
             stage: "guide",
             hasMemory: !!memRung,
             tranhLuan: memRung?.tranhLuan ?? undefined,
+            tinhHuong: memRung?.tinhHuong ?? undefined,
             ...(styleNoteRung.style ? { coGiongRieng: true } : {}),
           }),
           user: buildGuideUser({
@@ -2125,6 +2128,7 @@ Deno.serve(async (req: Request) => {
         attempts: 0,
         hasMemory: !!mem?.lichSu,
         tranhLuan: mem?.tranhLuan ?? undefined,
+        tinhHuong: mem?.tinhHuong ?? undefined,
         ...(styleNoteMsg.style ? { coGiongRieng: true } : {}),
       });
       return await speak({
