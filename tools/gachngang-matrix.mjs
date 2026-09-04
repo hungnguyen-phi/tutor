@@ -27,7 +27,7 @@ fs.writeFileSync(
   path.join(OUT, "text.mjs"),
   ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText,
 );
-const { boGachNgang, boGachDai } = await import(pathToFileURL(path.join(OUT, "text.mjs")).href);
+const { boGachNgang, boGachDai, boTuDem } = await import(pathToFileURL(path.join(OUT, "text.mjs")).href);
 
 let dat = 0, truot = 0;
 const tc = (ten, thay, mong) => {
@@ -85,6 +85,29 @@ tc("mẩu cắt giữa công thức không bị phá",
   boGachDai("Ta có $x - 3"), "Ta có $x - 3");
 tc("không đụng gạch đầu dòng (để bản đầy đủ lo)",
   boGachDai("- Bạn thử lại"), "- Bạn thử lại");
+
+// VA 04/09 — chu du an dan hoi thoai that: "Bạn ơinếu", "lênnếu", "khách quannghĩa".
+// Stream cat "lên — nếu" thanh "lên" + "—nếu"; ban cu cua boGachDai goi donDauCau
+// (luat xoa phay DAU/CUOI dong) nen mau 2 ", nếu" bi nuot ca dau cach → dinh chu.
+// Mau roi CHI doi ky tu tai cho, khong dung mep chuoi.
+console.log("\n── Mẩu rời giữa luồng: KHÔNG được nuốt mép (dính chữ) ──");
+tc("mẩu bắt đầu bằng gạch: giữ ', ' đầu mẩu", boGachDai("—nếu câu"), ", nếu câu");
+tc("mẩu kết bằng gạch: giữ ', ' cuối mẩu", boGachDai("lên —"), "lên, ");
+tc("ghép hai mẩu ra câu đúng", boGachDai("lên") + boGachDai("—nếu"), "lên, nếu");
+tc("ghép ba mẩu quanh gạch", boGachDai("khách quan") + boGachDai(" — ") + boGachDai("nghĩa là"), "khách quan, nghĩa là");
+tc("mẩu chỉ có dấu cách đầu: giữ nguyên", boGachDai(" nếu"), " nếu");
+tc("câu chốt (trọn câu) vẫn dọn phẩy thừa như cũ", boGachNgang("Bạn ơi — nếu vậy, — thì sao?"), "Bạn ơi, nếu vậy, thì sao?");
+
+// VA 04/09 — "lạm dụng từ Ừ": prompt cam tu 30/07 ma mo hinh van dung → chan o
+// tang ma nhu gach ngang. Chi cat tu dem dung MOT MINH dau cau + dau cau.
+console.log("\n── Từ đệm mở đầu bị cắt ở tầng mã ──");
+tc("Ừ, đầu câu", boTuDem("Ừ, bạn đang đứng ở câu C đúng không?"), "Bạn đang đứng ở câu C đúng không?");
+tc("À đầu câu (viết hoa lại chữ kế)", boTuDem("À. vậy thử số 2 xem."), "Vậy thử số 2 xem.");
+tc("OK, đầu câu", boTuDem("OK, câu này sai chỗ nào?"), "Câu này sai chỗ nào?");
+tc("'Vậy nên' là từ nối có nghĩa → giữ", boTuDem("Vậy nên số 2 là nguyên tố."), "Vậy nên số 2 là nguyên tố.");
+tc("không có từ đệm → nguyên văn", boTuDem("Bạn thử lại nhé."), "Bạn thử lại nhé.");
+tc("boGachNgang cũng cắt từ đệm (câu chốt)", boGachNgang("Ừ — bạn chọn C vì sao?"), "Bạn chọn C vì sao?");
+tc("không đụng công thức mở đầu", boTuDem("$x^2$ luôn không âm."), "$x^2$ luôn không âm.");
 
 console.log("\n── Đầu vào rác không được ném lỗi ──");
 tc("chuỗi rỗng", boGachNgang(""), "");

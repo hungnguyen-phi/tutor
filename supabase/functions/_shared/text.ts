@@ -19,9 +19,33 @@
  *    và gạch nối dùng như dấu câu, có bảo vệ vùng $…$.
  */
 
-/** Gạch dài/gạch trung → dấu phẩy. Dùng được cho cả mẩu chữ rời giữa luồng. */
+/**
+ * Gạch dài/gạch trung → dấu phẩy. Dùng được cho cả mẩu chữ rời giữa luồng.
+ *
+ * VÁ 04/09 (chủ dự án dán hội thoại thật: "Bạn ơinếu", "lênnếu", "khách
+ * quannghĩa"): bản cũ gọi `donDauCau` — hàm đó có luật "xoá dấu phẩy ĐẦU/CUỐI
+ * DÒNG", đúng cho chuỗi trọn câu nhưng SAI với mẩu rời: mô hình viết
+ * "lên — nếu", stream cắt thành "lên" + "—nếu" → mẩu 2 thành ", nếu" → luật
+ * xoá phẩy đầu dòng nuốt luôn cả dấu cách → "nếu" → ghép ra "lênnếu". Mẩu rời
+ * CHỈ được đổi ký tự tại chỗ, KHÔNG được đụng mép chuỗi; dọn dấu câu để dành
+ * cho `boGachNgang` khi đã có trọn câu (chat-turn gọi nó ở câu chốt).
+ */
 export function boGachDai(s: string): string {
-  return donDauCau(String(s ?? "").replace(/\s*[—–]\s*/g, ", "));
+  return String(s ?? "").replace(/\s*[—–]\s*/g, ", ").replace(/[ \t]{2,}/g, " ");
+}
+
+/**
+ * Bỏ TỪ ĐỆM MỞ ĐẦU ("Ừ,", "À,", "Vậy,", "OK,"…) — chủ dự án 04/09: "lạm dụng từ
+ * Ừ". Prompt đã cấm từ 30/07 (và ghi rõ: cấm bằng lời không đuổi kịp mô hình),
+ * nên chặn ở đường ra như đã làm với gạch ngang. Chỉ cắt khi từ đệm đứng MỘT
+ * MÌNH đầu câu, theo sau là dấu phẩy/chấm/cách; câu bắt đầu bằng "Vậy nên…"
+ * (từ nối có nghĩa) vẫn giữ vì không khớp mẫu "từ đệm + dấu câu".
+ */
+export function boTuDem(s: string): string {
+  const t = String(s ?? "").replace(/^\s*(?:ừ|ừm|à|ờ|ồ|uhm|um|ok|okay|rồi|vậy|nào)\s*[,.!…]+\s*/iu, "");
+  if (t === s || !t) return s;
+  const i = t.search(/\p{L}/u);
+  return i < 0 ? t : t.slice(0, i) + t[i]!.toUpperCase() + t.slice(i + 1);
 }
 
 /**
@@ -39,7 +63,7 @@ export function boGachNgang(s: string): string {
     kho.push(m);
     return `[[CT${kho.length - 1}]]`;
   });
-  return sachVanXuoi(giu).replace(/\[\[CT(\d+)\]\]/g, (_, i) => kho[Number(i)] ?? "");
+  return boTuDem(sachVanXuoi(giu).replace(/\[\[CT(\d+)\]\]/g, (_, i) => kho[Number(i)] ?? ""));
 }
 
 function sachVanXuoi(s: string): string {

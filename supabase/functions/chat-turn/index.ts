@@ -15,7 +15,7 @@ import { gradeInteractive, parseInteractive, wrongChecklistItems, firstWrongChec
 import { evaluateEffortGate, chonBacGoiY, tinhVanNoLuc } from "../_shared/pedagogy.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 import { anonymize, rehydrate, callLLM, callLLMStream } from "../_shared/llm.ts";
-import { boGachNgang } from "../_shared/text.ts";
+import { boGachNgang, boTuDem } from "../_shared/text.ts";
 import { buildGuideSystem, buildGuideUser, buildScoredRubricSystem } from "../_shared/prompts.ts";
 import { buildMemory } from "../_shared/memory.ts";
 import { openSse } from "../_shared/sse.ts";
@@ -530,6 +530,21 @@ Deno.serve(async (req: Request) => {
         // không thì học sinh đọc thấy "[NAME_" nhấp nháy giữa câu.
         let pend = "";
         let full = "";
+        // GIỮ ĐẦU CÂU ~16 ký tự trước khi phát (04/09): đủ để cắt từ đệm mở đầu
+        // ("Ừ, ", "À, ") ở tầng mã — prompt cấm mà mô hình vẫn dùng. Học sinh
+        // chỉ chậm thấy chữ đầu một nhịp rất ngắn, đổi lại không còn thấy "Ừ"
+        // hiện ra rồi biến mất.
+        let dau = "";
+        let dauXong = false;
+        const phat = (t: string) => {
+          if (dauXong) { writer.delta(t); return; }
+          dau += t;
+          if (dau.length >= 16 || /[.!?…]\s*$/.test(dau)) {
+            dauXong = true;
+            const sach = boTuDem(dau);
+            if (sach) writer.delta(sach);
+          }
+        };
         const push = (d: string) => {
           pend += d;
           const open = pend.lastIndexOf("[");
@@ -541,12 +556,13 @@ Deno.serve(async (req: Request) => {
             safe = pend;
             pend = "";
           }
-          if (safe) { const t = rehydrate(safe, o.map); full += t; writer.delta(t); }
+          if (safe) { const t = rehydrate(safe, o.map); full += t; phat(t); }
         };
         let hetHanMuc = false;
         try {
           await callLLMStream(o.llm, push);
-          if (pend) { const t = rehydrate(pend, o.map); full += t; writer.delta(t); }
+          if (pend) { const t = rehydrate(pend, o.map); full += t; phat(t); }
+          if (!dauXong && dau) { dauXong = true; writer.delta(boTuDem(dau)); } // câu quá ngắn, chưa tới ngưỡng
         } catch (e) {
           hetHanMuc = isBudget(e); // hết lượt hôm nay → nói thẳng, đừng nói bâng quơ
         }
@@ -931,7 +947,7 @@ Deno.serve(async (req: Request) => {
               tier: "cheap", // đối thoại = việc nhẹ, deepseek-flash: nhanh + rẻ
               // Chỗ em ngồi chờ chữ hiện ra → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
-              maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
+              maxTokens: 220, // 2 câu, <40 từ (13/08); 130 token là quá chật cho tiếng Việt có dấu → câu bị cắt cụt "thì xem đó" (04/09)
               // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
               // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
               // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
@@ -1504,7 +1520,7 @@ Deno.serve(async (req: Request) => {
               tier: "cheap",
               // Đối thoại = chỗ em ngồi chờ chữ → chọn nhà cung cấp nhanh nhất.
               fastRoute: true,
-              maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
+              maxTokens: 220, // 2 câu, <40 từ (13/08); 130 token là quá chật cho tiếng Việt có dấu → câu bị cắt cụt "thì xem đó" (04/09)
               // 0,65 chứ không 0,4: lượt đối thoại cần ĐỔI NHỊP giữa các lần.
               // Ở 0,4 mô hình bám một dáng câu duy nhất — đọc ra ngay là máy nói.
               // Đây là lời DẪN DẮT, không phải phán quyết, nên nới được: chấm
@@ -1705,7 +1721,7 @@ Deno.serve(async (req: Request) => {
           agent: "guide",
           tier: "cheap",
           fastRoute: true,
-          maxTokens: 130, // 2 câu, <40 từ (13/08) — dài hơn là em bỏ đọc
+          maxTokens: 220, // 2 câu, <40 từ (13/08); 130 token là quá chật cho tiếng Việt có dấu → câu bị cắt cụt (04/09)
           temperature: 0.65,
           studentId: s.student_id,
           tenantId: s.tenant_id,
