@@ -385,9 +385,16 @@ Deno.serve(async (req: Request) => {
     // blockedBy để TRỐNG có chủ đích: node này không thiếu tiên quyết, nó chỉ
     // chưa tới lượt. Client gặp blockedBy rỗng thì hiện "Chưa mở" — đúng nghĩa,
     // không bịa ra bài tiên quyết không tồn tại.
+    //
+    // NGOẠI LỆ (chủ dự án chốt 04/09, audit lượt 2): node em ĐÃ TỪNG LÀM CÂU
+    // (có `attempts`) thì KHÔNG hạ khoá lại — dù nằm sau điểm hiện tại. Đo trên
+    // prod: em vào node giữa lộ trình (đã mở), thoát ra, điểm hiện tại lùi về
+    // node dở phía trước → chính node vừa chơi hoá "Chưa mở", em tưởng bị tụt
+    // lùi. Đã mở thì giữ mở; luật tuần tự vẫn nguyên cho node CHƯA đụng tới.
     if (curIdx >= 0) {
       for (let i = curIdx + 1; i < items.length; i++) {
-        if (items[i]!.state === "available") items[i]!.state = "locked";
+        const it = items[i]!;
+        if (it.state === "available" && !(doneQs.get(it.key)?.size)) it.state = "locked";
       }
     }
 
