@@ -67,6 +67,8 @@ export interface TutorMemory {
   daNoi: boolean;
   /** Tổng số ký tự thực gửi đi — để đo, và để test khoá được trần. */
   size: number;
+  /** Em đang có chính kiến / tranh luận? null = không có dấu hiệu. */
+  tranhLuan: TranhLuan | null;
   /**
    * Số lượt XIN GIÚP LIÊN TIẾP ở cuối cuộc trò chuyện ("em chưa hiểu", "gợi ý
    * giúp mình với", hoặc lời cụt lủn).
@@ -149,6 +151,86 @@ function condense(old: Array<{ role: string; content: string }>): string {
   if (said.length) parts.push(`bạn ấy đã nêu: ${said.map((x) => `"${clip(x, 70)}"`).join(" · ")}`);
   if (asked.length) parts.push(`mình đã hỏi: "${clip(asked[0]!, 70)}"`);
   return parts.join(" — ");
+}
+
+/**
+ * ĐỘNG THÁI TRANH LUẬN — đọc từ CHÍNH LỜI em, không đếm lượt (chủ dự án 04/09:
+ * "lượt 3 giữ ý sai → nói thẳng" là công thức máy, không phải học sinh nào
+ * cũng thế). Hai thứ đo được từ hội thoại:
+ *   · em GIỮ MỘT Ý bao nhiêu lượt liền (cùng cực khẳng định/phủ định, hoặc lời
+ *     gần giống nhau) và lần cuối có kèm LÝ LẼ không ("vì", "chứng tỏ", "với
+ *     tôi"…) — em có lý lẽ thì đối thoại với lý lẽ, em chỉ lặp thì xin lý lẽ;
+ *   · MÌNH đã hỏi TRÙNG bao nhiêu lần (hai lượt sư tử liền nhau giống nhau) —
+ *     đó là dấu hiệu chính của hỏi vòng vo, và là thứ cần chặn ngay.
+ * Hai con số này vào prompt dưới dạng sự thật; cách xử lý để mô hình quyết
+ * theo LOẠI bất đồng (xem prompts.ts), không theo ngưỡng cứng.
+ */
+export interface TranhLuan {
+  /** Số lượt liền nhau em giữ cùng một ý (≥2 mới coi là "có chính kiến"). */
+  lanGiuY: number;
+  /** Lời cuối của em có lý lẽ đi kèm không. */
+  coLyLe: boolean;
+  /** Lý lẽ gần nhất em nêu (đã ẩn danh, cắt gọn) — để mô hình nói lại đúng ý. */
+  lyLe: string;
+  /** Số lần sư tử hỏi trùng câu vừa hỏi. */
+  hoiLap: number;
+}
+
+const TU_KHANG_DINH = viWord("đúng|có|chắc|vẫn|rồi|phải|được");
+const TU_PHU_DINH = viWord("sai|không|chưa|đâu");
+const TU_LY_LE = viWord("vì|bởi|do|nên|chứng tỏ|tại sao|với tôi|với mình|theo tôi|theo mình|ví dụ|nếu");
+
+function cucY(t: string): 1 | -1 | 0 {
+  const k = TU_KHANG_DINH.test(t), p = TU_PHU_DINH.test(t);
+  if (k && !p) return 1;
+  if (p && !k) return -1;
+  return 0;
+}
+
+/** Từ chức năng — có trong mọi câu nên không nói gì về việc hai câu có TRÙNG Ý. */
+const TU_CHUC_NANG = new Set(
+  "bạn mình ấy câu này đó kia thì là mà và hay hoặc của cho với về từ trong ra vào lên xuống có không được rồi nhé nha à ừ vậy nên nếu khi lúc một cái gì sao đâu nào thử xem lại vừa đang đã sẽ cũng rất quá hơn".split(" "),
+);
+
+/** Độ giống hai câu: Jaccard trên TỪ NỘI DUNG (bỏ từ chức năng). Thô, nhưng đủ
+ *  bắt "hỏi lại câu cũ bằng lời khác" — hai câu cùng xoay quanh đóng/cửa/đúng/sai
+ *  thì giống nhau dù đảo trật tự hay thay vài từ đệm. */
+function giong(a: string, b: string): number {
+  const w = (s: string) =>
+    new Set(
+      s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((x) => x.length >= 2 && !TU_CHUC_NANG.has(x)),
+    );
+  const A = w(a), B = w(b);
+  if (!A.size || !B.size) return 0;
+  let chung = 0;
+  for (const x of A) if (B.has(x)) chung++;
+  return chung / (A.size + B.size - chung);
+}
+/** Ngưỡng "trùng ý": đo trên hội thoại thật 04/09, các lượt hỏi lại đạt ~0,35–0,5. */
+const NGUONG_TRUNG = 0.34;
+
+export function doTranhLuan(rows: Array<{ role: string; content: string }>): TranhLuan | null {
+  const hs = rows.filter((r) => r.role === "student").map((r) => String(r.content ?? "").trim()).filter(Boolean);
+  if (hs.length < 2) return null;
+  const cuoi = hs[hs.length - 1]!;
+  const cuc = cucY(cuoi);
+  let lan = 1;
+  for (let i = hs.length - 2; i >= 0; i--) {
+    const c = cucY(hs[i]!);
+    if ((cuc !== 0 && c === cuc) || giong(hs[i]!, cuoi) >= NGUONG_TRUNG) lan++;
+    else break;
+  }
+  const coLyLe = TU_LY_LE.test(cuoi);
+  const lyLe = coLyLe ? cuoi : ([...hs].reverse().find((x) => TU_LY_LE.test(x)) ?? "");
+  // Mình hỏi TRÙNG: mỗi lượt sư tử so với MỌI lượt sư tử trước đó trong câu này
+  // (hỏi lại câu của ba lượt trước vẫn là vòng vo), tính một lần cho mỗi lượt trùng.
+  const tut = rows.filter((r) => r.role !== "student").map((r) => String(r.content ?? ""));
+  let hoiLap = 0;
+  for (let i = 1; i < tut.length; i++) {
+    if (tut.slice(0, i).some((truoc) => giong(tut[i]!, truoc) >= NGUONG_TRUNG)) hoiLap++;
+  }
+  if (lan < 2 && !(coLyLe && hoiLap >= 1)) return null;
+  return { lanGiuY: lan, coLyLe, lyLe: clip(lyLe, 140), hoiLap };
 }
 
 export async function buildMemory(
@@ -269,6 +351,15 @@ export async function buildMemory(
   const soTay = clip(anonymize(soTayParts.join(" · "), opts.names).text, CAP_SO_TAY);
   const hoSo = recurring.length ? clip(`hay vướng lại: ${recurring.join(" · ")}`, CAP_HO_SO) : "";
   const safeHistory = anonymize(lichSu, opts.names).text.slice(0, CAP_LICH_SU);
+  // Động thái tranh luận: đọc trên hàng đã lọc theo câu (không lẫn câu khác),
+  // GỒM CẢ lời em vừa gõ (omit đã bỏ nó khỏi lịch sử để không đọc hai lần, nhưng
+  // để đo "giữ ý mấy lượt" thì lời hiện tại chính là lượt mới nhất).
+  const tranhLuanTho = doTranhLuan(
+    opts.omitContent ? [...rows, { role: "student", content: opts.omitContent }] : rows,
+  );
+  const tranhLuan = tranhLuanTho
+    ? { ...tranhLuanTho, lyLe: anonymize(tranhLuanTho.lyLe, opts.names).text }
+    : null;
 
   return {
     soTay,
@@ -277,5 +368,6 @@ export async function buildMemory(
     daNoi,
     size: soTay.length + safeHistory.length + hoSo.length,
     xinGiupLienTiep,
+    tranhLuan,
   };
 }

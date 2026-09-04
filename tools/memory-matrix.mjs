@@ -280,5 +280,44 @@ const noi = (n, at) => Array.from({ length: n }, (_, i) => ({
   t("3 lượt (dưới ngưỡng) → sư tử không bị làm phiền", d < CHAT_CAP, `${d}`);
 }
 
+// ── TRANH LUẬN (04/09) — đo từ chính hội thoại thật chủ dự án dán ────────────
+// Em giữ ý "đúng" nhiều lượt, có lý lẽ ("chứng tỏ", "với tôi"); sư tử hỏi trùng.
+{
+  const rows = [
+    { role: "student", content: "C" },
+    { role: "tutor", content: "Theo định nghĩa mệnh đề trong sách nó có tính đúng/sai. Thử đọc lớn câu đó lên rồi tự hỏi: câu này đúng hay sai?" },
+    { role: "student", content: "đúng" },
+    { role: "tutor", content: "Bạn vừa nói đúng vậy bạn đang nghĩ câu Hãy đóng cửa lại có thể xác định được đúng hay sai à?" },
+    { role: "student", content: "đúng rồi" },
+    { role: "tutor", content: "Bạn chọn C vì nghĩ nó có đúng/sai thử đọc to câu đó lên nếu nó đúng thì phải xác định được điều gì là đúng điều gì là sai bạn thấy được không?" },
+    { role: "student", content: "có, đóng cửa lại là đúng mà?" },
+    { role: "tutor", content: "Bạn nói đóng cửa lại là đúng vậy nếu lúc đó cửa đang mở câu đó đúng hay sai?" },
+    { role: "student", content: "hãy đóng cửa lại, chứng tỏ nó đang mở, tôi thấy lạnh, tôi muốn nó đóng, thì nó đúng với tôi" },
+  ];
+  const d = mem.doTranhLuan(rows);
+  t("tranh luận: nhận ra em giữ ý", !!d && d.lanGiuY >= 3, JSON.stringify(d));
+  t("tranh luận: lời cuối CÓ lý lẽ", !!d && d.coLyLe === true, JSON.stringify(d));
+  t("tranh luận: giữ lại lý lẽ để nói lại đúng ý", !!d && /chứng tỏ|với tôi/.test(d.lyLe), d?.lyLe ?? "");
+  t("tranh luận: bắt được sư tử hỏi trùng", !!d && d.hoiLap >= 1, `hoiLap=${d?.hoiLap}`);
+  // Prompt bật đúng khối, không đếm lượt cứng
+  const sys = prompts.buildGuideSystem({ subject: "Toan", grade: "10", language: "vi", nodeLabel: "Mệnh đề",
+    question: "Câu nào là mệnh đề?", attempts: 3, stage: "guide", hasMemory: true, tranhLuan: d });
+  t("prompt: có khối CHÍNH KIẾN khi đo được dấu hiệu", /CHÍNH KIẾN/.test(sys) && /NÓI LẠI lập luận/.test(sys));
+  t("prompt: không còn luật cứng 'lượt thứ ba'", !/lượt thứ ba/.test(sys));
+  const sys0 = prompts.buildGuideSystem({ subject: "Toan", grade: "10", language: "vi", nodeLabel: "Mệnh đề",
+    question: "Câu nào là mệnh đề?", attempts: 1, stage: "guide", hasMemory: true });
+  t("prompt: KHÔNG bật khối tranh luận khi không có dấu hiệu", !/CHÍNH KIẾN/.test(sys0));
+}
+{
+  // Em đổi ý mỗi lượt, không lý lẽ → không phải "có chính kiến"
+  const rows = [
+    { role: "student", content: "A" }, { role: "tutor", content: "Vì sao A?" },
+    { role: "student", content: "không, B" }, { role: "tutor", content: "B thì sao?" },
+    { role: "student", content: "ừ chắc là C" },
+  ];
+  t("không tranh luận: đổi ý liên tục → null", mem.doTranhLuan(rows) === null, JSON.stringify(mem.doTranhLuan(rows)));
+  t("không tranh luận: mới một lượt → null", mem.doTranhLuan([{ role: "student", content: "đúng" }]) === null);
+}
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
