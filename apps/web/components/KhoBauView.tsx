@@ -123,6 +123,11 @@ export default function KhoBauView({
   const coPhieu = moRa.some((r) => r.format === "worksheet");
   const coDuongNop = !!data?.nopBaiQuestionId && coPhieu;
   const daXongHet = !!data && data.mucDaQua >= Math.max(1, ...(mucCoSan.length ? mucCoSan : [1]));
+  // NODE CHỈ CÓ MỘT MỨC = tài nguyên ĐẠI DIỆN CHO CẢ NODE (chủ dự án 04/09: mỗi
+  // node mới có một bộ NotebookLM, chưa chia theo DOK). Khi đó cơ chế "xem xong
+  // mức" là nhiễu: không pip, không nút XEM XONG, không dòng nhắc "mở thêm một
+  // mức" — vào là thấy hết. Có ≥2 mức (sau này sinh theo DOK) thì cơ chế tự về.
+  const motMuc = mucCoSan.length <= 1;
 
   // MỞ SẴN mục đầu tiên khi rổ học liệu đổi (vào màn, hoặc vừa mở thêm mức).
   // Khác cột phụ trong bài học — ở đó phải giữ nhẹ để không cản đường tới câu
@@ -235,7 +240,7 @@ export default function KhoBauView({
         )}
 
         {nhacMuc && <p className="kb-nhac" role="status">{nhacMuc}</p>}
-        {!daXongHet && (
+        {!daXongHet && !motMuc && (
           <button
             className="btn btn-check kb-done"
             disabled={busy}
@@ -348,7 +353,7 @@ export default function KhoBauView({
           chủ dự án (09/2026) — nhường thêm không gian cho rãnh học liệu. Chỉ
           giữ lại gợi ý MỚI-mở-mức khi còn mức để mở, vì đó là thông tin em
           cần biết để quay lại, không phải chữ trang trí. */}
-      {!daXongHet && (
+      {!daXongHet && !motMuc && (
         <footer className="kb-foot">
           <Sparkles aria-hidden strokeWidth={2} />
           <span>Mỗi lần vào kho báu bạn mở thêm được MỘT mức.</span>

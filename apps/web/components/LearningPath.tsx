@@ -396,24 +396,33 @@ export default function LearningPath({
             className="node-treasure"
             data-side={shiftedLeft ? "r" : "l"}
             data-locked={locked || undefined}
-            data-done={(!locked && n.khoBau.mucDaQua >= Math.max(...n.khoBau.mucCoSan)) || undefined}
+            /* Node chỉ có MỘT mức (tài nguyên đại diện cả node, chốt 04/09): chip
+               là biểu tượng quà thuần, KHÔNG đếm "0/1" — không có gì để "xong". */
+            data-done={(!locked && n.khoBau.mucCoSan.length > 1 && n.khoBau.mucDaQua >= Math.max(...n.khoBau.mucCoSan)) || undefined}
+            data-single={n.khoBau.mucCoSan.length <= 1 || undefined}
             disabled={locked || busy}
             onClick={(e) => { e.stopPropagation(); onOpenKhoBau(n); }}
             aria-label={
               locked
                 ? `Kho báu của bài ${n.label} — chưa mở, cần học xong bài trước`
-                : `Kho báu học liệu của bài ${n.label} — đã mở ${n.khoBau.mucDaQua}/${n.khoBau.mucCoSan.length} mức`
+                : n.khoBau.mucCoSan.length <= 1
+                  ? `Kho báu học liệu của bài ${n.label}`
+                  : `Kho báu học liệu của bài ${n.label} — đã mở ${n.khoBau.mucDaQua}/${n.khoBau.mucCoSan.length} mức`
             }
             title={
               locked
                 ? "Học xong bài phía trước là mở được kho báu này"
-                : `Học liệu · mức ${Math.min(n.khoBau.mucDaQua + 1, n.khoBau.mucCoSan.length)}/${n.khoBau.mucCoSan.length}`
+                : n.khoBau.mucCoSan.length <= 1
+                  ? "Học liệu của bài này"
+                  : `Học liệu · mức ${Math.min(n.khoBau.mucDaQua + 1, n.khoBau.mucCoSan.length)}/${n.khoBau.mucCoSan.length}`
             }
           >
             {locked ? <Lock aria-hidden strokeWidth={2.5} /> : <Gift aria-hidden strokeWidth={2.25} />}
-            <span className="num">
-              {Math.min(n.khoBau.mucDaQua, n.khoBau.mucCoSan.length)}/{n.khoBau.mucCoSan.length}
-            </span>
+            {n.khoBau.mucCoSan.length > 1 && (
+              <span className="num">
+                {Math.min(n.khoBau.mucDaQua, n.khoBau.mucCoSan.length)}/{n.khoBau.mucCoSan.length}
+              </span>
+            )}
           </button>
         )}
         {n.state === "current" && (
