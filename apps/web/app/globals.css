@@ -11462,7 +11462,8 @@ textarea {
   .gl-rung-you,
   .eyebrow,
   .week-lbl {
-    font-size: max(0.6875rem, 11px);
+    /* Sàn nâng 11→12px (mobile thật 04/09, luật Typography ≥12px). */
+    font-size: max(0.75rem, 12px);
   }
   /* Nhãn ô chỉ số tách riêng: sàn của nó là 12px (icon đã gỡ nên có đủ chỗ).
      Nằm chung nhóm 11px ở trên thì rule này — đứng SAU, cùng độ đặc hiệu —
@@ -14072,4 +14073,65 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   font-size: 0.8125rem;
   font-weight: 600;
   animation: rol-toast-in 200ms var(--ease) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE THẬT 04/09 — chụp bằng Chrome headless 390×844 (không phải giả lập
+   CSS), 12 màn. Nền responsive có sẵn làm việc tốt (Hạng/Mục tiêu/Ôn tập/làm
+   bài sạch); lỗi dồn ở Kho báu + vài chi tiết. Mỗi mục ghi số đo để lần sau
+   đọc git log là biết vì sao.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 899.98px) {
+  /* KHO BÁU: dải ngang cuộn (chốt 13/08 cho "màn hẹp") trên điện thoại thật
+     là thẻ 2 bị cắt lửng ("Ngh…", item right=613px/390), không có dấu hiệu nào
+     là cuộn được, còn sân khấu bên dưới thì cao 600px. Về danh sách DỌC gọn,
+     nhóm nối liền thành một khay (đúng luật "một vật thể" của 13/08), sân khấu
+     cao theo tỉ lệ màn hình. Desktop ≥1000px không đổi. */
+  .kb-rail {
+    flex-direction: column;
+    gap: 0;
+    overflow: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+    border-radius: var(--r);
+    background: rgb(255 255 255 / 92%);
+    box-shadow: 0 14px 34px -22px rgb(10 12 40 / 45%);
+  }
+  .kb-rail > .kb-group { flex: none; width: auto; background: none; box-shadow: none; border-radius: 0; scroll-snap-align: none; }
+  .kb-items { padding: 4px 6px; }
+  .kb-item { min-height: 48px; }
+  .kb-pip { min-height: 40px; padding-inline: 12px; }
+  .kb-body { gap: 12px; }
+  .lsv-stage { padding: 8px 10px 6px; }
+  /* Nút "Toàn màn hình"/"Mở tab mới" đo 19px cao → vùng chạm ≥44 (không đổi cỡ chữ). */
+  .lsv-stage-act { min-height: 44px; padding-inline: 4px; }
+
+  /* Sư tử hero thò 9px khỏi mép phải (right=399/390) — chỉ ở màn hẹp, kéo về. */
+  .path-lion-r { left: auto; right: 8px; }
+
+  /* Chip "XP tuần" đo 8.9px — dưới sàn 12px rất xa. Ở màn hẹp bảng tuần mini
+     vốn ẩn, nhưng nếu hiện thì phải đọc được. */
+  .board-xp-unit { font-size: 0.75rem; }
+
+  /* Vùng chạm 35–37px → 44 cho ba chip hay bấm nhất trên màn Học. */
+  .hud-subject, .hud .stat { min-height: 44px; }
+  .redo-go { min-height: 44px; }
+  .node-treasure { min-height: 40px; padding-block: 8px; }
+
+  /* Popup Ôn Lại: ảnh dọc chỉ chiếm ~40% chiều cao, hai bên trống đen. Cho
+     thẻ cao gần hết màn và ảnh được kéo tới trần đó. */
+  .rol-popup { padding: 14px 18px; }
+  .rol-popup-card .rol-popup-x { top: -10px; right: -10px; } /* -20px thò 8px khỏi mép 390 */
+  .rol-popup-card { height: min(92dvh, 900px); }
+  .rol-popup-card .lsv-img { max-height: none; }
+
+  /* Tôi: nhãn huy hiệu 10.5px dính sát câu giải thích; hàng "Phụ huynh đã
+     liên kết" bị nav đáy che (ảnh 08). */
+  .pf-badge-lbl { font-size: 0.75rem; }
+  .pf-badge-foot { margin-top: 18px; }
+  .ws { padding-bottom: calc(120px + env(safe-area-inset-bottom)); } /* 96px vẫn bị nav đáy che hàng cuối (ảnh 08) */
+
+  /* Chữ nhỏ còn lại đo được: nhịp tuần 10px, "bạn ở đây"/đơn vị XP 11px. */
+  .week-lbl { font-size: 0.75rem; }
+  .gl-rung-you, .sb-xp-u, .task-sub { font-size: 0.75rem; }
 }
