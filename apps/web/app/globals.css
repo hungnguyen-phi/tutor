@@ -13888,7 +13888,7 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
      thành cột dọc mỗi dòng một chữ (audit lượt 2, ảnh chứng). max-content + trần
      240px là chữ chạy ngang, xuống dòng đúng chỗ. */
   width: max-content;
-  max-width: 240px;
+  max-width: 320px; /* tên bài dài "Mở khi xong: …" gãy 2 dòng ở 240px (audit lượt 2) */
   padding: 8px 12px;
   border-radius: 12px;
   background: var(--navy);
@@ -13994,13 +13994,18 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
    không cần tránh chữ nào bên trong nữa. */
 .rol-popup-card { overflow: visible; }
 .rol-popup-card .rol-popup-x {
-  top: -14px;
-  right: -14px;
+  /* Đo lại ở audit lượt 2 (sau bản -14px): X [1169→1209] vẫn phủ 12px cuối
+     link "Mở tab mới" [1101→1181] — cụm link cách mép thẻ chỉ 14px, nhỏ hơn
+     bán kính X. Đẩy hẳn ra -20px VÀ chừa 34px bên phải thanh tiêu đề: hai lớp
+     bảo hiểm, thứ nào cũng đủ một mình. */
+  top: -20px;
+  right: -20px;
   width: 40px;
   height: 40px;
   background: var(--navy);
   box-shadow: 0 6px 16px -6px rgb(10 12 40 / 55%);
 }
+.rol-popup-card .lsv-stage-bar { padding-right: 34px; }
 .rol-popup-card .lsv-stage { border-radius: var(--r); overflow: hidden; }
 /* #19/#2 Khung nhúng (PDF/Drive/YouTube): màn chờ thay cho ô đen/trắng 3–5s. */
 .lsv-body { position: relative; }
