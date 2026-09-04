@@ -82,5 +82,18 @@ for (const k of ["dua", "thu_may", "chinh_kien", "lap", "duoi", "xuoi"]) {
   t("không có tình huống → không có khối", !/TÌNH HUỐNG ĐỌC ĐƯỢC/.test(sys0));
 }
 
+console.log("── Bậc thang soạn sẵn NHƯỜNG tình huống (replay 04/09: thử máy 3 lượt cùng câu 'gán x=0') ──");
+{
+  const base = { subject: "Toan", grade: "10", language: "vi", nodeLabel: "Mệnh đề", question: "?", attempts: 2, stage: "guide", hasMemory: true, rungQuestion: "Thử gán x=0 xem câu đó đúng hay sai?" };
+  const sThu = prompts.buildGuideSystem({ ...base, tinhHuong: { kieu: "thu_may", doChac: 1, vi: "t" } });
+  t("thử máy: KHÔNG còn 'HÃY DẪN DẮT theo đúng ý câu gợi mở'", !/HÃY DẪN DẮT theo đúng ý/.test(sThu));
+  t("thử máy: thang chỉ còn là tuỳ chọn", /ƯU TIÊN xử lý tình huống/.test(sThu));
+  const sCk = prompts.buildGuideSystem({ ...base, tinhHuong: { kieu: "chinh_kien", doChac: 0.8, vi: "t" } });
+  t("chính kiến: vẫn nhận thang soạn sẵn", /HÃY DẪN DẮT theo đúng ý/.test(sCk));
+  const s0 = prompts.buildGuideSystem(base);
+  t("không tình huống: thang như cũ", /HÃY DẪN DẮT theo đúng ý/.test(s0));
+  t("có luật 'chỉ viết lời nói với bạn ấy' chống lộ suy nghĩ nội bộ", /CHỈ VIẾT LỜI NÓI VỚI BẠN ẤY/.test(s0));
+}
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);

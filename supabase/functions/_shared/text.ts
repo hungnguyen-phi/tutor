@@ -52,6 +52,23 @@ export function boTuDem(s: string): string {
  * Bản đầy đủ cho chuỗi HOÀN CHỈNH (câu chốt của server, chuỗi soạn tay).
  * Vùng `$…$` được giữ NGUYÊN VĂN: đó là công thức, dấu "-" trong đó là dấu trừ.
  */
+/**
+ * Bỏ markdown đậm/nghiêng (04/09, đo qua replay: "**mệnh đề**" lọt ra dù prompt
+ * cấm — cùng bài học với gạch ngang: cấm bằng lời không đuổi kịp mô hình).
+ * Giữ nguyên `*` trong công thức $…$ (dấu nhân) — chỉ bóc cặp `**…**`/`__…__`
+ * và `*…*` bao quanh CHỮ ngoài vùng $…$.
+ */
+export function boMarkdown(s: string): string {
+  const kho: string[] = [];
+  const giu = String(s ?? "").replace(/\$[^$\n]*\$/g, (m) => { kho.push(m); return `[[CT${kho.length - 1}]]`; });
+  const t = giu
+    .replace(/\*\*(\S(?:[^*\n]*?\S)?)\*\*/g, "$1")
+    .replace(/__(\S(?:[^_\n]*?\S)?)__/g, "$1")
+    .replace(/(^|[\s(])\*(\p{L}[^*\n]*?)\*(?=[\s).,;:!?]|$)/gu, "$1$2")
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, "");
+  return t.replace(/\[\[CT(\d+)\]\]/g, (_, i) => kho[Number(i)] ?? "");
+}
+
 export function boGachNgang(s: string): string {
   // CẤT công thức đi rồi dọn TOÀN BỘ chuỗi một lượt, thay vì dọn từng đoạn xen
   // giữa các công thức. Bản đầu làm kiểu chia-đoạn và dính lỗi thật, bộ kiểm
@@ -63,7 +80,7 @@ export function boGachNgang(s: string): string {
     kho.push(m);
     return `[[CT${kho.length - 1}]]`;
   });
-  return boTuDem(sachVanXuoi(giu).replace(/\[\[CT(\d+)\]\]/g, (_, i) => kho[Number(i)] ?? ""));
+  return boTuDem(boMarkdown(sachVanXuoi(giu).replace(/\[\[CT(\d+)\]\]/g, (_, i) => kho[Number(i)] ?? "")));
 }
 
 function sachVanXuoi(s: string): string {

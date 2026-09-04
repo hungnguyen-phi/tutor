@@ -109,6 +109,14 @@ tc("không có từ đệm → nguyên văn", boTuDem("Bạn thử lại nhé.")
 tc("boGachNgang cũng cắt từ đệm (câu chốt)", boGachNgang("Ừ — bạn chọn C vì sao?"), "Bạn chọn C vì sao?");
 tc("không đụng công thức mở đầu", boTuDem("$x^2$ luôn không âm."), "$x^2$ luôn không âm.");
 
+// 04/09 replay: "**mệnh đề**" lọt ra. Bóc markdown ở đường ra, KHÔNG đụng dấu nhân trong $…$.
+console.log("\n── Markdown đậm/nghiêng bị bóc ở đường ra ──");
+tc("**đậm** giữa câu", boGachNgang("Bài hỏi một câu là **mệnh đề**, nghĩa là gì?"), "Bài hỏi một câu là mệnh đề, nghĩa là gì?");
+tc("hai cụm đậm", boGachNgang("phải **kiểm tra được** nó **dựa vào sự thật**"), "phải kiểm tra được nó dựa vào sự thật");
+tc("*nghiêng* một chữ", boGachNgang("câu đó *không* có thật/sai"), "câu đó không có thật/sai");
+tc("dấu nhân trong công thức giữ nguyên", boGachNgang("tính $2*x$ rồi so với $x*x$"), "tính $2*x$ rồi so với $x*x$");
+tc("gạch đầu dòng # tiêu đề bị bỏ", boGachNgang("# Gợi ý\nthử x=2"), "Gợi ý\nthử x=2");
+
 console.log("\n── Đầu vào rác không được ném lỗi ──");
 tc("chuỗi rỗng", boGachNgang(""), "");
 tc("null", boGachNgang(null), "");
