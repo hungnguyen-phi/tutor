@@ -888,9 +888,23 @@ Deno.serve(async (req: Request) => {
           names,
         );
         const [safe, safeDaChon = ""] = safeAll.split(SEP);
+        // LỜI GẬT RỖNG ("ừ", "dạ", "vâng ạ", "ok") → KHÔNG gọi mô hình (replay
+        // 04/09: em gõ "ừ", mô hình không có gì để bám nên BỊA "bảng vàng có ba
+        // cột vector, freedom, handbook" — không có trong đề, không có trong lịch
+        // sử). Đầu vào rỗng nghĩa thì câu tất định là câu an toàn duy nhất, và
+        // nó cũng đúng cách xử lý kiểu "xuôi": bắt em nói một ý riêng.
+        const gatRong = /^\s*(da|vang|u|uh|um|ok|oke|okay|duoc|the a|vay a|a|dung roi a|em hieu roi|minh hieu roi|thi sao|roi sao)(\s+(a|roi|nhe|nha|ne))?[.!?\s]*$/i
+          .test(reasoning.toLowerCase().replace(/đ/g, "d").normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
+        const moiNoiY = daChonNhan
+          ? (en
+            ? `You picked "${daChonNhan}". Before I say anything, tell me in your own words why that one.`
+            : `Bạn đang chọn "${daChonNhan}". Trước khi mình nói gì, bạn kể bằng lời của bạn: vì sao chọn cái đó?`)
+          : (en
+            ? "Say it in your own words: what are you thinking right now?"
+            : "Bạn nói bằng lời của bạn xem: lúc này bạn đang nghĩ gì về câu này?");
         return await speak({
           envelope: { correct: false, gate: "reflect", graded: false },
-          fallback: msg,
+          fallback: gatRong ? moiNoiY : msg,
           map,
           // GHI lại bậc vừa trao khi thật sự có trao (stage "guide") — đây là
           // dấu vết mà cả hai nhánh đọc để không trao lại đúng bậc cũ (lỗi #27).
@@ -901,7 +915,7 @@ Deno.serve(async (req: Request) => {
               : {}),
           },
           questionId: q.id,
-          llm: Deno.env.get("OPENROUTER_API_KEY")
+          llm: Deno.env.get("OPENROUTER_API_KEY") && !gatRong
             ? {
               system: buildGuideSystem({
                 subject: s.subject,

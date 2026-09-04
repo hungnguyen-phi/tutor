@@ -160,7 +160,12 @@ NGỮ CẢNH: môn ${ctx.subject} | lớp ${ctx.grade} | điểm kiến thức: 
     // trả về một câu chung chung ("đề còn dữ kiện nào bạn chưa dùng?") vì mọi
     // dòng còn lại đều dặn nó ĐỪNG làm gì. Phải nói rõ PHẢI làm gì với chẩn
     // đoán này — chủ dự án 13/08: "AI gợi ý vẫn cứ mông lung".
-    if (ctx.stage && ctx.stage !== "must_try") {
+    // Khi bạn ấy đang ĐÙA / THỬ MÁY / ĐUỐI / XUÔI (tinh-huong.ts), lệnh "câu hỏi
+    // duy nhất phải nhắm THẲNG vào bẫy" đè mất khối tình huống ở cuối (replay
+    // 04/09: em đùa 4 lượt, sư tử 4 lượt chỉ hỏi về "x", không đáp lại tí đùa
+    // nào). Lúc đó bẫy chỉ còn là ĐÍCH ĐẾN sau khi kéo về, không phải câu duy nhất.
+    const tinhHuongDacBiet = ctx.tinhHuong && !["chinh_kien", "lap"].includes(ctx.tinhHuong.kieu);
+    if (ctx.stage && ctx.stage !== "must_try" && !tinhHuongDacBiet) {
       s += `
 - Đó là cái bẫy mà bạn ấy ĐANG rơi vào ngay lúc này. Câu hỏi duy nhất của lượt này phải
   nhắm THẲNG vào đó, và phải BÁM VÀO MỘT THỨ CỤ THỂ đọc được trong đề: một con số, một
@@ -169,6 +174,10 @@ NGỮ CẢNH: môn ${ctx.subject} | lớp ${ctx.grade} | điểm kiến thức: 
   "bạn thử nghĩ lại xem?", "bạn hiểu khái niệm này chưa?". Hỏi vậy là bỏ mặc bạn ấy.
 - Vẫn TUYỆT ĐỐI không đọc tên cái bẫy ra, không nói bạn ấy sai, không loại trừ phương án
   giúp bạn ấy. Bạn biết bẫy để hỏi cho TRÚNG, không phải để thông báo.`;
+    } else if (ctx.stage && ctx.stage !== "must_try") {
+      s += `
+- Biết bẫy này để KHI kéo được bạn ấy về bài thì hỏi cho trúng; lượt này xử lý TÌNH HUỐNG
+  ở cuối trước. Vẫn không đọc tên bẫy, không nói bạn ấy sai, không loại trừ phương án.`;
     }
   }
   if (ctx.coGiongRieng) {

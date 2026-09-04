@@ -95,5 +95,17 @@ console.log("── Bậc thang soạn sẵn NHƯỜNG tình huống (replay 04/
   t("có luật 'chỉ viết lời nói với bạn ấy' chống lộ suy nghĩ nội bộ", /CHỈ VIẾT LỜI NÓI VỚI BẠN ẤY/.test(s0));
 }
 
+console.log("── Khối 'bẫy' hạ giọng khi có tình huống đặc biệt (replay 04/09: em đùa 4 lượt, sư tử chỉ hỏi về x) ──");
+{
+  const base = { subject: "Toan", grade: "10", language: "vi", nodeLabel: "Mệnh đề", question: "?", attempts: 2, stage: "guide", hasMemory: true, misconception: "Nhầm mệnh đề chứa biến với mệnh đề" };
+  const sDua = prompts.buildGuideSystem({ ...base, tinhHuong: { kieu: "dua", doChac: 0.9, vi: "t" } });
+  t("đùa: KHÔNG còn 'Câu hỏi duy nhất của lượt này phải nhắm THẲNG'", !/phải\s+nhắm THẲNG/.test(sDua));
+  t("đùa: bẫy thành đích đến sau khi kéo về", /KHI kéo được bạn ấy về bài/.test(sDua));
+  const sCk = prompts.buildGuideSystem({ ...base, tinhHuong: { kieu: "chinh_kien", doChac: 0.8, vi: "t" } });
+  t("chính kiến: khối bẫy vẫn nguyên", /phải\s+nhắm THẲNG/.test(sCk));
+  const s0 = prompts.buildGuideSystem(base);
+  t("không tình huống: khối bẫy như cũ", /phải\s+nhắm THẲNG/.test(s0));
+}
+
 console.log(`\n${pass} đạt · ${fail} trượt`);
 process.exit(fail ? 1 : 0);
