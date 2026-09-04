@@ -23,6 +23,8 @@
  * tuần, ws-stats trong Scoreboard) phải đọc XP từ server thay vì `load()`.
  */
 
+import { SUPABASE_URL } from "./config";
+
 export const XP = {
   correct: 10, // trả lời đúng
   persistence: 5, // thử lại sau khi sai — thưởng cho việc không bỏ cuộc
@@ -45,12 +47,50 @@ const today = () => new Date().toISOString().slice(0, 10);
 const daysBetween = (a: string, b: string) =>
   Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
+/**
+ * KHOÁ CACHE PHẢI THEO HỌC SINH (vá 04/09). Trước đây `va-tutor-progress` /
+ * `va-tutor-mastered` là khoá chung cho cả trình duyệt — máy dùng chung (phòng
+ * máy trường, hai anh em một laptop, hay chỉ là đăng xuất rồi đăng nhập tài
+ * khoản khác) là em SAU nhìn thấy XP/chuỗi ngày/node đã học của em TRƯỚC, tới
+ * khi server kịp ghi đè. Đo được trong đợt 4 agent test song song: HUD nhảy
+ * 215 → 18 XP đúng lúc phiên đổi chủ.
+ *
+ * Đọc uid ĐỒNG BỘ từ chính token mà supabase-js lưu (`sb-<ref>-auth-token`,
+ * hoặc dò theo mẫu khi chạy qua proxy dev) — không cần React/async, nên mọi nơi
+ * gọi `load()` cũ vẫn gọi y như cũ. Chưa đăng nhập → không đọc, không ghi (thà
+ * hiện 0 rồi server điền, còn hơn hiện số của người khác).
+ */
+function currentUid(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const ref = /^https?:\/\/([^./]+)\.supabase\.co/i.exec(SUPABASE_URL)?.[1];
+    const key = ref
+      ? `sb-${ref}-auth-token`
+      : Object.keys(window.localStorage).find((k) => /^sb-.+-auth-token$/.test(k));
+    const raw = key ? window.localStorage.getItem(key) : null;
+    if (!raw) return null;
+    const j = JSON.parse(raw) as { user?: { id?: string } };
+    return typeof j?.user?.id === "string" ? j.user.id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Khoá theo học sinh; null = chưa đăng nhập. Tiện thể XOÁ khoá chung đời cũ để
+ *  không ai còn đọc được số của người khác từ nó. */
+function keyFor(base: string): string | null {
+  const uid = currentUid();
+  try { window.localStorage.removeItem(base); } catch { /* bỏ qua */ }
+  return uid ? `${base}:${uid}` : null;
+}
+
 /** Đọc CACHE HIỂN THỊ ở máy. Không phải nguồn-sự-thật — xem chú thích đầu file.
  *  Khi có endpoint XP server-authoritative, hàm này đổi sang gọi API. */
 export function load(): Progress {
   if (typeof window === "undefined") return EMPTY;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const k = keyFor(KEY);
+    const raw = k ? window.localStorage.getItem(k) : null;
     if (!raw) return EMPTY;
     const p = JSON.parse(raw) as Progress;
     return { xp: p.xp ?? 0, streak: p.streak ?? 0, lastDay: p.lastDay ?? null };
@@ -62,7 +102,8 @@ export function load(): Progress {
 export function save(p: Progress) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(p));
+    const k = keyFor(KEY);
+    if (k) window.localStorage.setItem(k, JSON.stringify(p));
   } catch {
     /* chế độ ẩn danh chặn localStorage — tiến độ chỉ mất phiên này, không chặn học */
   }
@@ -114,7 +155,8 @@ const MASTERED_KEY = "va-tutor-mastered";
 export function loadMastered(): string[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(window.localStorage.getItem(MASTERED_KEY) ?? "[]") as string[];
+    const k = keyFor(MASTERED_KEY);
+    return k ? (JSON.parse(window.localStorage.getItem(k) ?? "[]") as string[]) : [];
   } catch {
     return [];
   }
@@ -123,7 +165,8 @@ export function loadMastered(): string[] {
 export function saveMastered(keys: string[]) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(MASTERED_KEY, JSON.stringify(keys));
+    const k = keyFor(MASTERED_KEY);
+    if (k) window.localStorage.setItem(k, JSON.stringify(keys));
   } catch {
     /* localStorage bị chặn — tiến độ mastery thật vẫn nằm ở server */
   }

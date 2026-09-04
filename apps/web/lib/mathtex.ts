@@ -334,7 +334,14 @@ export function capitalizeLead(s: string): string {
   // hề biết — nên KaTeX bỏ cuộc và nhả mã thô ra màn hình.
   // Chat thoát nạn chỉ vì nó gọi <MathText> không kèm `cap`.
   // Chữ sau dấu `\` là TÊN LỆNH, không phải chữ trong câu văn.
-  if (tok.startsWith("\\")) return s;
+  //
+  // VÁ LẦN HAI 04/09 (3 agent đóng vai học sinh cùng bắt lại đúng lỗi này):
+  // bản 13/08 chỉ chặn chuỗi mở đầu bằng `\`, nhưng phương án thật trong DB là
+  // `$\overline{P}$ (hoặc ¬P)` — mở đầu bằng `$`. Hàm vẫn dò tới chữ `o` NẰM
+  // TRONG `$…$` và viết hoa → `$\Overline{P}$` → KaTeX bỏ cuộc → mã thô lại
+  // hiện ở nút đáp án. Mở đầu bằng `$`/`\` nghĩa là chữ cái đầu tiên thuộc
+  // CÔNG THỨC, không phải câu văn — không có gì để viết hoa cả.
+  if (/^[\\$]/.test(tok)) return s;
   if (classify(tok) !== "text" || !/\p{L}\p{L}/u.test(tok)) return s;
   const i = head.search(/\p{L}/u); // chữ cái ĐẦU TIÊN, không phải chữ thường đầu tiên
   const ch = i < 0 ? "" : s[i]!;

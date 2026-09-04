@@ -88,5 +88,17 @@ tc("câu chữ thường VẪN được viết hoa (không siết nhầm)",
   capitalizeLead("hôm nay trời mưa"), "Hôm nay trời mưa");
 tc("câu đã hoa thì giữ nguyên", capitalizeLead("Hôm nay trời mưa"), "Hôm nay trời mưa");
 
+// VA LAN HAI 04/09: phuong an THAT trong DB mo dau bang `$` chu khong phai `\`
+// (`$\overline{P}$ (hoặc ¬P)`, node KC-2536165). Ban 13/08 chi chan `\` nen
+// cap van vien hoa chu `o` NAM TRONG $…$ -> `$\Overline{P}$` -> KaTeX bo cuoc.
+// 3 agent dong vai hoc sinh cung bat lai dung loi nay tren production.
+console.log("\n── capitalizeLead không được đụng công thức mở đầu bằng $ ──");
+tc("$\\overline{P}$ (hoặc ¬P) — phương án thật trong DB giữ nguyên",
+  capitalizeLead("$\\overline{P}$ (hoặc ¬P)"), "$\\overline{P}$ (hoặc ¬P)");
+tc("$x^2$ mở đầu giữ nguyên", capitalizeLead("$x^2$ là bình phương"), "$x^2$ là bình phương");
+tc("dấu ngoặc rồi $ vẫn giữ nguyên", capitalizeLead("($\\overline{P}$) đúng"), "($\\overline{P}$) đúng");
+tc("công thức ở GIỮA câu không ảnh hưởng viết hoa chữ đầu",
+  capitalizeLead("mệnh đề $\\overline{P}$ sai"), "Mệnh đề $\\overline{P}$ sai");
+
 console.log(`\n${dat} đạt · ${truot} trượt`);
 process.exit(truot ? 1 : 0);
