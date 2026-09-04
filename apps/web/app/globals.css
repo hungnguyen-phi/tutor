@@ -14134,5 +14134,5 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   /* Chữ nhỏ còn lại đo được: nhịp tuần 10px, "bạn ở đây"/đơn vị XP 11px. */
   .week-lbl { font-size: 0.75rem; }
   .gl-rung-you, .sb-xp-u, .task-sub { font-size: 0.75rem; }
-  .who { font-size: 0.75rem; } /* nhãn vai "BẠN"/"SƯ TỬ" trong bong bóng chat đo 10px */
+  .lsn-chat .bubble .who { font-size: 0.75rem; } /* đo live 10px; bộ chọn phải thắng luật ở ~12715 */
 }
