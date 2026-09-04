@@ -14024,3 +14024,6 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+/* #16 (bổ sung) Mốc Đích là <li> cuối đường, canh giữa, không dính nhịp zigzag. */
+.path-finish-li { display: flex; justify-content: center; }
+.path-finish-li > .path-finish { margin: 22px auto 6px; }

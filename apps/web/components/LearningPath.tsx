@@ -702,19 +702,22 @@ export default function LearningPath({
               });
               return items;
             })()}
+        {/* ĐÍCH cuối lộ trình (audit 04/09: "sau Chặng 9 kết thúc bằng thẻ khoá,
+            không cột mốc/lời đích") — một mốc duy nhất, số thật: bài đã xanh /
+            tổng. Là <li> CUỐI trong đường (không phải thẻ ngoài <ul>, kẻo trên
+            desktop nó rơi vào cột trái, đứng trên đầu lộ trình — đo 04/09). */}
+        {hasLegs && (
+          <li className="path-leg path-finish-li">
+            <div className="path-finish" data-done={masteredTotal === nodes.length || undefined}>
+              <Flag aria-hidden strokeWidth={2.25} />
+              <span className="path-finish-body">
+                <b>Đích {unit.split("·")[0]!.trim()}</b>
+                <span className="num">{masteredTotal}/{nodes.length} bài đã thành thạo</span>
+              </span>
+            </div>
+          </li>
+        )}
       </ul>
-
-      {/* ĐÍCH cuối lộ trình (audit 04/09: "sau Chặng 9 kết thúc bằng thẻ khoá,
-          không cột mốc/lời đích") — một mốc duy nhất, số thật: bài đã xanh / tổng. */}
-      {hasLegs && (
-        <div className="path-finish" data-done={masteredTotal === nodes.length || undefined}>
-          <Flag aria-hidden strokeWidth={2.25} />
-          <span className="path-finish-body">
-            <b>Đích {unit}</b>
-            <span className="num">{masteredTotal}/{nodes.length} bài đã thành thạo</span>
-          </span>
-        </div>
-      )}
 
       {/* Cổng chương cuối dải phẳng — khi CÓ chặng, thẻ chặng khoá đã là
           điểm dừng nên không cần cổng lặp lại (không bịa số câu) */}
