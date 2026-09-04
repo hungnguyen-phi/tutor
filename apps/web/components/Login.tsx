@@ -114,7 +114,20 @@ export default function Login() {
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError("Đăng nhập thất bại: " + error.message);
+      // Dịch lỗi Supabase sang tiếng Việt (audit 04/09: học sinh 15 tuổi đọc
+      // "Invalid login credentials"). KHÔNG nói email có tồn tại hay không.
+      const m = error.message;
+      setError(
+        /invalid login|invalid credentials|invalid_grant/i.test(m)
+          ? "Email hoặc mật khẩu chưa đúng — bạn kiểm tra lại rồi thử lần nữa nhé."
+          : /email not confirmed/i.test(m)
+            ? "Tài khoản chưa được xác nhận email. Bạn liên hệ thầy cô/quản trị viên nhé."
+            : /rate|too many|after \d+ seconds/i.test(m)
+              ? "Bạn thử hơi nhanh — chờ khoảng một phút rồi đăng nhập lại nhé."
+              : /network|fetch/i.test(m)
+                ? "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại nhé."
+                : "Chưa đăng nhập được lúc này. Bạn thử lại sau hoặc báo thầy cô nhé.",
+      );
       setBusy(false);
       return;
     }

@@ -83,6 +83,11 @@ export default function SubjectPicker<K extends string>({
       <p className="subj-foot">
         Môn “Sắp mở” đã có lộ trình đầy đủ để xem trước — phần luyện tập sẽ bật khi bộ câu hỏi được nạp.
       </p>
+      {/* Nút đóng tường minh (audit 04/09: chỉ có Esc/bấm ngoài — trên điện
+          thoại không có Esc, bấm ngoài thì không ai đoán được). */}
+      <button type="button" className="btn btn-quiet btn-block subj-close" onClick={onClose}>
+        Đóng
+      </button>
     </Sheet>
   );
 }

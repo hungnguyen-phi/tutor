@@ -29,7 +29,7 @@ export default function LearnAside({
   /* Khuôn HẸP thay vì `Scoreboard` đầy đủ: cột này chỉ đọc hạng nỗ lực + tổng
      XP, khai cả interface 20 trường thì /demo phải bịa ra 20 trường vô nghĩa
      mới xem trước được. Scoreboard thật khớp khuôn này về cấu trúc. */
-  board: { effort: { rank: number | null }; xp?: { total: number } | null } | null;
+  board: { effort: { rank: number | null }; xp?: { total: number; week?: number } | null } | null;
   progress: Progress;
   /** 0..1 — phần đường đã đi tới hạng kế tiếp. */
   leagueProgress: number;
@@ -40,7 +40,12 @@ export default function LearnAside({
   rot: number;
   onSeeAll: () => void;
 }) {
-  const boardXp = board?.xp?.total ?? progress.xp;
+  // BẢNG TUẦN xếp theo XP TUẦN (scoreboard/index.ts) — hàng "của bạn" phải hiện
+  // đúng con số đó và NÓI RÕ là tuần, không phải tổng (audit 04/09: cùng một em
+  // thấy 4 con số XP khác nhau ở 4 chỗ, vì mỗi chỗ lặng lẽ đo một thứ khác).
+  // Chốt: HUD + Tôi = TỔNG; Bảng tuần/Hạng = TUẦN có nhãn.
+  const boardXp = board?.xp?.week ?? board?.xp?.total ?? progress.xp;
+  const boardXpLaTuan = board?.xp?.week != null;
   const boardXpShown = useCountUp(boardXp, { duration: 1200, delay: 320 });
   const todayPct = useGrow(studied ? 100 : 0, { delay: 220 });
   const leaguePct = useGrow(Math.round(leagueProgress * 100), { delay: 360 });
@@ -73,8 +78,9 @@ export default function LearnAside({
                 aria-hidden vì số đang đếm; câu đầy đủ nằm ở sr-only kế bên. */}
             <span className="board-xp num" aria-hidden>
               {boardXpShown}
+              {boardXpLaTuan && <small className="board-xp-unit"> XP tuần</small>}
             </span>
-            <span className="sr-only">{boardXp} điểm kinh nghiệm</span>
+            <span className="sr-only">{boardXp} điểm kinh nghiệm{boardXpLaTuan ? " tuần này" : ""}</span>
           </div>
         </section>
       )}

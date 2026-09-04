@@ -289,7 +289,7 @@ export default function QuestsView({
             <span className="eyebrow">Nhiệm vụ hôm nay</span>
             <ul className="tasks">
               {daily.map((q, i) => (
-                <TaskRow key={q.key} q={q} tint={TINTS[i % 3]!} xp={G.XP.lessonDone} />
+                <TaskRow key={q.key} q={q} tint={TINTS[i % 3]!} xp={G.XP.lessonDone} onGo={onGoLearn} />
               ))}
             </ul>
           </div>
@@ -298,7 +298,7 @@ export default function QuestsView({
             <span className="eyebrow">Mục tiêu dài hơn</span>
             <ul className="tasks">
               {longer.map((q, i) => (
-                <TaskRow key={q.key} q={q} tint={TINTS[(i + 1) % 3]!} />
+                <TaskRow key={q.key} q={q} tint={TINTS[(i + 1) % 3]!} onGo={onGoLearn} />
               ))}
             </ul>
           </div>
@@ -347,34 +347,27 @@ export default function QuestsView({
             </ul>
           </section>
 
+          {/* Thang hạng ĐẦY ĐỦ đã có ở tab Hạng — ở đây lặp nguyên khối làm cột
+              phải dài gấp đôi cột trái (audit 04/09). Chỉ giữ MỘT dòng vị trí. */}
           <section className="ws-panel">
             <h2 className="ws-panel-title">
               <Trophy aria-hidden strokeWidth={2.25} />
-              Thang hạng nỗ lực
+              Hạng nỗ lực
             </h2>
-            <ul className="gl-ladder">
-              {G.LEAGUES.map((l, i) => {
-                const state = i < leagueIdx ? "past" : i === leagueIdx ? "current" : "future";
-                return (
-                  <li className="gl-rung" key={l.name} data-state={state}>
-                    <span className="gl-rung-ico" data-rank={i} aria-hidden>
-                      <Medal strokeWidth={2.25} />
-                    </span>
-                    <b className="gl-rung-name">{l.name}</b>
-                    <span className="gl-rung-min num">
-                      {l.min === 0 ? "khởi đầu" : `${l.min.toLocaleString("vi-VN")} XP`}
-                    </span>
-                    {state === "current" && <span className="gl-rung-you">bạn ở đây</span>}
-                  </li>
-                );
-              })}
-            </ul>
-            {league.next !== null && (
-              <p className="muted gl-ladder-foot">
-                Còn <b>{(league.next - progress.xp).toLocaleString("vi-VN")} XP</b> nữa tới hạng kế
-                tiếp. Hạng đo nỗ lực, không đo điểm.
-              </p>
-            )}
+            <p className="gl-ladder-line">
+              <span className="gl-rung-ico" data-rank={leagueIdx} aria-hidden>
+                <Medal strokeWidth={2.25} />
+              </span>
+              <b>{league.name}</b>
+              {league.next !== null ? (
+                <span className="muted">
+                  {" "}→ {G.LEAGUES[leagueIdx + 1]!.name} còn <b className="num">{(league.next - progress.xp).toLocaleString("vi-VN")} XP</b>
+                </span>
+              ) : (
+                <span className="muted"> — hạng cao nhất</span>
+              )}
+            </p>
+            <p className="muted gl-ladder-foot">Hạng đo nỗ lực, không đo điểm. Xem cả thang ở tab Hạng.</p>
           </section>
         </aside>
       </div>
@@ -382,13 +375,29 @@ export default function QuestsView({
   );
 }
 
-/** Một hàng nhiệm vụ. */
-function TaskRow({ q, tint, xp }: { q: Quest; tint: "gold" | "sky" | "ok"; xp?: number }) {
+/** Một hàng nhiệm vụ. `onGo`: mục tiêu chưa xong thì CÓ nút dẫn tới hành động
+ *  (audit 04/09: tab Mục tiêu hoàn toàn tĩnh, 0 phần tử bấm được). */
+function TaskRow({ q, tint, xp, onGo }: { q: Quest; tint: "gold" | "sky" | "ok"; xp?: number; onGo?: () => void }) {
   const { Icon } = q;
   const done = q.now >= q.goal;
   const partial = !done && q.now > 0;
   return (
     <li className="task-row" data-done={done || undefined}>
+      {!done && (
+        <a
+          className="task-go"
+          href="/learn/"
+          aria-label={`Học ngay — ${q.title}`}
+          onClick={(e) => {
+            if (!onGo) return;
+            e.preventDefault();
+            onGo();
+          }}
+        >
+          Học ngay
+          <ArrowRight aria-hidden strokeWidth={2.25} />
+        </a>
+      )}
       <span className="task-ico" data-tint={tint} aria-hidden>
         {done ? <Check strokeWidth={2.5} /> : <Icon strokeWidth={2} />}
       </span>

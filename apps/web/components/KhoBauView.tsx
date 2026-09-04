@@ -114,9 +114,13 @@ export default function KhoBauView({
     datChon((cu) => {
       if (cu?.loai === "nopbai") return cu;
       if (cu && moRa.some((r) => r.id === cu.id)) return cu;
-      return { loai: "hoclieu", id: moRa[0]!.id };
+      // Mục ĐẦU THEO THỨ TỰ HIỆN TRÊN MÀN (nhóm → mục), không phải mục đầu theo
+      // thứ tự DB (audit 04/09: tự chọn mục thứ 7 — phiếu PDF — dù danh sách bày
+      // "Xem" trước). Em nhìn danh sách và thấy đúng mục đầu đang mở.
+      const dau = nhomList[0]?.muc[0] ?? moRa[0]!;
+      return { loai: "hoclieu", id: dau.id };
     });
-  }, [moRa]);
+  }, [moRa, nhomList]);
 
   const dangMo = chon?.loai === "hoclieu" ? moRa.find((r) => r.id === chon.id) ?? null : null;
 

@@ -153,7 +153,9 @@ type Subject = "Toan" | "Van" | "Anh" | "GDKTPL";
 // `live` vẫn hiện LỘ TRÌNH thật (giáo trình từ Studio) để xem trước — phần
 // luyện tập mở khi bộ câu hỏi được nạp (xem [[supabase-mcp-deploy]]).
 const SUBJECTS: SubjectInfo<Subject>[] = [
-  { key: "Toan", short: "Toán", unit: "Toán 10", subtitle: "Hàm số bậc hai · dẫn dắt Socratic, chấm bằng CAS", slug: "toan", live: true, Icon: Sigma },
+  // Phụ đề nói bằng tiếng của học sinh (audit 04/09: "dẫn dắt Socratic, chấm bằng
+  // CAS" là thuật ngữ kỹ thuật; "Hàm số bậc hai" lệch chương đang học).
+  { key: "Toan", short: "Toán", unit: "Toán 10", subtitle: "Hỏi để bạn tự tìm ra — không đưa sẵn đáp án", slug: "toan", live: true, Icon: Sigma },
   { key: "Van", short: "Ngữ văn", unit: "Ngữ văn 10", subtitle: "Thần thoại, truyện kể, thơ · đọc hiểu & viết", slug: "van", live: false, Icon: BookText },
   { key: "Anh", short: "Tiếng Anh", unit: "Tiếng Anh 10", subtitle: "Present simple · trắc nghiệm, viết & nói", slug: "anh", live: true, Icon: Languages },
   { key: "GDKTPL", short: "KT & Pháp luật", unit: "Kinh tế & Pháp luật 10", subtitle: "Hoạt động kinh tế & pháp luật · trắc nghiệm tự chấm", slug: "gdktpl", live: true, Icon: Scale },
@@ -235,6 +237,13 @@ export default function TutorApp() {
   /** Pop-up mời nối lại đang mở? Tách khỏi `phienDo` vì "Để sau" chỉ đóng lời
    *  mời, KHÔNG xoá gói — em đổi ý thì buổi dở vẫn còn đó. */
   const [moiNoiLai, setMoiNoiLai] = useState(false);
+  /** Sheet xác nhận khi bấm X thoát bài (chủ dự án 04/09: CHỦ ĐỘNG thoát là bỏ
+   *  buổi, phải làm lại; chỉ rớt mạng/lỗi mới được nối lại). */
+  const [hoiThoat, setHoiThoat] = useState(false);
+  /** Buổi này là BỘ ÔN SAI (mở từ tab Ôn tập) — thoát thì về đúng tab đó. */
+  const cheDoOnSaiRef = useRef(false);
+  /** Dòng nhắc dưới nút KIỂM TRA (nộp chưa đủ ý / vì sao nút còn mờ). */
+  const [footNote, setFootNote] = useState<string | null>(null);
   /** `luuLuc` của gói đã bấm "Để sau" — cùng gói thì đừng mời lại mỗi lần em
    *  quay về lộ trình (mời dai là nài nỉ). Gói MỚI (học thêm rồi lại dở) thì
    *  `luuLuc` đổi → mời lại là đúng. */
@@ -306,9 +315,16 @@ export default function TutorApp() {
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);
   }, []);
+  // pushState chứ KHÔNG replaceState (audit 04/09, 2 agent cùng bắt): đổi tab
+  // mà history không dài ra thì Back của trình duyệt VĂNG KHỎI APP — học sinh
+  // bấm Back theo phản xạ là mất chỗ. Đẩy một mục thì Back = về tab trước
+  // (hashchange → `apply` ở trên đổi view), đúng kỳ vọng "Back là lùi một bước".
+  // Bấm lại tab đang mở thì không đẩy gì (kẻo Back phải bấm hai lần).
   const switchView = useCallback((k: NavKey | "settings") => {
-    setView(k);
-    history.replaceState(null, "", k === "learn" ? window.location.pathname : `#${k}`);
+    setView((cur) => {
+      if (cur !== k) history.pushState(null, "", k === "learn" ? window.location.pathname : `#${k}`);
+      return k;
+    });
   }, []);
 
   // Hướng chuyển tab (trái/phải theo thứ tự nav) — nuôi animation slide-fwd/back
@@ -715,6 +731,7 @@ export default function TutorApp() {
     setStepText({});
     setVerdict(null);
     setAttempts(0);
+    setFootNote(null);
   }
 
   /** `node`: bài học sinh vừa bấm trên lộ trình. PHẢI gửi lên server — thiếu nó
@@ -742,6 +759,7 @@ export default function TutorApp() {
         return;
       }
       setSes(d);
+      cheDoOnSaiRef.current = !!wrongMode;
       setQi(0);
       setEarned(0);
       setInjectedStack([]);
@@ -868,6 +886,9 @@ export default function TutorApp() {
     // đổi verdict, không tính lần thử (attempts đã hoàn lại ở nơi gọi).
     if (res.graded === false) {
       if (res.message && !messageShown) setMsgs((m) => [...m, { role: "hint", text: res.message! }]);
+      // Lời nhắc đứng NGAY dưới nút vừa bấm (audit 04/09: thanh dưới im lìm,
+      // phản hồi chỉ nằm trong khung chat bên phải).
+      setFootNote(res.message ?? "Câu này cần bạn viết lập luận đầy đủ hơn — bổ sung rồi bấm Kiểm tra lại nhé.");
       return;
     }
 
@@ -1242,6 +1263,18 @@ export default function TutorApp() {
     }
   }
 
+  /** Bấm "Thoát" trong sheet xác nhận: CHỦ ĐỘNG bỏ buổi → xoá gói nối lại (không
+   *  mời "Học tiếp" nữa), về lộ trình — hoặc về tab Ôn tập nếu đang ở bộ ôn sai. */
+  function thoatHan() {
+    setHoiThoat(false);
+    goiChoGhiRef.current = null; // đừng để lượt ghi treo 400ms hồi sinh gói vừa xoá
+    if (uid) xoaPhienDo(uid);
+    const veOnTap = cheDoOnSaiRef.current;
+    cheDoOnSaiRef.current = false;
+    backToPath();
+    if (veOnTap) switchView("review");
+  }
+
   function backToPath() {
     // THOÁT GIỮA CHỪNG cũng là một buổi dở: thẻ "Học tiếp" hiện lại ngay để em
     // quay vào đúng chỗ, thay vì phải nhớ mình đang làm bài nào tới câu mấy.
@@ -1541,7 +1574,13 @@ export default function TutorApp() {
                  Hạn WIG server chưa trả — QuestsView tự hiển thị dòng thay thế. */
               <QuestsView
                 onGoLearn={() => switchView("learn")}
-                wigTitle={pathLabel ? `Thành thạo chương ${pathLabel}` : undefined}
+                /* Tên CHƯƠNG đang học (audit 04/09: "chương Toán 10" không phải
+                   tên chương) — lấy từ node hiện tại; thiếu thì để QuestsView
+                   dùng câu mặc định thay vì bịa. */
+                wigTitle={(() => {
+                  const chuong = nodes.find((n) => n.state === "current")?.chapter;
+                  return chuong ? `Thành thạo chương ${chuong}` : undefined;
+                })()}
               />
             )}
             {view === "profile" && (
@@ -1780,6 +1819,23 @@ export default function TutorApp() {
         : stepParsed
           ? stepsDone
           : text.trim().length > 0);
+  // Vì sao KIỂM TRA còn mờ — một câu, đúng dạng câu đang làm (audit 04/09).
+  const lyDoKhoa: string | null =
+    !q || q.kind !== "objective" || canCheck
+      ? null
+      : interactiveShown
+        ? checklistParsed
+          ? `Chọn Đúng hay Sai cho đủ ${checklistParsed.items.length} ý rồi bấm Kiểm tra`
+          : orderParsed
+            ? "Xếp đủ các mục rồi bấm Kiểm tra"
+            : matchParsed
+              ? "Nối đủ các cặp rồi bấm Kiểm tra"
+              : "Điền đủ các ô trống rồi bấm Kiểm tra"
+        : isTrueFalse || q.options
+          ? "Chọn một đáp án rồi bấm Kiểm tra"
+          : stepParsed
+            ? `Còn ${stepParsed.steps.filter((s, i) => (s.yesNo ? !stepAns[i] : !(stepText[i] ?? "").trim())).length} bước chưa trả lời`
+            : "Nhập câu trả lời rồi bấm Kiểm tra";
   /** Đáp án em ĐANG chọn/gõ, ráp đúng như lúc bấm KIỂM TRA. Tách ra khỏi
    *  `check` (13/08) vì lượt XIN GỢI Ý cũng cần đọc chính chuỗi này: trước đây
    *  nút 💡 gửi đi một câu mồi cố định, không kèm gì về lựa chọn của em, nên sư
@@ -1820,6 +1876,7 @@ export default function TutorApp() {
   };
 
   const check = () => {
+    setFootNote(null);
     const ans = soanDapAnHienTai();
     if (!ans) return;
     setDaTraLoi(ans);
@@ -1843,10 +1900,28 @@ export default function TutorApp() {
         </span>
       </div>
 
+      {/* XÁC NHẬN THOÁT (chủ dự án 04/09): bấm X là hỏi — chủ động thoát thì bỏ
+          buổi, làm lại từ đầu; XP đã cộng vẫn giữ. Rớt mạng/đóng tab không qua
+          đây, gói nối lại vẫn còn → "Học tiếp" như cũ. */}
+      <Sheet open={hoiThoat} onClose={() => setHoiThoat(false)} title="Thoát bài này?">
+        <p>
+          Thoát giữa chừng là bài này <b>làm lại từ đầu</b> lần sau. XP bạn đã kiếm vẫn giữ nguyên.
+        </p>
+        <div className="sheet-actions">
+          <button className="btn btn-ghost" data-autofocus onClick={() => setHoiThoat(false)}>
+            Ở lại làm tiếp
+          </button>
+          <button className="btn" onClick={thoatHan}>
+            Thoát
+          </button>
+        </div>
+      </Sheet>
+
       <div className="lesson-top">
-        <button className="lesson-x" onClick={backToPath} aria-label="Thoát buổi học">
+        <button className="lesson-x" onClick={() => setHoiThoat(true)} aria-label="Thoát buổi học">
           <X aria-hidden strokeWidth={2.5} />
         </button>
+        {cheDoOnSaiRef.current && <span className="lesson-mode">Ôn lại câu sai</span>}
         {/* ĐƯỜNG DẤU CHÂN trên dải cỏ: mỗi câu một dấu chân — đã qua in VÀNG
             (đúng ngôn ngữ mastered của lộ trình), hiện tại là dấu SÁNG có sư tử
             tí hon đứng làm quân cờ, cuối đường là cờ đích. Tiến trình = chuyến
@@ -2031,9 +2106,20 @@ export default function TutorApp() {
                   )}
                 </>
               ) : mathy(q.prompt) ? (
-                <div className="qcard-expr"><MathText block cap>{q.prompt}</MathText></div>
+                /* Đề trắc nghiệm có kèm "Giải thích ngắn." (soạn cho bản giấy)
+                   nhưng màn chỉ có 4 nút chọn — bỏ câu đó kẻo em tìm ô viết
+                   không thấy (audit 04/09). Áp cho cả nhánh chữ thường bên dưới. */
+                <div className="qcard-expr">
+                  <MathText block cap>
+                    {q.options ? q.prompt.replace(/\s*Giải thích ngắn\.?/gi, "") : q.prompt}
+                  </MathText>
+                </div>
               ) : (
-                <div className="qcard-text"><MathText block cap>{xuongDongTungY(q.prompt)}</MathText></div>
+                <div className="qcard-text">
+                  <MathText block cap>
+                    {xuongDongTungY(q.options ? q.prompt.replace(/\s*Giải thích ngắn\.?/gi, "") : q.prompt)}
+                  </MathText>
+                </div>
               )}
             </div>
           ) : null}
@@ -2068,6 +2154,8 @@ export default function TutorApp() {
                 key={o.letter}
                 className="ans-tile lettered"
                 aria-pressed={picked === o.letter}
+                aria-label={`${o.letter}. ${o.text.replace(/\$/g, "")}`}
+                data-wrong={(verdict === "retry" && picked === o.letter) || undefined}
                 disabled={busy || verdict != null}
                 onClick={() => setPicked(o.letter)}
               >
@@ -2083,6 +2171,8 @@ export default function TutorApp() {
                 key={opt}
                 className="ans-tile num"
                 aria-pressed={picked === opt}
+                aria-label={opt.replace(/\$/g, "")}
+                data-wrong={(verdict === "retry" && picked === opt) || undefined}
                 disabled={busy || verdict != null}
                 onClick={() => setPicked(opt)}
               >
@@ -2142,7 +2232,10 @@ export default function TutorApp() {
           placeholder={stepParsed && stepInteractive ? "Kết luận của em…" : "Nhập đáp án của bạn…"}
           value={text}
           disabled={busy}
-          autoFocus
+          /* KHÔNG autoFocus ở câu NHIỀU BƯỚC: ô này nằm dưới 3 ô bước, focus vào
+             là trình duyệt cuộn thẻ xuống đáy, che mất ĐỀ BÀI ngay lúc câu vừa
+             hiện (audit 04/09, tái hiện 2 lần). Câu gõ đáp án đơn thì giữ. */
+          autoFocus={!stepParsed}
           onChange={(e) => {
             setText(e.target.value);
             if (session?.user.id) luuNhap(session.user.id, q.id, e.target.value); // sống qua cả lần văng/tải lại trang
@@ -2366,9 +2459,18 @@ export default function TutorApp() {
             </div>
           ) : attempts === 0 ? (
             <div className="chat-locked">
+              {/* Lời mời theo ĐÚNG dạng câu (audit 04/09: câu tự luận vẫn bị nhắc
+                  "chọn một đáp án"). */}
               <p>
-                Bạn đọc đề và <b>chọn một đáp án</b> trước nhé. Thử xong mình mở
-                chỗ này ra, rồi cùng gỡ.
+                Bạn đọc đề và{" "}
+                <b>
+                  {interactiveShown
+                    ? "trả lời từng ý"
+                    : isTrueFalse || q?.options
+                      ? "chọn một đáp án"
+                      : "viết câu trả lời của mình"}
+                </b>{" "}
+                trước nhé. Thử xong mình mở chỗ này ra, rồi cùng gỡ.
               </p>
             </div>
           ) : (
@@ -2434,6 +2536,11 @@ export default function TutorApp() {
             >
               KIỂM TRA
             </button>
+            {/* Nút mờ thì NÓI VÌ SAO (audit 04/09: câu nhiều bước phải điền đủ 4
+                ô mới sáng, bấm không phản hồi, không dòng nào giải thích). Sau
+                khi nộp mà chưa đủ ý, lời nhắc cũng đứng NGAY ĐÂY thay vì chỉ
+                nằm trong khung chat cách xa nút vừa bấm. */}
+            {(footNote || lyDoKhoa) && <p className="lfoot-note">{footNote ?? lyDoKhoa}</p>}
             {/* Nút "Bí quá? Xin sư tử gợi ý" ĐÃ CHUYỂN sang cột chat (11/08):
                 ở đó nó đứng cạnh ô nhập, nên xin gợi ý xong là NÓI LẠI ĐƯỢC
                 ngay. Để lại đây thì em bấm được một nhát rồi cụt đường. */}
@@ -2532,16 +2639,20 @@ export default function TutorApp() {
                 đây, nhưng là AVATAR TRÒN trên cùng dòng chữ (13/08) chứ không
                 còn đứng riêng một khối cao 216px. Lời nhắc CỐ Ý không chỉ ra ý
                 nào sai (không cho đáp án), chỉ đẩy học sinh soát lại. */}
+            {/* "Lần thử N" (audit 04/09: không biết đang ở lượt mấy, XP nỗ lực chỉ
+                hiện từ lượt 2 trông như lúc có lúc không). */}
             {isWidgetAnswer(q) ? (
               <div className="lfoot-row">
                 <RefreshCw aria-hidden strokeWidth={2.5} />
                 <b className="lfoot-title">Chưa đúng rồi, soát lại từng ý xem sao nhé!</b>
+                <span className="lfoot-try num">Lần thử {attempts}</span>
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             ) : (
               <div className="lfoot-row">
                 <RefreshCw aria-hidden strokeWidth={2.5} />
                 <b className="lfoot-title">Chưa đúng, thử lại nhé</b>
+                <span className="lfoot-try num">Lần thử {attempts}</span>
                 {attempts >= 2 && <span className="xp-chip num">+{G.XP.persistence} XP nỗ lực</span>}
               </div>
             )}

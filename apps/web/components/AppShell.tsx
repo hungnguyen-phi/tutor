@@ -64,6 +64,7 @@ export default function AppShell({
                 key={key}
                 type="button"
                 className="nav-item"
+                aria-label={label}
                 aria-current={key === current ? "page" : undefined}
                 onClick={() => onNavigate(key)}
               >

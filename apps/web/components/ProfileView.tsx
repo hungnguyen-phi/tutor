@@ -32,6 +32,10 @@ import * as Prefs from "../lib/prefs";
  */
 const BADGE_MILESTONES = [1, 3, 5, 10, 20] as const;
 
+/** Bản nhớ mô-đun của Scoreboard — sống qua các lần mount/unmount của view
+ *  (Tôi ⇄ Cài đặt) trong cùng phiên trang; không phải nguồn sự thật. */
+let sbNho: Scoreboard | null = null;
+
 export default function ProfileView({
   onGoBoard,
   onOpenSettings,
@@ -43,7 +47,10 @@ export default function ProfileView({
   const { session, profile, ready } = useAuth();
   const [progress, setProgress] = useState<G.Progress | null>(null);
   const [masteredCount, setMasteredCount] = useState(0);
-  const [sb, setSb] = useState<Scoreboard | null>(null);
+  // Khởi tạo từ BẢN NHỚ MÔ-ĐUN: rời Cài đặt quay về Tôi là remount, trước đây
+  // vẽ skeleton xám toàn màn ~0,5–1s rồi dựng lại y như cũ (audit 04/09 — "app
+  // giật"). Có dữ liệu cũ thì vẽ ngay, fetch mới ghi đè âm thầm.
+  const [sb, setSb] = useState<Scoreboard | null>(() => sbNho);
   const [parentLinked, setParentLinked] = useState(false);
 
   const uid = session?.user.id;
@@ -58,6 +65,7 @@ export default function ProfileView({
     getScoreboard()
       .then((d) => {
         if (!alive) return;
+        sbNho = d;
         setSb(d);
         // XP/chuỗi THẬT từ server (student_xp) — không để cache máy làm nguồn hạng.
         if (d.xp) setProgress(G.syncFromServer(d.xp));

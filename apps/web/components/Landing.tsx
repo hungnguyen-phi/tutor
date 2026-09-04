@@ -46,7 +46,7 @@ export default function Landing() {
           {/* Logo trường thiết kế cho nền sáng — đặt trên chip trắng khi ở nền navy */}
           <span className="hero-logo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-vietanh.webp" alt="Trường Liên cấp Việt Anh" height={32} />
+            <img src="/logo-vietanh.webp" alt="Trường Liên cấp Việt Anh" height={44} />
           </span>
           <a className="btn btn-ghost" href={cta.href}>
             {cta.label}

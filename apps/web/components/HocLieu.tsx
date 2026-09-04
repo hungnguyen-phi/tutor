@@ -280,6 +280,18 @@ export function HocLieuStage({
   // vòng xoay, KHÔNG đụng iframe cho tới khi biết chắc kết quả (xong hoặc hỏng).
   const [noiDung, setNoiDung] = useState<string | null>(null);
   const [loiTaiHtml, setLoiTaiHtml] = useState(false);
+  // Khung nhúng (PDF/Drive/YouTube) đã báo `load` chưa — chưa thì phủ màn chờ,
+  // thay cho ô đen/trắng 3–5 giây không nói gì (audit 04/09). Drive preview
+  // vẫn có thể "load" xong mà bên trong trống (CSP kho) — nên màn chờ chỉ mờ
+  // dần sau 4s chứ không treo mãi.
+  const [khungXong, setKhungXong] = useState(false);
+  useEffect(() => { setKhungXong(false); }, [uri]);
+  const manCho = !khungXong && (
+    <div className="lsv-frame-veil" role="status">
+      <Loader2 className="spin" aria-hidden strokeWidth={2} />
+      <span>Đang mở…</span>
+    </div>
+  );
   useEffect(() => {
     if (kind !== "html") return;
     let alive = true;
@@ -368,11 +380,15 @@ export function HocLieuStage({
            trượt ngang chính là thứ người thử kêu "xem không hết" (lỗi 1).
            <iframe> thay <embed>: nhận được tham số #view trên nhiều trình duyệt
            hơn, và nằm trong luồng fullscreen của thẻ cha. */
-        <iframe
-          className="lsv-frame"
-          src={`${uri}${uri.includes("#") ? "&" : "#"}view=FitH&toolbar=1`}
-          title={label}
-        />
+        <>
+          {manCho}
+          <iframe
+            className="lsv-frame"
+            src={`${uri}${uri.includes("#") ? "&" : "#"}view=FitH&toolbar=1`}
+            title={label}
+            onLoad={() => setKhungXong(true)}
+          />
+        </>
       ) : kind === "html" && noiDung == null && !loiTaiHtml ? (
         // ĐANG CHỜ TẢI: chưa biết xong hay hỏng — TUYỆT ĐỐI không nhúng src={uri}
         // lúc này. Kho trả file .html dưới dạng text/plain (chặn XSS qua file tự
@@ -388,15 +404,19 @@ export function HocLieuStage({
         // origin của kho, không chạm được vào app — đổi lại quiz dùng localStorage
         // mới chạy được (thiếu quyền này là quiz tự chấm điểm sập ngay dòng đầu).
         // Cùng origin với app thì TUYỆT ĐỐI không cấp: đó là đường thoát sandbox.
-        <iframe
-          className="lsv-frame"
-          /* srcDoc chạy trong CHÍNH origin của app → TUYỆT ĐỐI không cấp
-             allow-same-origin (đó là đường thoát sandbox). Nội dung tải từ kho
-             là do thầy cô đăng, nhưng luật vẫn là luật. */
-          sandbox={noiDung != null ? "allow-scripts allow-popups allow-forms" : sandboxFor(embedUrl(uri))}
-          {...(noiDung != null ? { srcDoc: noiDung } : { src: embedUrl(uri) })}
-          title={label}
-        />
+        <>
+          {noiDung == null && manCho}
+          <iframe
+            className="lsv-frame"
+            /* srcDoc chạy trong CHÍNH origin của app → TUYỆT ĐỐI không cấp
+               allow-same-origin (đó là đường thoát sandbox). Nội dung tải từ kho
+               là do thầy cô đăng, nhưng luật vẫn là luật. */
+            sandbox={noiDung != null ? "allow-scripts allow-popups allow-forms" : sandboxFor(embedUrl(uri))}
+            {...(noiDung != null ? { srcDoc: noiDung } : { src: embedUrl(uri) })}
+            title={label}
+            onLoad={() => setKhungXong(true)}
+          />
+        </>
       )}
 
       </div>

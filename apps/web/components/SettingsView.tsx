@@ -76,6 +76,16 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   const [cleared, setCleared] = useState(false);
   // Sheet xác nhận xoá — thay window.confirm (hộp thoại trình duyệt lộ web)
   const [askClear, setAskClear] = useState(false);
+  // Esc = Quay lại Hồ sơ (audit 04/09: Esc không đóng, chỉ có nút mũi tên).
+  // Không bắt khi sheet xác nhận đang mở — Esc lúc đó phải đóng sheet trước.
+  useEffect(() => {
+    if (!onBack) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !askClear) onBack();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack, askClear]);
 
   useEffect(() => {
     setFontState(Prefs.getFont());
@@ -427,7 +437,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
                 <b>Giảm chuyển động</b>
                 <span className="muted">Sư tử đứng yên, thẻ thôi nhún — đỡ mỏi mắt.</span>
               </span>
-              <input type="checkbox" checked={motion} onChange={toggleMotion} role="switch" />
+              <input type="checkbox" checked={motion} onChange={toggleMotion} role="switch" aria-checked={motion} aria-label="Giảm chuyển động" />
             </label>
           </section>
 
@@ -446,7 +456,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
                     Chỉ hiện tên gọi + đang học môn nào, KHÔNG lộ gì thêm. Mặc định tắt.
                   </span>
                 </span>
-                <input type="checkbox" checked={presence} onChange={togglePresence} role="switch" />
+                <input type="checkbox" checked={presence} onChange={togglePresence} role="switch" aria-checked={presence} aria-label="Hiện mình đang học cùng bạn" />
               </label>
             </section>
           )}
@@ -456,16 +466,21 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
               <Eraser aria-hidden strokeWidth={2.25} />
               Dữ liệu trên máy
             </h2>
+            {/* Copy đúng bản chất (audit 04/09): XP/chuỗi ngày/thành thạo THẬT đã
+                nằm trên hệ thống trường (student_xp, student_node_state); máy chỉ
+                giữ bản sao hiển thị. Nói "lưu trên máy" làm em tưởng xoá là mất
+                điểm thật — hoặc tưởng xoá được để reset. */}
             <p className="muted">
-              XP, chuỗi ngày và điểm thành thạo hiện lưu trên máy này (sẽ chuyển lên hệ thống trường
-              trong bản tới).
+              Máy này chỉ giữ một <b>bản sao hiển thị</b> (XP, chuỗi ngày, bài đã học) để mở app là
+              thấy ngay. Điểm thật nằm trên hệ thống trường — xoá bản sao KHÔNG làm mất XP hay tiến
+              độ của bạn, mở lại app là số tự về.
             </p>
             {cleared ? (
               <p className="st-msg ok" role="status">
-                Đã xoá tiến độ trên máy này.
+                Đã xoá bản sao trên máy này.
               </p>
             ) : (
-              <button className="btn btn-ghost btn-block" onClick={() => setAskClear(true)}>
+              <button className="btn btn-ghost btn-block btn-danger" onClick={() => setAskClear(true)}>
                 <Eraser aria-hidden strokeWidth={2} />
                 Xoá tiến độ trên máy này
               </button>
@@ -477,10 +492,10 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
       </div>
 
       {/* Sheet xác nhận xoá — autofocus vào "Giữ lại": Enter vô ý không phá dữ liệu */}
-      <Sheet open={askClear} onClose={() => setAskClear(false)} title="Xoá tiến độ trên máy này?">
+      <Sheet open={askClear} onClose={() => setAskClear(false)} title="Xoá bản sao trên máy này?">
         <p>
-          XP, chuỗi ngày và các điểm thành thạo đang lưu trên máy này sẽ mất — không hoàn tác được.
-          Điểm số trên hệ thống trường không bị ảnh hưởng.
+          Máy này sẽ quên XP, chuỗi ngày và bài đã học đang hiển thị — nhưng đó chỉ là bản sao.
+          Điểm thật trên hệ thống trường không đổi; mở lại app là số tự về.
         </p>
         <div className="sheet-actions">
           <button className="btn btn-ghost" data-autofocus onClick={() => setAskClear(false)}>
@@ -502,6 +517,8 @@ function StudentConsent() {
   const [busy, setBusy] = useState(false);
   const load = () => consentStatus().then(setSt).catch(() => setSt(null));
   useEffect(() => { load(); }, []);
+  // Hai bước cho "Rút đồng ý" — khai TRƯỚC mọi return sớm (luật thứ tự hook).
+  const [xacNhanRut, setXacNhanRut] = useState(false);
   if (!st || !st.record) return null;
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -518,9 +535,21 @@ function StudentConsent() {
           <p className="st-msg ok" role="status">
             <Check aria-hidden strokeWidth={2.5} /> Đã đủ đồng thuận — em học bình thường.
           </p>
-          <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => act(() => withdrawConsent())}>
-            Rút đồng ý (dừng xử lý dữ liệu)
-          </button>
+          {/* Hai bước tại chỗ (audit 04/09: nút hệ quả lớn — dừng học — mà cùng
+              kiểu với Đăng xuất, không xác nhận). Bấm lần 1 chỉ "lên đạn". */}
+          {!xacNhanRut ? (
+            <button className="btn btn-ghost btn-block btn-danger" disabled={busy} onClick={() => setXacNhanRut(true)}>
+              Rút đồng ý (dừng xử lý dữ liệu)
+            </button>
+          ) : (
+            <div className="st-danger-confirm" role="group" aria-label="Xác nhận rút đồng ý">
+              <p className="muted">Rút đồng ý là AI Tutor <b>dừng hẳn</b> việc dạy bạn cho tới khi đồng ý lại. Chắc chứ?</p>
+              <div className="row">
+                <button className="btn btn-ghost" disabled={busy} onClick={() => setXacNhanRut(false)}>Thôi, giữ nguyên</button>
+                <button className="btn btn-danger-solid" disabled={busy} onClick={() => act(() => withdrawConsent())}>Rút đồng ý</button>
+              </div>
+            </div>
+          )}
         </>
       ) : st.needsAssent ? (
         <>

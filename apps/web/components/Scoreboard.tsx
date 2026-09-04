@@ -390,7 +390,10 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                             data-unranked={showNum ? undefined : true}
                             aria-label={showNum ? `Hạng ${trueRank}` : "Chưa xếp hạng"}
                           >
-                            {podium ? <Medal aria-hidden strokeWidth={2.5} /> : showNum ? trueRank : "–"}
+                            {/* Top 3: huy chương KÈM số, không thay số (audit 04/09:
+                                hạng 1 là số, hạng 2 là icon → khó so). */}
+                            {podium && <Medal aria-hidden strokeWidth={2.5} />}
+                            {showNum ? trueRank : "–"}
                           </span>
                           <span className="sb-ava" data-tint={r.me ? "gold" : AVA_TINTS[i % AVA_TINTS.length]} aria-hidden>
                             {letter}
@@ -493,9 +496,18 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
                     placeholder={`Ví dụ: "${you} cam kết ôn hết thẻ trước Chủ nhật"`}
                     autoCapitalize="sentences"
                   />
-                  <button className="btn btn-block" onClick={saveCommit} disabled={savingCommit} data-loading={savingCommit || undefined}>
+                  {/* Khoá khi ô trống (audit 04/09: bấm với ô trống không có gì xảy
+                      ra — không lỗi, không disable). */}
+                  <button
+                    className="btn btn-block"
+                    onClick={saveCommit}
+                    disabled={savingCommit || !commitment.trim()}
+                    data-loading={savingCommit || undefined}
+                    title={!commitment.trim() ? "Viết cam kết trước rồi bấm lưu" : undefined}
+                  >
                     Lưu cam kết
                   </button>
+                  {!commitment.trim() && <p className="muted sb-commit-hint">Viết một câu cam kết rồi nút Lưu sẽ sáng.</p>}
                 </section>
               )}
             </div>

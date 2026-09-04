@@ -166,6 +166,11 @@ export default function LearningPath({
 }) {
   // Chặng đã xong / còn khoá đang được mở xem trước (bấm thẻ chặng).
   const [openLegs, setOpenLegs] = useState<Set<string>>(new Set());
+  // Bong bóng "mở khi xong bài X" khi bấm node khoá (audit 04/09) — một cái tại
+  // một thời điểm, tự tắt; bấm node khác thì thay.
+  const [khoaNhac, setKhoaNhac] = useState<{ key: string; text: string } | null>(null);
+  const khoaNhacTimer = useRef<number | undefined>(undefined);
+  const masteredTotal = nodes.filter((n) => n.state === "mastered").length;
 
   // Native: mở màn Học là THẤY NGAY dấu chân BẮT ĐẦU — path tự cuộn tới node
   // current (nhảy tức thời, không animation → tự thỏa reduced-motion).
@@ -317,10 +322,19 @@ export default function LearningPath({
         <button
           className="node"
           data-state={n.state}
-          disabled={locked || busy}
+          /* Node KHOÁ vẫn nhận bấm (audit 04/09: "bấm không có phản hồi gì, lý do
+             chỉ nằm trong aria-label") — bấm thì hiện bong bóng nói cần học xong
+             bài nào, KHÔNG mở bài. `aria-disabled` giữ ngữ nghĩa cho máy đọc. */
+          disabled={busy}
+          aria-disabled={locked || undefined}
           aria-label={`${n.label}. ${[hint, ...extra].join(". ")}`}
           title={`${n.label} — ${hint}`}
-          onClick={() => onStart(n)}
+          onClick={() => {
+            if (!locked) { onStart(n); return; }
+            setKhoaNhac({ key: n.key, text: blockedNames.length ? `Mở khi xong: ${blockedNames.join(", ")}` : "Bài này mở khi xong bài phía trước" });
+            window.clearTimeout(khoaNhacTimer.current);
+            khoaNhacTimer.current = window.setTimeout(() => setKhoaNhac(null), 2800);
+          }}
         >
           {/* MỘT THẺ cho bài đang học, đứng NGAY TRÊN dấu chân: nhãn "BẮT ĐẦU" +
               tên bài + tiến trình + chờ chấm. Trước 30/07 đây là BỐN món rời
@@ -330,12 +344,26 @@ export default function LearningPath({
               không tranh chỗ với sư tử đứng cạnh. */}
           {isCurrent && (
             <span className="node-card" data-preview={preview || undefined} aria-hidden>
-              <span className="node-card-kicker">{preview ? "XEM TRƯỚC" : "BẮT ĐẦU"}</span>
+              {/* Nhãn theo TRẠNG THÁI THẬT (audit 04/09: "BẮT ĐẦU · 7/7 câu" — đã
+                  làm hết mà vẫn 'bắt đầu', không hiểu vì sao chưa xong). Đã chạm
+                  hết câu nhưng node chưa xanh = còn thiếu câu KHÓ (mastery cần
+                  đúng ≥1 câu DOK cao nhất) — nói thẳng điều đó. */}
+              <span className="node-card-kicker">
+                {preview
+                  ? "XEM TRƯỚC"
+                  : (n.doneCount ?? 0) === 0
+                    ? "BẮT ĐẦU"
+                    : (n.doneCount ?? 0) >= (n.totalCount ?? 0)
+                      ? "LÀM LẠI"
+                      : "TIẾP TỤC"}
+              </span>
               <span className="node-card-name">{shortLabel(n.label)}</span>
               {showProg && (
                 <span className="node-card-meta">
                   <span className="node-card-prog num">
-                    {n.doneCount ?? 0}/{n.totalCount ?? 0} câu
+                    {(n.doneCount ?? 0) >= (n.totalCount ?? 0)
+                      ? "chưa đạt câu khó"
+                      : `${n.doneCount ?? 0}/${n.totalCount ?? 0} câu`}
                   </span>
                 </span>
               )}
@@ -355,6 +383,9 @@ export default function LearningPath({
             )}
           </span>
         </button>
+        {khoaNhac?.key === n.key && (
+          <span className="node-toast" role="status">{khoaNhac.text}</span>
+        )}
         {/* KHO BÁU: học liệu đứng CẠNH bài, không nằm trong bài. KHOÁ THEO BÀI —
             bài chưa mở thì kho báu cũng chưa mở, đúng lối đi tuần tự của lộ
             trình; mở trước thì em nhảy cóc bằng đường học liệu. Ngả về phía đối
@@ -628,14 +659,20 @@ export default function LearningPath({
                         className="leg-card"
                         data-state={state}
                         aria-expanded={open}
-                        onClick={() =>
+                        onClick={(e) => {
+                          const btn = e.currentTarget;
+                          const dangMo = openLegs.has(key);
                           setOpenLegs((s) => {
                             const next = new Set(s);
                             if (next.has(key)) next.delete(key);
                             else next.add(key);
                             return next;
-                          })
-                        }
+                          });
+                          // MỞ ra thì kéo thẻ chặng lên đầu khung để dấu chân vừa đổ
+                          // ra nằm TRONG tầm mắt (audit 04/09: nội dung mở dưới fold,
+                          // chevron chỉ lật → tưởng nút chết).
+                          if (!dangMo) window.setTimeout(() => btn.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                        }}
                       >
                         <span className="leg-ico" aria-hidden>
                           {state === "done" ? <Check strokeWidth={2.5} /> : <Lock strokeWidth={2} />}
@@ -666,6 +703,18 @@ export default function LearningPath({
               return items;
             })()}
       </ul>
+
+      {/* ĐÍCH cuối lộ trình (audit 04/09: "sau Chặng 9 kết thúc bằng thẻ khoá,
+          không cột mốc/lời đích") — một mốc duy nhất, số thật: bài đã xanh / tổng. */}
+      {hasLegs && (
+        <div className="path-finish" data-done={masteredTotal === nodes.length || undefined}>
+          <Flag aria-hidden strokeWidth={2.25} />
+          <span className="path-finish-body">
+            <b>Đích {unit}</b>
+            <span className="num">{masteredTotal}/{nodes.length} bài đã thành thạo</span>
+          </span>
+        </div>
+      )}
 
       {/* Cổng chương cuối dải phẳng — khi CÓ chặng, thẻ chặng khoá đã là
           điểm dừng nên không cần cổng lặp lại (không bịa số câu) */}

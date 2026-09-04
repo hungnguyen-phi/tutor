@@ -400,7 +400,7 @@ ul {
 }
 /* Eyebrow: nhãn nhỏ hoa trên tiêu đề — CHỈ nơi hi-fi vẽ, không rải mọi khối */
 .eyebrow {
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2087,7 +2087,7 @@ ul {
   align-items: center;
   gap: 6px;
   margin-top: 1px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 700;
 }
 /* Tiến trình DANG DỞ phải nhìn thấy: xong 6/8 câu mà node trông y như chưa học
@@ -6078,7 +6078,7 @@ html[data-motion="reduce"] .spin {
 }
 .pf-tile span {
   display: block;
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 500;
   color: var(--muted);
 }
@@ -8275,7 +8275,7 @@ body:has(.lfoot-says) .lesson-pad {
   gap: 2px;
 }
 .leg-kicker {
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -9098,7 +9098,7 @@ body:has(.lfoot-says) .lesson-pad {
   flex: 0 0 auto;
   padding: 4px 11px;
   border-radius: var(--r-pill);
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 800;
   letter-spacing: 0.03em;
 }
@@ -12526,7 +12526,7 @@ body:has(.lsn-grid) {
 .aside-tip-kind {
   display: block;
   margin-top: 5px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* 11→12px (audit 04/09) */
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -13870,4 +13870,157 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 .tiep-do-desau {
   min-height: 44px;
   padding: 8px 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUDIT UI/UX 04/09 — 4 agent × skill ui-ux-pro-max. Mỗi khối ghi mã mục trong
+   báo cáo để lần sau đọc `git log` là biết vì sao có.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* #3 Node khoá bấm được → bong bóng nói cần xong bài nào (tự tắt 2,8s). */
+.node-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 6px);
+  translate: -50% 0;
+  z-index: 6;
+  max-width: 240px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 12px 28px -14px rgb(10 12 40 / 55%);
+  animation: rol-toast-in 200ms var(--ease) both;
+  pointer-events: none;
+}
+.node[aria-disabled="true"] { cursor: help; }
+
+/* #16 Đích cuối lộ trình — MỘT mốc, số thật. */
+.path-finish {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, 100%);
+  margin: 18px auto 8px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+}
+.path-finish > svg { flex: none; width: 26px; height: 26px; color: var(--gold-text, #8a6d00); }
+.path-finish-body { display: flex; flex-direction: column; gap: 2px; }
+.path-finish-body b { font-size: 0.9375rem; }
+.path-finish-body span { font-size: 0.8125rem; color: var(--muted); }
+.path-finish[data-done] { background: var(--gold-tint); border-color: var(--gold); }
+
+/* #8 Mục tiêu: nút hành động trên từng nhiệm vụ chưa xong. */
+.task-row { position: relative; }
+.task-go {
+  order: 9;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.task-go svg { width: 14px; height: 14px; }
+.task-go:hover { background: color-mix(in oklab, var(--navy) 86%, black); }
+/* #15 Mục tiêu: một dòng hạng thay cả thang (thang đầy đủ ở tab Hạng). */
+.gl-ladder-line { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; font-size: 0.9375rem; }
+.gl-ladder-line > .gl-rung-ico { flex: none; }
+
+/* #23 Luồng sai: ô vừa chọn sai tô viền hổ phách (không đỏ), "Lần thử N". */
+.ans-tile[data-wrong] {
+  border-color: var(--warn, #9a6b12);
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--warn, #9a6b12) 55%, transparent);
+}
+.lfoot-try {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: rgb(10 12 40 / 8%);
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+/* #6 Vì sao KIỂM TRA còn mờ / lời nhắc sau khi nộp chưa đủ. */
+.lfoot-note {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+/* #10 Nút KIỂM TRA mờ: chữ phải còn đọc được (≥4.5:1), không phải xám mờ tịt. */
+.btn-check:disabled { color: var(--ink-2); }
+
+/* #7 Hạng: gợi ý dưới nút Lưu cam kết đang khoá. */
+.sb-commit-hint { margin: 8px 0 0; font-size: 0.8125rem; text-align: center; }
+/* #15 Hạng: top 3 = huy chương KÈM số. */
+.sb-rank[data-podium] { display: inline-flex; align-items: center; gap: 2px; }
+.sb-rank[data-podium] svg { width: 14px; height: 14px; }
+
+/* #11 Bảng tuần mini: nói rõ đơn vị "XP tuần". */
+.board-xp-unit { font-size: 0.6875em; font-weight: 600; color: var(--muted); margin-left: 2px; }
+
+/* #19 Popup Thanh Ôn Lại: chừa chỗ cho nút X, không đè link "Mở tab mới". */
+.rol-popup-card .lsv-stage-bar { padding-right: 52px; }
+/* #19/#2 Khung nhúng (PDF/Drive/YouTube): màn chờ thay cho ô đen/trắng 3–5s. */
+.lsv-body { position: relative; }
+.lsv-frame-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  pointer-events: none;
+  animation: fade-veil 200ms 4s both;
+}
+.lsv-frame-veil .spin { color: var(--sky); }
+@keyframes fade-veil { to { opacity: 0.92; } }
+
+/* #10 Đăng nhập: nút tài khoản thử không ngắt chữ ("Học / sinh"). */
+.auth-demo .row .btn { white-space: nowrap; min-width: 0; }
+@media (max-width: 420px) { .auth-demo .row { flex-wrap: wrap; } }
+
+/* #21 Cài đặt: nút hệ quả lớn tách khỏi nút thường. */
+.btn-danger { color: var(--warn, #9a6b12); border-color: color-mix(in oklab, var(--warn, #9a6b12) 45%, transparent); }
+.btn-danger:hover { background: color-mix(in oklab, var(--warn, #9a6b12) 10%, var(--surface)); }
+.btn-danger-solid { background: var(--warn, #9a6b12); color: #fff; }
+.st-danger-confirm { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: color-mix(in oklab, var(--warn, #9a6b12) 8%, var(--surface)); }
+.st-danger-confirm .row { display: flex; gap: 8px; }
+.st-danger-confirm .row .btn { flex: 1; }
+/* #22 Cài đặt: mũi tên Quay lại không đè chip tiêu đề. */
+.st-hero .ws-hero-text { padding-left: 52px; }
+
+/* #25 Đổi môn: nút Đóng tường minh. */
+.subj-close { margin-top: 10px; }
+
+/* #14 Nhãn chế độ "Ôn lại câu sai" trên thanh tiến trình bài. */
+.lesson-mode {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--gold);
+  color: var(--on-gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
