@@ -895,13 +895,23 @@ Deno.serve(async (req: Request) => {
         // nó cũng đúng cách xử lý kiểu "xuôi": bắt em nói một ý riêng.
         const gatRong = /^\s*(da|vang|u|uh|um|ok|oke|okay|duoc|the a|vay a|a|dung roi a|em hieu roi|minh hieu roi|thi sao|roi sao)(\s+(a|roi|nhe|nha|ne))?[.!?\s]*$/i
           .test(reasoning.toLowerCase().replace(/đ/g, "d").normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
-        const moiNoiY = daChonNhan
-          ? (en
-            ? `You picked "${daChonNhan}". Before I say anything, tell me in your own words why that one.`
-            : `Bạn đang chọn "${daChonNhan}". Trước khi mình nói gì, bạn kể bằng lời của bạn: vì sao chọn cái đó?`)
-          : (en
-            ? "Say it in your own words: what are you thinking right now?"
-            : "Bạn nói bằng lời của bạn xem: lúc này bạn đang nghĩ gì về câu này?");
+        // XOAY theo số lần gật liền nhau (replay 04/09: em "dạ/ừ/vâng" 4 lượt →
+        // cùng một câu tất định 3 lần, đọc ra như máy kẹt). Lần 3 trở đi đổi
+        // kiểu: câu hỏi ĐÓNG buộc phải chọn, không còn mời "kể" nữa.
+        const soLanGat = mem?.tinhHuong?.kieu === "xuoi" ? 3 : (mem?.xinGiupLienTiep ?? 0) + 1;
+        const chon = daChonNhan ? `"${daChonNhan}"` : (en ? "that answer" : "đáp án đó");
+        const moiNoiYList = en
+          ? [
+            `You picked ${chon}. Before I say anything, tell me in your own words why that one.`,
+            `Just one sentence from you: what in the question made you go with ${chon}?`,
+            `Quick pick, no essay: is ${chon} something you could check as true or false? Yes or no, and why in five words.`,
+          ]
+          : [
+            `Bạn đang chọn ${chon}. Trước khi mình nói gì, bạn kể bằng lời của bạn: vì sao chọn cái đó?`,
+            `Một câu thôi cũng được: chữ nào trong đề làm bạn nghiêng về ${chon}?`,
+            `Chọn nhanh, không cần dài: ${chon} có kiểm được là đúng hay sai không? Có hay không, và vì sao trong năm chữ.`,
+          ];
+        const moiNoiY = moiNoiYList[Math.min(moiNoiYList.length - 1, Math.max(0, soLanGat - 1))]!;
         return await speak({
           envelope: { correct: false, gate: "reflect", graded: false },
           fallback: gatRong ? moiNoiY : msg,
