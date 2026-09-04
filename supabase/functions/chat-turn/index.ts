@@ -895,23 +895,28 @@ Deno.serve(async (req: Request) => {
         // nó cũng đúng cách xử lý kiểu "xuôi": bắt em nói một ý riêng.
         const gatRong = /^\s*(da|vang|u|uh|um|ok|oke|okay|duoc|the a|vay a|a|dung roi a|em hieu roi|minh hieu roi|thi sao|roi sao)(\s+(a|roi|nhe|nha|ne))?[.!?\s]*$/i
           .test(reasoning.toLowerCase().replace(/đ/g, "d").normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
-        // XOAY theo số lần gật liền nhau (replay 04/09: em "dạ/ừ/vâng" 4 lượt →
-        // cùng một câu tất định 3 lần, đọc ra như máy kẹt). Lần 3 trở đi đổi
-        // kiểu: câu hỏi ĐÓNG buộc phải chọn, không còn mời "kể" nữa.
-        const soLanGat = mem?.tinhHuong?.kieu === "xuoi" ? 3 : (mem?.xinGiupLienTiep ?? 0) + 1;
+        // XOAY VÒNG theo số lần gật liền nhau (replay 04/09: em "dạ/ừ/vâng" 4 lượt
+        // → cùng một câu tất định 3 lần, đọc ra như máy kẹt). Replay lần 2 sau
+        // deploy: ghim cứng chỉ số 3 khi kiểu "xuôi" nên lượt 2 và 4 lại y hệt
+        // nhau — vì thế bỏ ghim, lấy modulo để hai lượt liền nhau KHÔNG BAO GIỜ
+        // trùng câu.
+        const soLanGat = (mem?.xinGiupLienTiep ?? 0) + 1;
         const chon = daChonNhan ? `"${daChonNhan}"` : (en ? "that answer" : "đáp án đó");
         const moiNoiYList = en
           ? [
             `You picked ${chon}. Before I say anything, tell me in your own words why that one.`,
             `Just one sentence from you: what in the question made you go with ${chon}?`,
-            `Quick pick, no essay: is ${chon} something you could check as true or false? Yes or no, and why in five words.`,
+            `Quick pick, no essay: name ONE other option you are sure is wrong, and say in five words why.`,
+            `"Yes" is not an answer here. Read the question once more and tell me what it is asking for, in your own words.`,
           ]
           : [
             `Bạn đang chọn ${chon}. Trước khi mình nói gì, bạn kể bằng lời của bạn: vì sao chọn cái đó?`,
             `Một câu thôi cũng được: chữ nào trong đề làm bạn nghiêng về ${chon}?`,
-            `Chọn nhanh, không cần dài: ${chon} có kiểm được là đúng hay sai không? Có hay không, và vì sao trong năm chữ.`,
+            `Chọn nhanh, không cần dài: kể MỘT phương án bạn chắc là sai, và vì sao trong năm chữ.`,
+            `"Dạ" không phải câu trả lời đâu. Bạn đọc lại đề một lần rồi nói cho mình: đề đang hỏi cái gì, bằng lời của bạn.`,
           ];
-        const moiNoiY = moiNoiYList[Math.min(moiNoiYList.length - 1, Math.max(0, soLanGat - 1))]!;
+        // Modulo chứ không kẹp trần: kẹp trần là gốc của lỗi "lặp câu cuối mãi".
+        const moiNoiY = moiNoiYList[Math.max(0, soLanGat - 1) % moiNoiYList.length]!;
         return await speak({
           envelope: { correct: false, gate: "reflect", graded: false },
           fallback: gatRong ? moiNoiY : msg,
