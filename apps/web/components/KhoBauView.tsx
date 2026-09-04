@@ -43,6 +43,17 @@ import NopBaiBox from "./NopBaiBox";
 /** Mục đang mở ở sân khấu: id học liệu, hoặc đường nộp bài. */
 type Chon = { loai: "hoclieu"; id: string } | { loai: "nopbai" } | null;
 
+/** "PHIẾU HỌC TẬP MỆNH ĐỀ LOGIC" → "Phiếu học tập mệnh đề logic". Chỉ đụng chuỗi
+ *  VIẾT HOA TOÀN BỘ (≥6 chữ cái, không có chữ thường); tiêu đề thường giữ nguyên. */
+function chuanHoaTieuDe(s: string | null | undefined): string {
+  const t = (s ?? "").trim();
+  if (!t) return "";
+  const chu = t.replace(/[^\p{L}]/gu, "");
+  if (chu.length < 6 || /\p{Ll}/u.test(chu)) return t;
+  const thap = t.toLocaleLowerCase("vi");
+  return thap.charAt(0).toLocaleUpperCase("vi") + thap.slice(1);
+}
+
 export default function KhoBauView({
   subject,
   nodeKey,
@@ -59,6 +70,13 @@ export default function KhoBauView({
   const [busy, setBusy] = useState(false);
   const [vuaXong, setVuaXong] = useState(false);
   const [chon, datChon] = useState<Chon>(null);
+  /** Lời nhắc khi bấm mức đang khoá — tự tắt. */
+  const [nhacMuc, setNhacMuc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!nhacMuc) return;
+    const t = window.setTimeout(() => setNhacMuc(null), 2800);
+    return () => window.clearTimeout(t);
+  }, [nhacMuc]);
 
   useEffect(() => {
     let alive = true;
@@ -191,17 +209,32 @@ export default function KhoBauView({
           <div className="kb-pips" role="list" aria-label="Các mức của kho báu">
             {mucCoSan.map((m) => {
               const state = m <= data.mucDaQua ? "done" : m === data.mucDangMo ? "now" : "locked";
+              // Mức khoá nói rõ VÌ SAO khi bấm (audit lượt 2: bấm "Mức 2" không phản
+              // hồi gì) — title cho chuột, và là <button> để bàn phím/máy đọc tới được.
+              const nhan = state === "locked"
+                ? `Mức ${m} — mở sau khi bạn xem xong mức ${data.mucDangMo}`
+                : state === "done" ? `Mức ${m} — đã xem xong` : `Mức ${m} — đang mở`;
               return (
-                <span key={m} role="listitem" className="kb-pip" data-state={state}>
+                <button
+                  key={m}
+                  type="button"
+                  role="listitem"
+                  className="kb-pip"
+                  data-state={state}
+                  title={nhan}
+                  aria-label={nhan}
+                  onClick={() => { if (state === "locked") setNhacMuc(`Mức ${m} mở sau khi bạn xem xong mức ${data.mucDangMo} nhé.`); }}
+                >
                   {state === "done" ? <Check aria-hidden strokeWidth={3} />
                     : state === "locked" ? <Lock aria-hidden strokeWidth={2.5} /> : null}
                   Mức {m}
-                </span>
+                </button>
               );
             })}
           </div>
         )}
 
+        {nhacMuc && <p className="kb-nhac" role="status">{nhacMuc}</p>}
         {!daXongHet && (
           <button
             className="btn btn-check kb-done"
@@ -255,7 +288,10 @@ export default function KhoBauView({
                           {/* Tên thầy cô đặt đứng trước — "Phim ngắn" là LOẠI,
                               không phải tên. Chỉ khi thầy cô không đặt tên thì
                               mới lấy tên loại thay. */}
-                          <b>{r.tieuDe || nhan}</b>
+                          {/* Tiêu đề soạn VIẾT HOA TOÀN BỘ ("PHIẾU HỌC TẬP MỆNH ĐỀ LOGIC")
+                              lệch 9 mục còn lại và bị cắt sớm (audit lượt 2) — chuẩn
+                              hoá về dạng câu lúc hiện, không đụng dữ liệu. */}
+                          <b>{chuanHoaTieuDe(r.tieuDe) || nhan}</b>
                           <small>{r.tieuDe ? `${nhan} · ${moTaNguon(r.uri!)}` : moTaNguon(r.uri!)}</small>
                         </span>
                       </button>

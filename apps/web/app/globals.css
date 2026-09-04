@@ -13884,6 +13884,10 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   bottom: calc(100% - 6px);
   translate: -50% 0;
   z-index: 6;
+  /* width:max-content — cha <li> chỉ rộng 74px nên bong bóng bị "shrink-to-fit"
+     thành cột dọc mỗi dòng một chữ (audit lượt 2, ảnh chứng). max-content + trần
+     240px là chữ chạy ngang, xuống dòng đúng chỗ. */
+  width: max-content;
   max-width: 240px;
   padding: 8px 12px;
   border-radius: 12px;
@@ -13965,7 +13969,12 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
   font-size: 0.8125rem;
   color: var(--ink-2);
   line-height: 1.45;
+  /* Chừa sẵn một dòng: chọn đáp án → dòng gợi ý biến mất → nút KIỂM TRA nhảy
+     lên ~40px đúng lúc tay đang đưa tới (audit lượt 2: click trượt 2/2 lần).
+     Thanh hành động không được đổi chiều cao (luật CLS / stable action bar). */
+  min-height: 1.45em;
 }
+.lfoot-note:empty { visibility: hidden; }
 /* #10 Nút KIỂM TRA mờ: chữ phải còn đọc được (≥4.5:1), không phải xám mờ tịt. */
 .btn-check:disabled { color: var(--ink-2); }
 
@@ -13979,7 +13988,20 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 .board-xp-unit { font-size: 0.6875em; font-weight: 600; color: var(--muted); margin-left: 2px; }
 
 /* #19 Popup Thanh Ôn Lại: chừa chỗ cho nút X, không đè link "Mở tab mới". */
-.rol-popup-card .lsv-stage-bar { padding-right: 52px; }
+/* Bản đầu chỉ padding-right:52px cho THANH — nhưng cụm link canh phải bằng
+   margin-left:auto của tiêu đề nên vẫn tràn vào vùng X (audit lượt 2: X phủ
+   ~28px chữ "mới"). Đẩy chính X ra NGOÀI thẻ (góc trên-phải card), nền đặc để
+   không cần tránh chữ nào bên trong nữa. */
+.rol-popup-card { overflow: visible; }
+.rol-popup-card .rol-popup-x {
+  top: -14px;
+  right: -14px;
+  width: 40px;
+  height: 40px;
+  background: var(--navy);
+  box-shadow: 0 6px 16px -6px rgb(10 12 40 / 55%);
+}
+.rol-popup-card .lsv-stage { border-radius: var(--r); overflow: hidden; }
 /* #19/#2 Khung nhúng (PDF/Drive/YouTube): màn chờ thay cho ô đen/trắng 3–5s. */
 .lsv-body { position: relative; }
 .lsv-frame-veil {
@@ -14030,3 +14052,19 @@ html[data-motion="reduce"] .qtrail-paw[data-s="now"]::after { animation: none; }
 /* #16 (bổ sung) Mốc Đích là <li> cuối đường, canh giữa, không dính nhịp zigzag. */
 .path-finish-li { display: flex; justify-content: center; }
 .path-finish-li > .path-finish { margin: 22px auto 6px; }
+
+/* Audit lượt 2 (04/09): .kb-pip đổi <span> → <button> để bấm được & nói vì sao
+   khoá. Reset dáng nút, giữ nguyên nhìn như chip; vùng chạm ≥44px qua đệm dọc. */
+.kb-pip { border: 0; font: inherit; cursor: default; min-height: 32px; }
+.kb-pip[data-state="locked"] { cursor: help; }
+.kb-pip:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+.kb-nhac {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--navy-tint);
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  animation: rol-toast-in 200ms var(--ease) both;
+}

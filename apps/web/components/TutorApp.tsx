@@ -2540,7 +2540,9 @@ export default function TutorApp() {
                 ô mới sáng, bấm không phản hồi, không dòng nào giải thích). Sau
                 khi nộp mà chưa đủ ý, lời nhắc cũng đứng NGAY ĐÂY thay vì chỉ
                 nằm trong khung chat cách xa nút vừa bấm. */}
-            {(footNote || lyDoKhoa) && <p className="lfoot-note">{footNote ?? lyDoKhoa}</p>}
+            {/* LUÔN render (kể cả rỗng) để thanh KIỂM TRA không đổi chiều cao khi
+                dòng gợi ý xuất hiện/biến mất — audit lượt 2 đo được nút nhảy 40px. */}
+            <p className="lfoot-note" aria-live="polite">{footNote ?? lyDoKhoa ?? ""}</p>
             {/* Nút "Bí quá? Xin sư tử gợi ý" ĐÃ CHUYỂN sang cột chat (11/08):
                 ở đó nó đứng cạnh ô nhập, nên xin gợi ý xong là NÓI LẠI ĐƯỢC
                 ngay. Để lại đây thì em bấm được một nhát rồi cụt đường. */}
