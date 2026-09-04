@@ -41,7 +41,7 @@ function GoogleG() {
   );
 }
 
-export default function Login() {
+export default function Login({ loiNgoai }: { loiNgoai?: string | null } = {}) {
   const [step, setStep] = useState<Step>("choice");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,6 +49,9 @@ export default function Login() {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Lỗi do TRANG CHA đưa xuống (từ chối miền / thiếu hồ sơ sau SSO) — trang cha
+  // biết session, component này thì không.
+  useEffect(() => { if (loiNgoai) setError(loiNgoai); }, [loiNgoai]);
 
   const emailRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -71,10 +74,11 @@ export default function Login() {
     const hs = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const desc = qs.get("error_description") || hs.get("error_description") || qs.get("error") || hs.get("error");
     if (desc) {
-      setError(`Đăng nhập không thành công: ${decodeURIComponent(desc)}. Hãy thử lại hoặc dùng tài khoản trường.`);
+      setError(`Đăng nhập không thành công: ${decodeURIComponent(desc)}. Bạn thử lại với tài khoản Google của trường nhé.`);
       window.history.replaceState({}, "", "/login/");
     }
   }, []);
+
 
   /** Chuyển bước — LUÔN dọn thông báo cũ để banner không "dính" sang bước mới. */
   const go = (next: Step) => {
@@ -88,12 +92,15 @@ export default function Login() {
     setBusy(true);
     setError(null);
     // skipBrowserRedirect: tự điều hướng SAU khi có url → lỗi provider (disabled)
-    // trả về ngay ở đây thay vì lặng lẽ bounce. `hd` khoá account chooser theo miền.
+    // trả về ngay ở đây thay vì lặng lẽ bounce.
+    // KHÔNG dùng `hd` (04/09): trường có HAI miền (truongvietanh.com +
+    // student.truongvietanh.com), `hd` chỉ khoá được một. Cho chọn tài khoản,
+    // rồi KIỂM MIỀN sau khi về (useEffect dưới) + trigger DB chặn thật.
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/login/`,
-        queryParams: { hd: SCHOOL_EMAIL_DOMAIN, prompt: "select_account" },
+        queryParams: { prompt: "select_account" },
         skipBrowserRedirect: true,
       },
     });

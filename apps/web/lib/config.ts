@@ -29,17 +29,29 @@ export const SUPABASE_ANON_KEY =
 export const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
 
 // ── Cấu hình đăng nhập ────────────────────────────────────────────────────────
-// Miền email trường cho Google SSO (tham số `hd` khoá đúng Workspace của trường).
-export const SCHOOL_EMAIL_DOMAIN =
-  process.env.NEXT_PUBLIC_SCHOOL_EMAIL_DOMAIN ?? "vietanh.edu.vn";
+// MIỀN EMAIL TRƯỜNG cho Google SSO (chủ dự án chốt 04/09): HAI miền —
+// truongvietanh.com (giáo viên/nhân viên) và student.truongvietanh.com (học
+// sinh). Có thể là một Workspace với miền phụ hoặc hai Workspace — chưa chắc,
+// nên KHÔNG dùng tham số `hd` (chỉ khoá được một miền, và client sửa được);
+// chốt thật nằm ở trigger `handle_new_user` phía DB. Danh sách này chỉ để
+// nói cho học sinh biết SỚM (ngay sau khi Google trả về) rằng tài khoản
+// không phải của trường, thay vì để em vào rồi bị chặn ở cổng vai.
+export const SCHOOL_EMAIL_DOMAINS: readonly string[] =
+  (process.env.NEXT_PUBLIC_SCHOOL_EMAIL_DOMAINS ?? "truongvietanh.com,student.truongvietanh.com")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+export const SCHOOL_EMAIL_DOMAIN = SCHOOL_EMAIL_DOMAINS[0] ?? "truongvietanh.com";
+export const isSchoolEmail = (email: string | null | undefined): boolean => {
+  const d = (email ?? "").toLowerCase().split("@")[1] ?? "";
+  return SCHOOL_EMAIL_DOMAINS.includes(d);
+};
 
-// Cờ PILOT: cho đăng nhập email/mật khẩu (tài khoản admin cấp). Khi SSO đã cắm
-// và muốn ép SSO-only, đặt NEXT_PUBLIC_PILOT_PASSWORD_LOGIN=false để ẩn.
-// TẠM BẬT vì SSO chưa cấu hình (chủ dự án: "cứ dùng acc demo thôi").
+// SSO-ONLY (chủ dự án chốt 04/09 khi bật Google Workspace): đăng nhập mật
+// khẩu và dải "tài khoản thử" MẶC ĐỊNH TẮT trên production. Dev/preview muốn
+// dùng acc demo thì đặt NEXT_PUBLIC_PILOT_PASSWORD_LOGIN=true (và
+// NEXT_PUBLIC_PILOT_DEMO_ACCOUNTS=true) lúc build. Đảo mặc định so với trước
+// (trước là bật, tắt bằng =false) — cố ý: quên đặt biến thì phía an toàn thắng.
 export const PILOT_PASSWORD_LOGIN =
-  (process.env.NEXT_PUBLIC_PILOT_PASSWORD_LOGIN ?? "true") !== "false";
+  process.env.NEXT_PUBLIC_PILOT_PASSWORD_LOGIN === "true";
 
-// Nút "tài khoản thử" (điền nhanh) — CHỈ dev/pilot, KHÔNG bao giờ để trên
-// production thật. Đặt NEXT_PUBLIC_PILOT_DEMO_ACCOUNTS=false để tắt.
 export const PILOT_DEMO_ACCOUNTS =
-  (process.env.NEXT_PUBLIC_PILOT_DEMO_ACCOUNTS ?? "true") !== "false";
+  PILOT_PASSWORD_LOGIN && process.env.NEXT_PUBLIC_PILOT_DEMO_ACCOUNTS === "true";
