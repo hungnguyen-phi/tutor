@@ -22,10 +22,8 @@ import {
   ArrowLeft,
   BadgeCheck,
   Check,
-  Eraser,
   KeyRound,
   PencilLine,
-  Settings,
   ShieldCheck,
   Sun,
   Type,
@@ -36,7 +34,6 @@ import {
 } from "lucide-react";
 import { consentStatus, giveAssent, withdrawConsent, type ConsentStatus } from "../lib/api";
 import Lion from "./Lion";
-import Sheet from "./Sheet";
 import { useAuth, signOut } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import * as Prefs from "../lib/prefs";
@@ -74,19 +71,15 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   const [savingPw, setSavingPw] = useState(false);
 
   const [parentLinked, setParentLinked] = useState(false);
-  const [cleared, setCleared] = useState(false);
-  // Sheet xác nhận xoá — thay window.confirm (hộp thoại trình duyệt lộ web)
-  const [askClear, setAskClear] = useState(false);
   // Esc = Quay lại Hồ sơ (audit 04/09: Esc không đóng, chỉ có nút mũi tên).
-  // Không bắt khi sheet xác nhận đang mở — Esc lúc đó phải đóng sheet trước.
   useEffect(() => {
     if (!onBack) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !askClear) onBack();
+      if (e.key === "Escape") onBack();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onBack, askClear]);
+  }, [onBack]);
 
   useEffect(() => {
     setFontState(Prefs.getFont());
@@ -197,17 +190,6 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
     setSavingPw(false);
   }
 
-  function clearLocal() {
-    try {
-      window.localStorage.removeItem("va-tutor-progress");
-      window.localStorage.removeItem("va-tutor-mastered");
-      setCleared(true);
-    } catch {
-      /* bị chặn — thôi */
-    }
-    setAskClear(false);
-  }
-
   // SSO-only (04/09): tài khoản Google không có mật khẩu để đổi — chỉ hiện ô
   // đổi mật khẩu khi đăng nhập mật khẩu còn bật (pilot).
   const coMatKhau = PILOT_PASSWORD_LOGIN && session?.user.app_metadata?.provider !== "google";
@@ -222,10 +204,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
           </button>
         )}
         <div className="ws-hero-text">
-          <span className="ws-kicker">
-            <Settings aria-hidden strokeWidth={2.5} />
-            Cài đặt
-          </span>
+          {/* Nhãn "Cài đặt" (chữ + icon) gỡ 05/09 theo chủ dự án — tiêu đề đã đủ. */}
           <h1 className="ws-title">Không gian của {shownName.split(/\s+/).pop()}</h1>
           <p className="ws-lead">
             Chỉnh app theo ý bạn — avatar, giao diện, cỡ chữ. Mọi thay đổi ăn ngay, không cần lưu.
@@ -468,51 +447,13 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
             </section>
           )}
 
-          <section className="ws-panel">
-            <h2 className="ws-panel-title">
-              <Eraser aria-hidden strokeWidth={2.25} />
-              Dữ liệu trên máy
-            </h2>
-            {/* Copy đúng bản chất (audit 04/09): XP/chuỗi ngày/thành thạo THẬT đã
-                nằm trên hệ thống trường (student_xp, student_node_state); máy chỉ
-                giữ bản sao hiển thị. Nói "lưu trên máy" làm em tưởng xoá là mất
-                điểm thật — hoặc tưởng xoá được để reset. */}
-            <p className="muted">
-              Máy này chỉ giữ một <b>bản sao hiển thị</b> (XP, chuỗi ngày, bài đã học) để mở app là
-              thấy ngay. Điểm thật nằm trên hệ thống trường — xoá bản sao KHÔNG làm mất XP hay tiến
-              độ của bạn, mở lại app là số tự về.
-            </p>
-            {cleared ? (
-              <p className="st-msg ok" role="status">
-                Đã xoá bản sao trên máy này.
-              </p>
-            ) : (
-              <button className="btn btn-ghost btn-block btn-danger" onClick={() => setAskClear(true)}>
-                <Eraser aria-hidden strokeWidth={2} />
-                Xoá tiến độ trên máy này
-              </button>
-            )}
-          </section>
+          {/* (GỠ 05/09 theo chủ dự án) Khối "Dữ liệu trên máy" + nút xoá bản sao:
+              mọi dữ liệu thật đã ở server, khối này chỉ gây hiểu nhầm. */}
 
           <StudentConsent />
         </aside>
       </div>
 
-      {/* Sheet xác nhận xoá — autofocus vào "Giữ lại": Enter vô ý không phá dữ liệu */}
-      <Sheet open={askClear} onClose={() => setAskClear(false)} title="Xoá bản sao trên máy này?">
-        <p>
-          Máy này sẽ quên XP, chuỗi ngày và bài đã học đang hiển thị — nhưng đó chỉ là bản sao.
-          Điểm thật trên hệ thống trường không đổi; mở lại app là số tự về.
-        </p>
-        <div className="sheet-actions">
-          <button className="btn btn-ghost" data-autofocus onClick={() => setAskClear(false)}>
-            Giữ lại
-          </button>
-          <button className="btn" onClick={clearLocal}>
-            Xoá tiến độ
-          </button>
-        </div>
-      </Sheet>
     </div>
   );
 }

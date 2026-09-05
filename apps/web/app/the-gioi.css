@@ -908,6 +908,108 @@
 }
 .tb-loi b { color: var(--navy); }
 
+/* ── 9f. MẬT ĐỘ DESKTOP (05/09): chủ dự án — "thẻ to quá, màn hình to như vậy
+   bỏ hết vào MỘT khung không cần cuộn". Từ 900px: hero thấp, bỏ câu dẫn dài
+   (kicker đã nói ý), dải số 62px, panel 16/20, thang bậc thấp, sticker 56px.
+   Đích: Tôi / Hạng / Mục tiêu / Ôn tập lọt 1440×900 không cuộn. ─────────── */
+@media (min-width: 900px) {
+  .viewport:has(.ws) .ws { padding: 14px 32px 24px; gap: 12px; }
+  .viewport:has(.ws) .ws-hero { min-height: 0; gap: 20px; padding: 0 4px; }
+  .viewport:has(.ws) .ws-hero-text { padding-bottom: 4px; }
+  .viewport:has(.ws) .ws-kicker { font-size: 0.75rem; padding: 4px 10px 4px 8px; }
+  .viewport:has(.ws) .ws-title { font-size: clamp(1.45rem, 2.1vw, 1.85rem); margin: 8px 0 4px; }
+  .viewport:has(.ws) .ws-lead { display: none; }
+  .viewport:has(.ws) .pf-card .ws-lead { display: block; }
+  .viewport:has(.ws) .ws-hero-chip { margin-top: 8px; font-size: 0.75rem; padding: 5px 11px; }
+  .viewport:has(.ws) .ws-hero-lion { zoom: 0.62; margin: 0 24px -2px 0; padding-bottom: 14px; }
+  /* Cột phải chỉ có MỘT thẻ vẫn giữ 2 cột (rule cũ 13/08 gộp về 1 cột → thẻ
+     rơi xuống dưới, trang dài quá một màn). Chỗ trống bên phải nay đứng trên
+     tranh, không còn là "dải trắng chưa làm xong". */
+  .viewport:has(.ws) .ws-grid:has(.ws-side > :only-child) { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .viewport:has(.ws) .gl-hero-meter { max-width: 340px; margin-top: 4px; }
+  .viewport:has(.ws) .ws-stats { padding: 6px; border-radius: 20px; }
+  .viewport:has(.ws) .ws-stat { min-height: 62px; padding: 8px 18px; }
+  .viewport:has(.ws) .ws-stat-ico { width: 40px; height: 40px; }
+  .viewport:has(.ws) .ws-stat-ico svg { width: 20px; height: 20px; }
+  .viewport:has(.ws) .ws-stat .num { font-size: 1.6rem; }
+  .viewport:has(.ws) .ws-stat span:last-child { font-size: 0.75rem; }
+  .viewport:has(.ws) .ws-grid { gap: 12px; }
+  .viewport:has(.ws) .ws-side { gap: 12px; }
+  .viewport:has(.ws) .ws-panel { padding: 14px 18px; border-radius: 20px; }
+  .viewport:has(.ws) .ws-panel > .ws-panel-title { margin-bottom: 8px; }
+  .viewport:has(.ws) .ws-panel-title { font-size: 1.05rem; }
+  .viewport:has(.ws) .ws-panel-title svg { width: 18px; height: 18px; }
+  .viewport:has(.ws) .ws-panel-head { margin-bottom: 8px; }
+  .viewport:has(.ws) .ws-panel > p.muted { margin: -2px 0 8px; font-size: 0.8125rem; }
+  /* Tôi */
+  .pf-card { max-width: 520px; }
+  .pf-card-top { padding: 5px 14px; }
+  .pf-card-body { padding: 8px 16px 6px; gap: 12px; }
+  .pf-card-body .ws-title { font-size: 1.3rem; margin: 4px 0 2px; }
+  .pf-card-body .ws-lead { font-size: 0.8125rem; }
+  .pf-card-foot { padding: 5px 14px 11px; font-size: 0.75rem; }
+  .pf-card-paw { width: 22px; height: 22px; }
+  .viewport:has(.ws) .pf-hero .ws-hero-ava { width: 56px; height: 56px; font-size: 1.5rem; }
+  .viewport:has(.ws) .gl-rung { min-height: calc(74px + var(--step, 0px)); padding: 8px 6px 10px; gap: 2px; }
+  .viewport:has(.ws) .gl-rung:nth-child(2) { --step: 12px; }
+  .viewport:has(.ws) .gl-rung:nth-child(3) { --step: 24px; }
+  .viewport:has(.ws) .gl-rung:nth-child(4) { --step: 36px; }
+  .viewport:has(.ws) .gl-rung-ico { width: 32px; height: 32px; }
+  .viewport:has(.ws) .gl-rung-ico svg { width: 16px; height: 16px; }
+  .viewport:has(.ws) .gl-rung-name { font-size: 0.9375rem; }
+  .viewport:has(.ws) .ws-panel > p.gl-ladder-foot { margin-top: 8px; font-size: 0.75rem; }
+  .viewport:has(.ws) .pf-card-sep { margin: 10px 0; }
+  .viewport:has(.ws) .pf-badges { gap: 8px 12px; padding: 2px 0 0; }
+  .viewport:has(.ws) .pf-badge { width: 84px; }
+  .viewport:has(.ws) .pf-badge-tile { width: 54px; height: 54px; }
+  .viewport:has(.ws) .pf-badge-tile svg { width: 20px; height: 20px; }
+  .viewport:has(.ws) .pf-badge[data-got] .pf-badge-tile svg { width: 26px; height: 26px; }
+  .viewport:has(.ws) .pf-badge-lbl { font-size: 0.6875rem; }
+  .viewport:has(.ws) .pf-badge-foot { margin-top: 8px; font-size: 0.75rem; }
+  /* Hạng */
+  .sb-podium { min-height: 176px; padding: 20px 6% 8px; margin-bottom: 8px; }
+  .sb-podium::before { height: 100px; bottom: -34px; }
+  .viewport:has(.ws) .sb-support { display: grid; gap: 12px; }
+  .viewport:has(.ws) .sb-support .ws-panel > p.muted { display: none; } /* "Chính bạn viết…" — placeholder đã nói */
+  .viewport:has(.ws) .sb-commit-hint { display: none; }
+  .viewport:has(.ws) .sb-support .ws-panel textarea { min-height: 44px; margin-bottom: 8px; }
+  .viewport:has(.ws) .sb-nudge { padding: 0; }
+  .viewport:has(.ws) .sb-nudge p { padding: 8px 12px; font-size: 0.875rem; }
+  .sb-step[data-rank="1"] .sb-step-block { height: 72px; }
+  .sb-step[data-rank="2"] .sb-step-block { height: 54px; }
+  .sb-step[data-rank="3"] .sb-step-block { height: 40px; }
+  .sb-step-ava { width: 46px; height: 46px; font-size: 1.125rem; }
+  .sb-step[data-rank="1"] .sb-step-ava { width: 56px; height: 56px; font-size: 1.375rem; }
+  .sb-step-block { font-size: 1.4rem; }
+  .viewport:has(.ws) .sb-list { gap: 6px; }
+  .viewport:has(.ws) .sb-row { padding: 8px 12px; }
+  /* Mục tiêu */
+  .trail { height: 96px; margin: 0; }
+  .trail-day .day-dot { width: 34px; height: 34px; }
+  .viewport:has(.ws) .ws-panel .goals-group + .goals-group { margin-top: 10px; }
+  .viewport:has(.ws) .ws-panel .tasks { gap: 6px; }
+  .viewport:has(.ws) .task-row { padding: 8px 12px; }
+  .viewport:has(.ws) .gl-xp-row { padding: 8px 12px; }
+  /* Ôn tập */
+  .rv-shelf { padding-bottom: 18px; }
+  .rv-shelf + .rv-shelf { margin-top: 12px; }
+  .rv-shelf .rv-cards > li { flex-basis: 220px; }
+  .viewport:has(.ws) .rv-shelf .rv-card { padding: 8px 10px; }
+  .viewport:has(.ws) .rv-wrongpack { padding: 10px 16px; }
+  .viewport:has(.ws) .rv-steps .rv-step { padding: 6px 0; }
+}
+
+/* ── 9g. LỘ TRÌNH FULL MÀN (05/09): chủ dự án — vùng .path "bị cắt đến cái
+   phía trên". Trước: .scene chừa 84px trên cho HUD nên dấu chân cuộn lên là
+   bị chặt ngang ở vạch 84px. Nay vùng cuộn chạm mép trên màn, HUD nổi đè lên
+   (z-index 3) và dấu chân trôi dưới HUD như dưới một mái hiên. Cột trái (banner,
+   lời chào) vẫn bắt đầu dưới HUD bằng margin riêng. ───────────────────────── */
+@media (min-width: 900px) {
+  .learn-main .scene { padding-top: 0; }
+  .learn-main .scene-banner { margin-top: 84px; }
+  .learn-main .path { padding-top: 96px; padding-bottom: 28px; }
+}
+
 /* ── 10. Giảm chuyển động: mọi thứ đứng yên, không mất gì ────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .shell-main:has(.ws)::before,

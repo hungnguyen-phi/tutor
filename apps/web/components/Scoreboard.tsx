@@ -481,11 +481,10 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
               )}
             </section>
 
-            {/* CỘT PHẢI: nhịp 4DX — dữ liệu thật từ server */}
-            <aside className="ws-side">{sideContent}</aside>
-          </div>
-
-          {/* Dải full-width: người đồng hành + cam kết dàn NGANG. */}
+            {/* CỘT PHẢI: thang hạng + người đồng hành + cam kết (05/09: dồn vào
+                cột phải để cả màn Hạng lọt một khung 1440×900, không cuộn). */}
+            <aside className="ws-side">
+              {sideContent}
           {(sb.coach || sb.buddy || sb.viewer.self) && (
             <div className="sb-support">
               {(sb.coach || sb.buddy) && (
@@ -554,6 +553,8 @@ export function ScoreboardBody({ onGoLearn }: { onGoLearn?: () => void } = {}) {
               )}
             </div>
           )}
+            </aside>
+          </div>
         </>
       )}
     </div>
