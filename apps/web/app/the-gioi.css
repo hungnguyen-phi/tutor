@@ -889,6 +889,25 @@
   .viewport:has(.ws) .ws-stat span:last-child { font-size: 0.75rem; line-height: 1.2; align-self: auto; }
 }
 
+/* ── 9e. POP-UP THÔNG BÁO (05/09): thay banner đỏ đầu trang. Sư tử + một câu
+   + một nút; lỗi hệ thống thật vẫn là lời sư tử, không phải hộp đỏ. ─────── */
+.tb-pop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0 2px;
+  text-align: center;
+}
+.tb-loi {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--ink-2);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.tb-loi b { color: var(--navy); }
+
 /* ── 10. Giảm chuyển động: mọi thứ đứng yên, không mất gì ────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .shell-main:has(.ws)::before,

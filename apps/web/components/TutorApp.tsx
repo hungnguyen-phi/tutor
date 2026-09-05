@@ -57,6 +57,7 @@ import {
 import { MathText } from "../lib/mathrender";
 import "katex/dist/katex.min.css";
 import {
+  giveAssent,
   diagnose,
   diagnoseWrong,
   answer,
@@ -227,6 +228,10 @@ export default function TutorApp() {
   const [earned, setEarned] = useState(0);
   const [finished, setFinished] = useState<EndResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // CẦN ĐỒNG THUẬN (05/09): server trả 403 consent_required khi mở bài. Trước
+  // đây rơi vào `error` → banner đỏ đầu trang với câu kỹ thuật "(consent)". Nay
+  // là pop-up riêng có nút "Em đồng ý" gọi thẳng consent/assent rồi mở lại bài.
+  const [canDongY, setCanDongY] = useState<null | { node?: PathNode; questionId?: string; wrongMode?: boolean; sauDongY?: boolean }>(null);
   // Hết phiên: banner riêng, đứng trên mọi thứ, có nút đăng nhập lại.
   const [expired, setExpired] = useState(false);
   /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
@@ -759,6 +764,7 @@ export default function TutorApp() {
         return;
       }
       setSes(d);
+      setCanDongY(null); // vào được bài = đồng thuận đã đủ, pop-up hết lý do tồn tại
       cheDoOnSaiRef.current = !!wrongMode;
       setQi(0);
       setEarned(0);
@@ -786,10 +792,35 @@ export default function TutorApp() {
         window.setTimeout(() => setBump(false), 700);
       }
     } catch (e) {
-      { if (isExpired(e)) setExpired(true); else setError(errText(e)); }
+      if (isExpired(e)) setExpired(true);
+      else if (e instanceof ApiError && e.code === "consent_required") {
+        // Giữ lại đúng bài đang mở để sau khi đồng ý thì vào thẳng, không bắt bấm lại.
+        setCanDongY((c) => ({ node, questionId, wrongMode, sauDongY: c?.sauDongY }));
+      } else setError(errText(e));
     } finally {
       setBusy(false);
     }
+  }
+
+  /** "Em đồng ý" trong pop-up đồng thuận → ghi assent rồi mở lại đúng bài. */
+  async function dongYRoiHoc() {
+    const c = canDongY;
+    if (!c || busy) return;
+    setBusy(true);
+    try {
+      await giveAssent();
+    } catch (e) {
+      setBusy(false);
+      if (isExpired(e)) setExpired(true); else setError(errText(e));
+      return;
+    }
+    setBusy(false);
+    // Đánh dấu đã ưng thuận: nếu server VẪN chặn (còn chờ bố/mẹ) thì pop-up
+    // đổi lời — không lặp lại nút "Em đồng ý" vô nghĩa.
+    setCanDongY({ ...c, sauDongY: true });
+    // start() thành công thì tự đóng pop-up (setCanDongY(null) sau setSes);
+    // còn bị chặn thì catch ở start() giữ pop-up với sauDongY=true → đổi lời.
+    await start(c.node, c.questionId, c.wrongMode);
   }
 
   /**
@@ -1653,12 +1684,49 @@ export default function TutorApp() {
                 Tạm gỡ qua cờ PRESENCE_ENABLED (lib/presence). */}
             {PRESENCE_ENABLED && <PresenceStrip peers={peers} />}
 
-            {error && (
-              <div className="banner err" style={{ marginBottom: 16 }}>
-                <AlertTriangle aria-hidden strokeWidth={2} />
-                <span>{error}</span>
+            {/* MỌI THÔNG BÁO = POP-UP (chủ dự án 05/09): không còn banner đỏ đầu
+                trang — sư tử nói, một nút "Đã hiểu". */}
+            <Sheet open={!!error} onClose={() => setError(null)} title="Sư tử nhắn bạn">
+              <div className="tb-pop">
+                <Lion mood="think" size={96} decorative />
+                <p className="tb-loi">{error}</p>
+                <button className="btn btn-block" data-autofocus onClick={() => setError(null)}>
+                  Đã hiểu
+                </button>
               </div>
-            )}
+            </Sheet>
+
+            {/* CẦN ĐỒNG THUẬN — pop-up có nút làm được việc, không phải câu kỹ thuật */}
+            <Sheet open={!!canDongY} onClose={() => setCanDongY(null)} title="Trước khi học">
+              <div className="tb-pop">
+                <Lion mood={canDongY?.sauDongY ? "reminder" : "greet"} size={110} decorative />
+                {canDongY?.sauDongY ? (
+                  <>
+                    <p className="tb-loi">
+                      Cảm ơn bạn đã đồng ý! Còn một bước: <b>bố/mẹ cũng cần đồng ý</b> cho bạn dùng
+                      AI Tutor (đồng thuận kép). Bạn nhắn thầy cô hoặc bố mẹ giúp nhé — xong là vào
+                      học được ngay.
+                    </p>
+                    <button className="btn btn-block" data-autofocus onClick={() => setCanDongY(null)}>
+                      Đã hiểu
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="tb-loi">
+                      AI Tutor sẽ ghi lại bài làm và câu trả lời của bạn để dạy đúng chỗ bạn cần.
+                      Bạn đồng ý để mình bắt đầu chứ?
+                    </p>
+                    <button className="btn btn-gold btn-block" data-autofocus disabled={busy} onClick={dongYRoiHoc}>
+                      Em đồng ý dùng AI Tutor
+                    </button>
+                    <button type="button" className="btn btn-quiet tiep-do-desau" onClick={() => setCanDongY(null)}>
+                      Để sau
+                    </button>
+                  </>
+                )}
+              </div>
+            </Sheet>
 
             {/* BUỔI HỌC DỞ — POP-UP mời quay lại đúng chỗ đã dừng (đổi từ thẻ
                 trong flow 18/08: lộ trình desktop toàn lớp nổi absolute nên thẻ
@@ -2372,12 +2440,16 @@ export default function TutorApp() {
       )}
 
 
-      {error && (
-        <div className="banner err" style={{ marginTop: 16 }}>
-          <AlertTriangle aria-hidden strokeWidth={2} />
-          <span>{error}</span>
+      {/* Thông báo trong bài = cùng pop-up như ngoài lộ trình (05/09) */}
+      <Sheet open={!!error} onClose={() => setError(null)} title="Sư tử nhắn bạn">
+        <div className="tb-pop">
+          <Lion mood="think" size={96} decorative />
+          <p className="tb-loi">{error}</p>
+          <button className="btn btn-block" data-autofocus onClick={() => setError(null)}>
+            Đã hiểu
+          </button>
         </div>
-      )}
+      </Sheet>
 
         </div>
 
