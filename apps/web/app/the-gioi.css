@@ -1010,6 +1010,89 @@
   .learn-main .path { padding-top: 96px; padding-bottom: 28px; }
 }
 
+/* ── 9h. GÓP Ý TRONG APP (05/09) — nút nổi + nút nhỏ dưới mỗi câu sư tử ────── */
+.gy-fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  box-shadow: 0 8px 20px -8px rgb(20 22 60 / 55%), 0 3px 0 var(--navy-press);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease);
+}
+.gy-fab svg { width: 17px; height: 17px; color: var(--gold); }
+.gy-fab:hover { transform: translateY(-2px); }
+.gy-fab:active { transform: translateY(1px); box-shadow: 0 4px 12px -6px rgb(20 22 60 / 55%), 0 1px 0 var(--navy-press); }
+@media (min-width: 900px) { .gy-fab { right: 22px; bottom: 20px; } }
+/* Trong bài học: nút nổi nhường chỗ cho thanh KIỂM TRA */
+body:has(.lfoot) .gy-fab { bottom: calc(var(--lfoot-h, 128px) + 12px); }
+
+.gy-bubble {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 9px;
+  border: 1px solid rgb(38 39 93 / 14%);
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 70%);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.bubble:hover .gy-bubble, .gy-bubble:focus-visible { opacity: 1; color: var(--navy); }
+
+.gy { display: flex; flex-direction: column; gap: 12px; }
+.gy-quote {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 4px solid var(--gold);
+  border-radius: 10px;
+  background: var(--gold-tint);
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow: auto;
+}
+.gy-quote-who { display: block; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold-text); margin-bottom: 2px; }
+.gy-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.gy-chips button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid rgb(38 39 93 / 16%);
+  border-radius: var(--r-pill);
+  background: #fff;
+  color: var(--ink-2);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.gy-chips button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.gy-text {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--pick-line);
+  border-radius: 14px;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.gy-text:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+
 /* ── 10. Giảm chuyển động: mọi thứ đứng yên, không mất gì ────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .shell-main:has(.ws)::before,

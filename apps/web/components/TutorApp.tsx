@@ -28,6 +28,7 @@ import AppShell, { type NavKey } from "./AppShell";
 import Hud from "./Hud";
 import SubjectPicker, { type SubjectInfo } from "./SubjectPicker";
 import Sheet from "./Sheet";
+import { GopYSheet, GopYFab, type GopYCtx } from "./GopY";
 import PresenceStrip from "./PresenceStrip";
 import LearningPath, { type PathNode } from "./LearningPath";
 import CameraShot from "./CameraShot";
@@ -232,6 +233,8 @@ export default function TutorApp() {
   // đây rơi vào `error` → banner đỏ đầu trang với câu kỹ thuật "(consent)". Nay
   // là pop-up riêng có nút "Em đồng ý" gọi thẳng consent/assent rồi mở lại bài.
   const [canDongY, setCanDongY] = useState<null | { node?: PathNode; questionId?: string; wrongMode?: boolean; sauDongY?: boolean }>(null);
+  // GÓP Ý TRONG APP (05/09): ctx ≠ null là đang mở phiếu; app tự điền bài/câu/lời sư tử.
+  const [gopY, setGopY] = useState<GopYCtx | null>(null);
   // Hết phiên: banner riêng, đứng trên mọi thứ, có nút đăng nhập lại.
   const [expired, setExpired] = useState(false);
   /** Đang thử nối lại phiên (lỗi #26) — nút phải khoá, kẻo bấm dồn ba lần. */
@@ -1624,6 +1627,8 @@ export default function TutorApp() {
             )}
             {view === "settings" && <SettingsView onBack={() => switchView("profile")} />}
           </div>
+          <GopYFab onOpen={() => setGopY({ page: view, subject })} />
+          <GopYSheet ctx={gopY} onClose={() => setGopY(null)} />
         </AppShell>
       );
     }
@@ -1727,6 +1732,9 @@ export default function TutorApp() {
                 )}
               </div>
             </Sheet>
+
+            <GopYFab onOpen={() => setGopY({ page: "learn", subject })} />
+            <GopYSheet ctx={gopY} onClose={() => setGopY(null)} />
 
             {/* BUỔI HỌC DỞ — POP-UP mời quay lại đúng chỗ đã dừng (đổi từ thẻ
                 trong flow 18/08: lộ trình desktop toàn lớp nổi absolute nên thẻ
@@ -2440,6 +2448,10 @@ export default function TutorApp() {
       )}
 
 
+      {/* Góp ý chung về bài (nút nổi) — góp ý riêng từng câu sư tử nằm ở bong bóng */}
+      <GopYFab onOpen={() => setGopY({ page: "lesson", subject, nodeKey: q?.nodeKey ?? ses?.node ?? null, questionId: q?.id ?? null })} />
+      <GopYSheet ctx={gopY} onClose={() => setGopY(null)} />
+
       {/* Thông báo trong bài = cùng pop-up như ngoài lộ trình (05/09) */}
       <Sheet open={!!error} onClose={() => setError(null)} title="Sư tử nhắn bạn">
         <div className="tb-pop">
@@ -2487,6 +2499,16 @@ export default function TutorApp() {
               <div key={i} className="bubble">
                 <div className="who">TUTOR</div>
                 <MathText>{m.text}</MathText>
+                {/* Góp ý ĐÚNG câu này — app kèm luôn lời sư tử, em chỉ gõ cảm nhận */}
+                <button
+                  type="button"
+                  className="gy-bubble"
+                  aria-label="Góp ý về câu này của sư tử"
+                  title="Góp ý về câu này"
+                  onClick={() => setGopY({ page: "lesson", subject, nodeKey: q?.nodeKey ?? ses?.node ?? null, questionId: q?.id ?? null, tutorText: m.text })}
+                >
+                  Góp ý
+                </button>
               </div>
             ) : m.role === "gate" || m.role === "hint" ? (
               /* MASCOT ĐÃ RA KHỎI KHUNG CHAT (chủ dự án 13/08): trước đây mỗi
